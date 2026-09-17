@@ -66,6 +66,26 @@
     margin:0;
     letter-spacing:-0.01em;
   }
+  .masthead-left .title-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .icon-btn{
+    width:30px;
+    height:30px;
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:1px solid var(--line-dark);
+    border-radius:6px;
+    background:transparent;
+    color:var(--muted);
+    cursor:pointer;
+  }
+  .icon-btn:hover{background:var(--panel-2); color:var(--ink); border-color:var(--ink);}
+  .icon-btn .icon{width:16px; height:16px;}
   .masthead-right{
     display:flex;
     align-items:center;
@@ -1424,10 +1444,12 @@
   <div class="masthead">
     <div class="masthead-left">
       <div class="eyebrow">WEEKLY REPORT AGENT</div>
-      <h1 id="deptTitle">AX마케팅부 주간업무</h1>
+      <div class="title-row">
+        <h1 id="deptTitle">AX마케팅부 주간업무</h1>
+        <button class="icon-btn" id="orgSettingsBtn" style="display:none;" aria-label="부서 설정" title="부서 설정"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+      </div>
     </div>
     <div class="masthead-right">
-      <button class="export-all" id="orgSettingsBtn" style="display:none;"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> 부서 설정</button>
       <div class="save-state" id="saveState"></div>
       <div class="week-nav">
         <button id="prevWeek">‹</button>
@@ -1496,8 +1518,9 @@
 <!-- 부서 관리자 비밀번호 확인 (부서 설정 수정 전 잠금 해제) -->
 <div class="order-overlay" id="orgAuthOverlay">
   <div class="order-panel">
-    <h3>관리자 확인</h3>
-    <div class="sub">부서 설정(팀·인원 구성)을 바꾸려면 관리자 비밀번호를 입력하세요.</div>
+    <h3>관리자 로그인</h3>
+    <div class="sub">부서 설정(팀·인원 구성)을 바꾸려면 관리자 이름과 비밀번호를 입력하세요.</div>
+    <input type="text" id="orgAuthName" class="org-input" placeholder="관리자 이름" autocomplete="off">
     <input type="password" id="orgAuthPassword" class="org-input" placeholder="관리자 비밀번호" autocomplete="off">
     <div class="org-error" id="orgAuthError" style="display:none;"></div>
     <div class="org-btn-row">
@@ -1507,7 +1530,7 @@
   </div>
 </div>
 
-<!-- 부서 설정: 팀/인원 구성, 관리자 비밀번호 설정 -->
+<!-- 부서 설정: 팀/인원 구성, 관리자 이름/비밀번호 설정 -->
 <div class="order-overlay" id="orgSetupOverlay">
   <div class="order-panel org-panel">
     <h3 id="orgSetupTitle">부서 설정</h3>
@@ -1517,7 +1540,9 @@
     <label class="org-label">팀 구성 (팀 이름과, 트렌드보고를 작성할 고정 인원 명단)</label>
     <div id="orgTeamsList"></div>
     <button class="btn ghost" id="orgAddTeamBtn" style="margin-top:8px;">+ 팀 추가</button>
-    <label class="org-label" style="margin-top:18px;">관리자 비밀번호<span id="orgPasswordHint" class="org-hint"></span></label>
+    <label class="org-label" style="margin-top:18px;">관리자 이름</label>
+    <input type="text" id="orgAdminName" class="org-input" placeholder="예: 홍길동">
+    <label class="org-label">관리자 비밀번호<span id="orgPasswordHint" class="org-hint"></span></label>
     <input type="password" id="orgAdminPassword" class="org-input" placeholder="새 비밀번호" autocomplete="new-password">
     <input type="password" id="orgAdminPasswordConfirm" class="org-input" placeholder="비밀번호 확인" autocomplete="new-password">
     <div class="org-error" id="orgSetupError" style="display:none;"></div>
@@ -3427,16 +3452,18 @@ function openOrgSetup(mode){
       '<ol style="margin:0; padding-left:18px; line-height:1.8;">' +
       '<li><b>부서명</b>을 적어주세요. (보고서 상단에 표시돼요)</li>' +
       '<li><b>팀</b>을 추가하고, 각 팀에 <b>트렌드보고를 쓸 사람 이름</b>을 한 줄에 한 명씩 적어주세요.</li>' +
-      '<li><b>관리자 비밀번호</b>를 정해주세요. 나중에 이 팀/인원 구성을 다시 바꾸려면 이 비밀번호가 필요해요 — 꼭 기억해두세요!</li>' +
+      '<li><b>관리자 이름과 비밀번호</b>를 정해주세요. 나중에 이 팀/인원 구성을 다시 바꾸려면 이 이름+비밀번호로 로그인해야 해요 — 꼭 기억해두세요!</li>' +
       '</ol>';
     document.getElementById('orgDeptName').value = '';
-    document.getElementById('orgPasswordHint').textContent = '(앞으로 팀 구성을 바꿀 때 필요해요 — 꼭 기억해두세요)';
+    document.getElementById('orgAdminName').value = '';
+    document.getElementById('orgPasswordHint').textContent = '(앞으로 팀 구성을 바꿀 때 이 이름+비밀번호로 로그인해요 — 꼭 기억해두세요)';
     orgFormTeams = [{ key: makeTeamKey(), label: '', rosterText: '' }];
   } else {
     document.getElementById('orgSetupTitle').textContent = '부서 설정 수정';
-    document.getElementById('orgSetupSub').textContent = '팀 이름이나 인원 명단을 바꿀 수 있어요.';
+    document.getElementById('orgSetupSub').textContent = '팀 이름이나 인원 명단, 관리자 정보를 바꿀 수 있어요.';
     document.getElementById('orgDeptName').value = DEPT_NAME;
-    document.getElementById('orgPasswordHint').textContent = '(바꾸지 않으려면 비워두세요)';
+    document.getElementById('orgAdminName').value = (orgConfigCache && orgConfigCache.adminName) || '';
+    document.getElementById('orgPasswordHint').textContent = '(비밀번호를 바꾸지 않으려면 비워두세요)';
     orgFormTeams = TEAMS.map(t => ({ key: t.key, label: t.label, rosterText: (ROSTER[t.key] || []).join('\n') }));
   }
   renderOrgFormTeams();
@@ -3449,6 +3476,7 @@ document.getElementById('orgSetupSave').addEventListener('click', async () => {
   const errEl = document.getElementById('orgSetupError');
   errEl.style.display = 'none';
   const deptName = document.getElementById('orgDeptName').value.trim();
+  const adminName = document.getElementById('orgAdminName').value.trim();
   const pw = document.getElementById('orgAdminPassword').value;
   const pwConfirm = document.getElementById('orgAdminPasswordConfirm').value;
   const cleanTeams = orgFormTeams
@@ -3457,6 +3485,7 @@ document.getElementById('orgSetupSave').addEventListener('click', async () => {
 
   if(!deptName){ errEl.textContent = '부서명을 입력해주세요.'; errEl.style.display = 'block'; return; }
   if(!cleanTeams.length){ errEl.textContent = '팀을 1개 이상 추가해주세요.'; errEl.style.display = 'block'; return; }
+  if(!adminName){ errEl.textContent = '관리자 이름을 입력해주세요.'; errEl.style.display = 'block'; return; }
   if(orgFormMode === 'create' && !pw){ errEl.textContent = '관리자 비밀번호를 정해주세요.'; errEl.style.display = 'block'; return; }
   if(pw && pw !== pwConfirm){ errEl.textContent = '비밀번호 확인이 일치하지 않아요.'; errEl.style.display = 'block'; return; }
 
@@ -3472,7 +3501,7 @@ document.getElementById('orgSetupSave').addEventListener('click', async () => {
   try{
     let adminPasswordHash = orgConfigCache ? orgConfigCache.adminPasswordHash : '';
     if(pw) adminPasswordHash = await sha256Hex(pw);
-    const cfg = { deptName, teams, roster, presentOrder: teams.map(t => t.key), adminPasswordHash };
+    const cfg = { deptName, teams, roster, presentOrder: teams.map(t => t.key), adminName, adminPasswordHash };
     await saveOrgConfig(cfg);
     // 팀 구성이 바뀌면 화면 곳곳의 상태가 꼬일 수 있어서, 새로고침해서 깨끗하게 다시 불러온다.
     location.reload();
@@ -3486,6 +3515,7 @@ document.getElementById('orgSetupSave').addEventListener('click', async () => {
 });
 
 document.getElementById('orgSettingsBtn').addEventListener('click', () => {
+  document.getElementById('orgAuthName').value = '';
   document.getElementById('orgAuthPassword').value = '';
   document.getElementById('orgAuthError').style.display = 'none';
   document.getElementById('orgAuthOverlay').style.display = 'flex';
@@ -3495,15 +3525,18 @@ document.getElementById('orgAuthCancel').addEventListener('click', () => {
 });
 document.getElementById('orgAuthSubmit').addEventListener('click', async () => {
   const errEl = document.getElementById('orgAuthError');
+  const name = document.getElementById('orgAuthName').value.trim();
   const pw = document.getElementById('orgAuthPassword').value;
   const hash = await sha256Hex(pw);
-  if(orgConfigCache && hash === orgConfigCache.adminPasswordHash){
+  // 기존에 관리자 이름이 없던(예전 방식으로 만들어진) 부서는 비밀번호만 맞으면 통과시켜서 잠기지 않게 한다.
+  const nameOk = !orgConfigCache || !orgConfigCache.adminName || name === orgConfigCache.adminName.trim();
+  if(orgConfigCache && nameOk && hash === orgConfigCache.adminPasswordHash){
     orgAdminUnlocked = true;
     errEl.style.display = 'none';
     document.getElementById('orgAuthOverlay').style.display = 'none';
     openOrgSetup('edit');
   } else {
-    errEl.textContent = '비밀번호가 맞지 않아요.';
+    errEl.textContent = '이름 또는 비밀번호가 맞지 않아요.';
     errEl.style.display = 'block';
   }
 });
