@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>총관리 대시보드</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  :root{
+    --black:#F1F3F5;
+    --panel:#ffffff;
+    --panel-2:#EFEFEF;
+    --line-dark:#dedad2;
+    --ink:#111111;
+    --muted:#545964;
+    --muted-2:#4D5764;
+    --line-strong:#111111;
+    --white:#161C26;
+    --accent:#FF571F;
+    --accent-dark:#E64813;
+    --danger:#EC3444;
+  }
+  *{box-sizing:border-box; font-family:'Pretendard', -apple-system, 'Apple SD Gothic Neo', sans-serif;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--black);
+    color:var(--white);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .admin-wrap{
+    max-width:640px;
+    margin:60px auto;
+    padding:0 20px;
+  }
+  .admin-title{
+    font-size:22px;
+    font-weight:800;
+    margin-bottom:6px;
+  }
+  .admin-sub{
+    font-size:13px;
+    color:var(--muted);
+    margin-bottom:28px;
+  }
+  #authBox{
+    background:var(--panel);
+    border:1px solid var(--line-dark);
+    border-radius:8px;
+    padding:24px;
+  }
+  #authBox h3{margin:0 0 6px;}
+  #authBox .sub{font-size:12px; color:var(--muted); margin-bottom:16px;}
+  .input{
+    width:100%;
+    box-sizing:border-box;
+    padding:10px 12px;
+    border:1px solid var(--line-dark);
+    border-radius:6px;
+    font-size:14px;
+    margin-bottom:8px;
+  }
+  .error{
+    color:var(--danger);
+    font-size:12px;
+    margin:6px 0;
+  }
+  .btn{
+    padding:10px 18px;
+    border-radius:6px;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:#fff;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .btn:hover{background:var(--accent); border-color:var(--accent);}
+  .btn.ghost{
+    background:transparent;
+    color:var(--ink);
+    border:1px solid var(--line-dark);
+  }
+  .btn.ghost:hover{border-color:var(--ink); background:var(--panel-2);}
+  .btn:disabled{opacity:0.5; cursor:default;}
+  #orgList .org-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    background:var(--panel);
+    border:1px solid var(--line-dark);
+    border-radius:8px;
+    padding:14px 16px;
+    margin-bottom:10px;
+  }
+  #orgList .org-row .info{flex:1; min-width:0;}
+  #orgList .org-row .name{font-weight:800; font-size:15px;}
+  #orgList .org-row .sub{font-size:12px; color:var(--muted-2); margin-top:4px;}
+  #orgList .org-row .btns{display:flex; gap:8px; flex:0 0 auto;}
+  #orgList a.btn{text-decoration:none; display:inline-block;}
+  .empty{font-size:13px; color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="admin-wrap">
+  <div class="admin-title">🗂 총관리 대시보드</div>
+  <div class="admin-sub">등록된 모든 부서를 한군데서 확인하고, 관리자 비밀번호를 초기화할 수 있어요.</div>
+
+  <div id="authBox">
+    <h3 id="authTitle">총관리자 확인</h3>
+    <div class="sub" id="authSub">비밀번호를 입력하세요.</div>
+    <input type="password" id="passwordInput" class="input" placeholder="총관리자 비밀번호" autocomplete="off">
+    <div class="error" id="authError" style="display:none;"></div>
+    <button class="btn" id="authBtn">확인</button>
+  </div>
+
+  <div id="orgList" style="display:none;"></div>
+</div>
+
+<script>
+// 이 파일이 쓰는 저장 백엔드는 weekly-report-agent.html과 완전히 동일합니다.
+// (worker.js에 목록 조회(list) 기능이 배포돼 있어야 부서 목록이 보여요.)
+const API_BASE_URL = "https://weekly-report.okgroup0425.workers.dev";
+// 이 새 Worker에 API_KEY 시크릿을 설정해두셨다면 여기에 같은 값을 넣어주세요. 안 쓰셨다면 빈 문자열로 두세요.
+const API_KEY = "027a9ffce49faa36daab9245698ea49e";
+const SUPERADMIN_KEY = '__superadmin_passwordhash__';
+
+function escapeHtml(str){
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+async function sha256Hex(text){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function fetchRawKV(key){
+  const res = await fetch(`${API_BASE_URL}/?key=${encodeURIComponent(key)}`, {
+    headers: { ...(API_KEY ? {'X-API-Key': API_KEY} : {}) }
+  });
+  if(!res.ok){
+    const text = await res.text().catch(()=>'');
+    throw new Error(`load failed: ${res.status} ${text}`);
+  }
+  const result = await res.json();
+  if(result && result.value){
+    try{ return JSON.parse(result.value); }catch(e){ return null; }
+  }
+  return null;
+}
+async function putRawKV(key, value){
+  const res = await fetch(`${API_BASE_URL}/?key=${encodeURIComponent(key)}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(API_KEY ? {'X-API-Key': API_KEY} : {})
+    },
+    body: JSON.stringify(value)
+  });
+  if(!res.ok){
+    const text = await res.text().catch(()=>'');
+    throw new Error(`save failed: ${res.status} ${text}`);
+  }
+  return true;
+}
+async function fetchOrgList(){
+  const res = await fetch(`${API_BASE_URL}/?list=1&prefix=${encodeURIComponent('orgconfig:')}`, {
+    headers: { ...(API_KEY ? {'X-API-Key': API_KEY} : {}) }
+  });
+  if(!res.ok){
+    const text = await res.text().catch(()=>'');
+    throw new Error(`list failed: ${res.status} ${text}`);
+  }
+  const data = await res.json();
+  return data.items || [];
+}
+
+// 이 admin.html이 있는 폴더 기준으로, 부서용 메인 도구(weekly-report-agent.html)를 연다.
+// 파일 이름이 다르면 아래 한 줄만 바꿔주세요.
+const MAIN_APP_FILENAME = 'weekly-report-agent.html';
+
+async function renderOrgList(){
+  const listBox = document.getElementById('orgList');
+  listBox.style.display = 'block';
+  listBox.innerHTML = '<div class="empty">불러오는 중...</div>';
+  let items;
+  try{
+    items = await fetchOrgList();
+  }catch(err){
+    console.error('org list failed', err);
+    listBox.innerHTML = '<div class="error">부서 목록을 불러오지 못했어요. Worker에 목록 조회(list) 기능이 배포됐는지 확인해주세요.</div>';
+    return;
+  }
+  if(!items.length){
+    listBox.innerHTML = '<div class="empty">아직 등록된 부서가 없어요. 각 부서에 <code>?org=부서코드</code> 링크를 보내주면 그쪽에서 처음 설정하면서 등록돼요.</div>';
+    return;
+  }
+  listBox.innerHTML = '';
+  items.forEach(item => {
+    let cfg = null;
+    try{ cfg = JSON.parse(item.value); }catch(e){}
+    if(!cfg || !item.key.startsWith('orgconfig:')) return;
+    const orgCode = item.key.slice('orgconfig:'.length);
+    const teamCount = (cfg.teams || []).length;
+    const personCount = Object.values(cfg.roster || {}).reduce((sum, arr) => sum + (arr ? arr.length : 0), 0);
+
+    const row = document.createElement('div');
+    row.className = 'org-row';
+
+    const info = document.createElement('div');
+    info.className = 'info';
+    info.innerHTML = `<div class="name">${escapeHtml(cfg.deptName || orgCode)}</div>
+      <div class="sub">?org=${escapeHtml(orgCode)} · 팀 ${teamCount}개 · 인원 ${personCount}명</div>`;
+    row.appendChild(info);
+
+    const btns = document.createElement('div');
+    btns.className = 'btns';
+
+    const openBtn = document.createElement('a');
+    openBtn.href = `./${MAIN_APP_FILENAME}?org=${encodeURIComponent(orgCode)}`;
+    openBtn.target = '_blank';
+    openBtn.className = 'btn ghost';
+    openBtn.textContent = '열기';
+    btns.appendChild(openBtn);
+
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'btn ghost';
+    resetBtn.textContent = '비밀번호 초기화';
+    resetBtn.addEventListener('click', async () => {
+      const newPw = prompt(`"${cfg.deptName || orgCode}" 부서의 새 관리자 비밀번호를 입력하세요.`);
+      if(!newPw) return;
+      resetBtn.disabled = true;
+      try{
+        const newHash = await sha256Hex(newPw);
+        cfg.adminPasswordHash = newHash;
+        await putRawKV(item.key, cfg);
+        alert('비밀번호를 초기화했어요. 새 비밀번호를 해당 부서 관리자에게 전달해주세요.');
+      }catch(err){
+        console.error('password reset failed', err);
+        alert('저장에 실패했어요. 잠시 후 다시 시도해주세요.');
+      }
+      resetBtn.disabled = false;
+    });
+    btns.appendChild(resetBtn);
+
+    row.appendChild(btns);
+    listBox.appendChild(row);
+  });
+}
+
+(async function init(){
+  const authBox = document.getElementById('authBox');
+  const errEl = document.getElementById('authError');
+  const titleEl = document.getElementById('authTitle');
+  const subEl = document.getElementById('authSub');
+
+  let existingHash = null;
+  try{ existingHash = await fetchRawKV(SUPERADMIN_KEY); }catch(err){ console.error('superadmin password load failed', err); }
+
+  if(!existingHash){
+    titleEl.textContent = '총관리자 비밀번호 설정 (최초 1회)';
+    subEl.textContent = '앞으로 이 대시보드에 들어올 때 쓸 비밀번호를 정해주세요.';
+  } else {
+    titleEl.textContent = '총관리자 확인';
+    subEl.textContent = '비밀번호를 입력하세요.';
+  }
+
+  document.getElementById('authBtn').addEventListener('click', async () => {
+    const pw = document.getElementById('passwordInput').value;
+    errEl.style.display = 'none';
+    if(!pw){ errEl.textContent = '비밀번호를 입력해주세요.'; errEl.style.display = 'block'; return; }
+    const hash = await sha256Hex(pw);
+    if(!existingHash){
+      try{
+        await putRawKV(SUPERADMIN_KEY, hash);
+        existingHash = hash;
+        authBox.style.display = 'none';
+        await renderOrgList();
+      }catch(err){
+        errEl.textContent = '저장에 실패했어요. 잠시 후 다시 시도해주세요.';
+        errEl.style.display = 'block';
+      }
+    } else if(hash === existingHash){
+      authBox.style.display = 'none';
+      await renderOrgList();
+    } else {
+      errEl.textContent = '비밀번호가 맞지 않아요.';
+      errEl.style.display = 'block';
+    }
+  });
+  document.getElementById('passwordInput').addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') document.getElementById('authBtn').click();
+  });
+})();
+</script>
+</body>
+</html>

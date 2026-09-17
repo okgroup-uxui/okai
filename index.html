@@ -1247,6 +1247,27 @@
     max-height:82vh;
     overflow-y:auto;
   }
+  .admin-wrap{
+    max-width:640px;
+    margin:60px auto;
+    padding:0 20px;
+  }
+  .admin-title{
+    font-size:22px;
+    font-weight:800;
+    margin-bottom:6px;
+  }
+  .admin-sub{
+    font-size:13px;
+    color:var(--muted);
+    margin-bottom:28px;
+  }
+  #orgMissingBox{
+    background:var(--panel);
+    border:1px solid var(--line-dark);
+    border-radius:8px;
+    padding:24px;
+  }
   .org-label{
     display:block;
     font-size:12px;
@@ -1373,6 +1394,31 @@
 </style>
 </head>
 <body>
+<!-- org 파라미터 없이 접속했을 때(전사용 공용 링크) 보여주는 안내 화면 -->
+<div id="orgMissingView" style="display:none;">
+  <div class="admin-wrap">
+    <div class="admin-title">🏢 부서를 선택해주세요</div>
+    <div class="admin-sub">이 도구는 부서별로 데이터가 나뉘어 있어요. 아래에서 부서를 골라 이동해주세요.</div>
+    <div id="orgMissingBox">
+      <label class="org-label" style="margin-top:0;">부서 선택</label>
+      <select id="orgMissingSelect" class="org-input">
+        <option value="">불러오는 중...</option>
+      </select>
+      <div class="org-btn-row" style="justify-content:flex-start;">
+        <button class="btn" id="orgMissingGoBtn">이동</button>
+      </div>
+
+      <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--line-dark);">
+        <label class="org-label" style="margin-top:0;">아직 없는 부서라면 (새 부서 코드로 처음 설정)</label>
+        <input type="text" id="orgMissingNewInput" class="org-input" placeholder="새 부서 코드 (예: hr, sales)">
+        <div class="org-btn-row" style="justify-content:flex-start;">
+          <button class="btn ghost" id="orgMissingNewBtn">새 부서 만들기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="app">
 
   <div class="masthead">
@@ -1518,9 +1564,9 @@ function icon(name){
 
 // ===== Backend config =====
 // 배포한 Cloudflare Worker 주소를 넣어주세요 (예: "https://weekly-report-storage.yourname.workers.dev")
-const API_BASE_URL = "https://report.okgroup0425.workers.dev";
-// worker.js에서 API_KEY 시크릿을 설정했다면 여기에 같은 값을 넣어주세요. 안 썼다면 빈 문자열로 두세요.
-const API_KEY = "28b1debcab5c9cd03429fff56532c5b7";
+const API_BASE_URL = "https://weekly-report.okgroup0425.workers.dev";
+// 이 새 Worker에 API_KEY 시크릿을 설정해두셨다면 여기에 같은 값을 넣어주세요. 안 쓰셨다면 빈 문자열로 두세요.
+const API_KEY = "027a9ffce49faa36daab9245698ea49e";
 
 // ===== 부서 구분 (다른 부서에서도 이 도구를 쓸 수 있도록) =====
 // 링크에 ?org=부서코드 를 붙이면 그 부서 전용 팀/명단/데이터로 동작합니다.
@@ -3376,10 +3422,15 @@ function openOrgSetup(mode){
   document.getElementById('orgSetupCancel').style.display = (mode === 'create') ? 'none' : '';
 
   if(mode === 'create'){
-    document.getElementById('orgSetupTitle').textContent = '부서 설정 (최초 1회)';
-    document.getElementById('orgSetupSub').textContent = '이 링크(부서)에서 처음 쓰는 거라, 팀과 인원, 관리자 비밀번호를 정해주세요.';
+    document.getElementById('orgSetupTitle').textContent = '👋 이 부서는 처음이네요 — 딱 3단계만 하면 돼요';
+    document.getElementById('orgSetupSub').innerHTML =
+      '<ol style="margin:0; padding-left:18px; line-height:1.8;">' +
+      '<li><b>부서명</b>을 적어주세요. (보고서 상단에 표시돼요)</li>' +
+      '<li><b>팀</b>을 추가하고, 각 팀에 <b>트렌드보고를 쓸 사람 이름</b>을 한 줄에 한 명씩 적어주세요.</li>' +
+      '<li><b>관리자 비밀번호</b>를 정해주세요. 나중에 이 팀/인원 구성을 다시 바꾸려면 이 비밀번호가 필요해요 — 꼭 기억해두세요!</li>' +
+      '</ol>';
     document.getElementById('orgDeptName').value = '';
-    document.getElementById('orgPasswordHint').textContent = '(앞으로 팀 구성을 바꿀 때 필요해요)';
+    document.getElementById('orgPasswordHint').textContent = '(앞으로 팀 구성을 바꿀 때 필요해요 — 꼭 기억해두세요)';
     orgFormTeams = [{ key: makeTeamKey(), label: '', rosterText: '' }];
   } else {
     document.getElementById('orgSetupTitle').textContent = '부서 설정 수정';
@@ -3457,20 +3508,80 @@ document.getElementById('orgAuthSubmit').addEventListener('click', async () => {
   }
 });
 
-(async function init(){
-  if(ORG){
-    document.getElementById('orgSettingsBtn').style.display = '';
-    const ready = await loadOrgConfig();
-    if(!ready){
-      // 이 부서는 아직 설정이 안 되어 있음 → 최초 설정 화면을 띄우고, 저장될 때까지 앱 로딩을 진행하지 않는다.
-      document.getElementById('saveState').textContent = '';
-      openOrgSetup('create');
+
+async function fetchOrgList(){
+  const res = await fetch(`${API_BASE_URL}/?list=1&prefix=${encodeURIComponent('orgconfig:')}`, {
+    headers: { ...(API_KEY ? {'X-API-Key': API_KEY} : {}) }
+  });
+  if(!res.ok){
+    const text = await res.text().catch(()=>'');
+    throw new Error(`list failed: ${res.status} ${text}`);
+  }
+  const data = await res.json();
+  return data.items || [];
+}
+
+async function populateOrgMissingSelect(){
+  const select = document.getElementById('orgMissingSelect');
+  try{
+    const items = await fetchOrgList();
+    const orgs = items
+      .map(item => {
+        let cfg = null;
+        try{ cfg = JSON.parse(item.value); }catch(e){}
+        if(!cfg || !item.key.startsWith('orgconfig:')) return null;
+        return { code: item.key.slice('orgconfig:'.length), name: cfg.deptName || item.key };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+
+    select.innerHTML = '';
+    if(!orgs.length){
+      select.innerHTML = '<option value="">등록된 부서가 아직 없어요</option>';
       return;
     }
-    document.title = `${DEPT_NAME} 주간업무`;
-    document.getElementById('deptTitle').textContent = `${DEPT_NAME} 주간업무`;
-    initStateSkeleton();
+    select.innerHTML = '<option value="">부서를 선택하세요</option>' +
+      orgs.map(o => `<option value="${escapeHtml(o.code)}">${escapeHtml(o.name)}</option>`).join('');
+  }catch(err){
+    console.error('org list load failed', err);
+    select.innerHTML = '<option value="">부서 목록을 불러오지 못했어요</option>';
   }
+}
+
+document.getElementById('orgMissingGoBtn').addEventListener('click', () => {
+  const code = document.getElementById('orgMissingSelect').value;
+  if(!code) return;
+  location.href = `${location.pathname}?org=${encodeURIComponent(code)}`;
+});
+document.getElementById('orgMissingNewBtn').addEventListener('click', () => {
+  const code = document.getElementById('orgMissingNewInput').value.trim();
+  if(!code) return;
+  location.href = `${location.pathname}?org=${encodeURIComponent(code)}`;
+});
+document.getElementById('orgMissingNewInput').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') document.getElementById('orgMissingNewBtn').click();
+});
+
+(async function init(){
+  if(!ORG){
+    // 전사용 공용 링크로, 부서 코드 없이 접속한 경우 → 부서 목록에서 고르는 안내 화면만 보여주고 끝낸다.
+    document.querySelector('.app').style.display = 'none';
+    document.getElementById('orgMissingView').style.display = 'block';
+    document.getElementById('saveState').textContent = '';
+    populateOrgMissingSelect();
+    return;
+  }
+  document.getElementById('orgSettingsBtn').style.display = '';
+  const ready = await loadOrgConfig();
+  if(!ready){
+    // 이 부서는 아직 설정이 안 되어 있음 → 최초 설정 화면을 띄우고, 저장될 때까지 앱 로딩을 진행하지 않는다.
+    document.getElementById('saveState').textContent = '';
+    openOrgSetup('create');
+    return;
+  }
+  document.title = `${DEPT_NAME} 주간업무`;
+  document.getElementById('deptTitle').textContent = `${DEPT_NAME} 주간업무`;
+  initStateSkeleton();
   await loadWeek();
   renderAll();
   document.getElementById('saveState').textContent = '';
