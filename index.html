@@ -2704,6 +2704,32 @@ async function fetchRawKV(key){
   }
   return null;
 }
+// 여러 키를 한 번의 요청으로 조회 (초기 로딩 속도 개선용). 반환값: { [key]: parsedValueOrNull }
+async function fetchRawKVMulti(keys){
+  if(!keys.length) return {};
+  const res = await fetch(`${API_BASE_URL}/?multiget=1`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(API_KEY ? {'X-API-Key': API_KEY} : {})
+    },
+    body: JSON.stringify({ keys })
+  });
+  if(!res.ok){
+    const text = await res.text().catch(()=>'');
+    throw new Error(`multiget failed: ${res.status} ${text}`);
+  }
+  const data = await res.json();
+  const out = {};
+  (data.items || []).forEach(item => {
+    if(item.value){
+      try{ out[item.key] = JSON.parse(item.value); }catch(e){ out[item.key] = null; }
+    } else {
+      out[item.key] = null;
+    }
+  });
+  return out;
+}
 async function putRawKV(key, value){
   const res = await fetch(`${API_BASE_URL}/?key=${encodeURIComponent(key)}`, {
     method: 'PUT',
@@ -2918,7 +2944,12 @@ async function loadWeek(){
     TEAMS.forEach(t => (ROSTER[t.key] || []).forEach(name => trendSuffixes.push(`trend:${t.key}:${name}`)));
     const allSuffixes = [...workSuffixes, ...trendSuffixes, 'order'];
 
-    const values = await Promise.all(allSuffixes.map(suf => fetchKV(wk, suf)));
+    const values = await (async () => {
+      // 요청 여러 개로 나눠 보내던 걸 한 번에(multiget) 받아와서 초기 로딩을 빠르게 한다.
+      const fullKeys = allSuffixes.map(suf => kvKey(wk, suf));
+      const resultMap = await fetchRawKVMulti(fullKeys);
+      return fullKeys.map(k => (k in resultMap ? resultMap[k] : null));
+    })();
 
     let anyFound = false;
     const newState = {};
@@ -3226,17 +3257,18 @@ function buildPresentHtmlForTrend(teamKey, entry){
 
   const outerDir = s.slideLayout === 'column' ? 'column' : 'row';
   const imgBasisStyle = outerDir === 'row' ? 'flex:0 0 46%;' : '';
+  const imgHeight = '420px';
   html += `<div class="p-scroll-area" style="flex:1; min-height:0; overflow-y:auto;">`;
   html += `<div style="display:flex; flex-direction:${outerDir}; gap:32px; align-items:${outerDir === 'row' ? 'flex-start' : 'stretch'};">`;
   if(images.length === 1){
     html += `<div style="${imgBasisStyle} min-width:0;">
-      <img src="${images[0]}" style="display:block; width:100%; height:auto; object-fit:contain; border-radius:4px;">
+      <img src="${images[0]}" style="display:block; width:100%; height:${imgHeight}; object-fit:contain; border-radius:4px;">
     </div>`;
   } else if(images.length > 1){
     const dir = s.imageLayout === 'column' ? 'column' : 'row';
     html += `<div style="${imgBasisStyle} display:flex; flex-direction:${dir}; gap:10px; min-width:0;">`;
     images.forEach(src => {
-      html += `<img src="${src}" style="flex:1; min-width:0; width:100%; height:auto; object-fit:contain; background:#1a1a1a; border-radius:4px;">`;
+      html += `<img src="${src}" style="flex:1; min-width:0; width:100%; height:${imgHeight}; object-fit:contain; background:#1a1a1a; border-radius:4px;">`;
     });
     html += `</div>`;
   }
