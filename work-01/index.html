@@ -1,0 +1,3809 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>읏맨 직관 가이드</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* ============================================================
+     디자인 토큰 — 리퀴드 글래스 (라이트)
+     ============================================================ */
+  :root{
+    /* OK저축은행 Figma 라이브러리(Semantic/Palette) 색상 그대로 사용 */
+    --bg:#F7F7F9;          /* Ink/100 */
+    --ink:#161C26;         /* Ink/800 */
+    --ink-dim:#545964;     /* Ink/700 */
+    --ink-faint:#8C94A2;   /* Ink/450 */
+    --ink-line:#E9EBF0;    /* Ink/250, Line/250 */
+
+    --brand:#FF571F;       /* Semantic Point/Normal */
+    --brand-dark:#E64813;  /* Semantic Point/Strong */
+    --brand-light:#FF7A4E; /* Palette Orange/500 */
+    --brand-lighter:#FF9876; /* Palette Orange/400 — 배경 오브용 */
+    --secondary:#161C26;   /* Semantic Secondary */
+
+    --warning:#FFD339;     /* Status/Warning */
+    --warning-text:#AD7E04;/* Palette Yellow/800 — 경고 텍스트용 */
+    --positive:#5FD14C;    /* Status/Positive */
+    --positive-text:#137C09; /* Palette Green/700 — 성공 텍스트용 */
+    --ok:var(--positive-text);
+    --negative:#EC3444;    /* Status/Negative */
+    --line3:#BB8C00;       /* 부산 도시철도 3호선 고유색(황갈색) */
+
+    --glass:rgba(255,255,255,0.55);
+    --glass-strong:rgba(255,255,255,0.72);
+    --glass-tint:rgba(255,87,31,0.13);
+    --glass-warn:rgba(255,211,57,0.22);
+    --glass-border:rgba(22,28,38,0.07);
+    --glass-border-strong:rgba(255,255,255,0.9);
+    --glass-shadow:0 10px 30px rgba(22,28,38,0.10);
+    --blur-lg:26px;
+    --blur-sm:14px;
+
+    /* 뉴모피즘 — 배경과 같은 재질에서 파인/튀어나온 느낌을 주는 부드러운 이중 그림자 */
+    --neu-in:inset 3px 3px 7px rgba(120,80,50,.10), inset -3px -3px 7px rgba(255,255,255,.8);
+    --neu-out:4px 4px 10px rgba(120,80,50,.08), -4px -4px 10px rgba(255,255,255,.85);
+    --neu-out-sm:2px 2px 6px rgba(120,80,50,.08), -2px -2px 6px rgba(255,255,255,.8);
+
+    --ease-spring:cubic-bezier(.34,1.56,.64,1);
+    --ease-out:cubic-bezier(.16,1,.3,1);
+    --ease-soft:cubic-bezier(.4,0,.2,1);
+
+    --court-h:env(safe-area-inset-top);
+    --court-b:env(safe-area-inset-bottom);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overscroll-behavior-y:none;
+    min-height:100vh;
+    position:relative;
+  }
+  button{font-family:inherit; -webkit-appearance:none; appearance:none; border:none; background:none; color:inherit; cursor:pointer;}
+  input,textarea,select{font-family:inherit;}
+  ::selection{background:var(--brand); color:#fff;}
+
+  /* ============================================================
+     스플래시 — 앱 진입 시 선수 캐릭터가 통통 튀며 등장하는 화면
+     ============================================================ */
+  .splash{
+    position:fixed; inset:0; z-index:500;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:radial-gradient(circle at 50% 18%, var(--brand-lighter) 0%, transparent 58%), var(--bg);
+    padding:40px 20px; text-align:center; overflow:hidden;
+    transition:opacity .5s var(--ease-out);
+  }
+  .splash.hide{opacity:0; pointer-events:none;}
+  .splash__ball{font-size:32px; line-height:1; animation:splashBallBounce 1.1s var(--ease-spring) infinite;; letter-spacing:-0.04em; font-weight:700}
+  @keyframes splashBallBounce{ 0%,100%{transform:translateY(0) rotate(0deg);} 50%{transform:translateY(-14px) rotate(180deg);} }
+  .splash__title{font-size:20px; font-weight:600; color:var(--ink); margin:12px 0 2px; line-height:28px}
+  .splash__sub{font-size:12px; color:var(--brand-dark); font-weight:600; line-height:18px}
+  .splash__chars{
+    display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-end; gap:0 2px;
+    max-width:420px; margin:8px 0 24px;
+  }
+  .splash__char{
+    width:54px; height:auto; opacity:0; flex-shrink:0;
+    transform:translateY(16px) scale(.6) rotate(var(--rot,0deg));
+    animation:splashCharIn .55s var(--ease-spring) forwards;
+    animation-delay:var(--delay,0s);
+    filter:drop-shadow(0 4px 6px rgba(22,18,12,.16));
+  }
+  @keyframes splashCharIn{ to{ opacity:1; transform:translateY(0) scale(1) rotate(var(--rot,0deg)); } }
+  .splash__loading{display:flex; gap:6px;}
+  .splash__dot{width:7px; height:7px; border-radius:50%; background:var(--brand); opacity:.35; animation:splashDot 1.2s ease-in-out infinite;}
+  .splash__dot:nth-child(2){animation-delay:.15s;}
+  .splash__dot:nth-child(3){animation-delay:.3s;}
+  @keyframes splashDot{ 0%,100%{opacity:.35; transform:scale(1);} 40%{opacity:1; transform:scale(1.3);} }
+  .splash__tap{
+    position:absolute; bottom:calc(28px + var(--court-b)); font-size:12px; color:var(--ink-faint); font-weight:600;
+    opacity:0; animation:splashTapIn .4s var(--ease-out) 2s forwards; line-height:18px}
+  @keyframes splashTapIn{ to{opacity:1;} }
+
+  /* ============================================================
+     배경 — 흐르는 빛 덩어리 (리퀴드 레이어)
+     ============================================================ */
+  .bg-orbs{
+    position:fixed; inset:0; z-index:0;
+    overflow:hidden; pointer-events:none;
+  }
+  .bg-orbs .orb{
+    position:absolute; border-radius:50%;
+    filter:blur(70px); mix-blend-mode:multiply;
+    will-change:transform;
+  }
+  .orb.o1{
+    width:70vmax; height:70vmax; top:-32%; left:-26%;
+    background:radial-gradient(circle at 40% 40%, var(--brand-lighter) 0%, transparent 68%);
+    opacity:.4;
+    animation:float1 24s var(--ease-soft) infinite;
+  }
+  .orb.o2{
+    width:56vmax; height:56vmax; bottom:-24%; right:-20%;
+    background:radial-gradient(circle at 60% 60%, var(--secondary) 0%, transparent 68%);
+    opacity:.14;
+    animation:float2 28s var(--ease-soft) infinite;
+  }
+  .orb.o3{
+    width:46vmax; height:46vmax; top:38%; left:46%;
+    background:radial-gradient(circle at 50% 50%, var(--brand) 0%, transparent 70%);
+    opacity:.22;
+    animation:float3 32s var(--ease-soft) infinite;
+  }
+  @keyframes float1{
+    0%,100%{transform:translate(0,0) scale(1);}
+    50%{transform:translate(9%,7%) scale(1.1);}
+  }
+  @keyframes float2{
+    0%,100%{transform:translate(0,0) scale(1);}
+    50%{transform:translate(-8%,-9%) scale(1.12);}
+  }
+  @keyframes float3{
+    0%,100%{transform:translate(-50%,0) scale(1);}
+    50%{transform:translate(-46%,-6%) scale(1.15);}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .bg-orbs .orb{animation:none;}
+  }
+
+  /* ============================================================
+     레이아웃 셸
+     ============================================================ */
+  #app{
+    max-width:520px;
+    margin:0 auto;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    z-index:1;
+    background:transparent;
+  }
+  /* 모바일 기본(휴대폰 실사용), 태블릿/PC에서는 카드 형태로 여백을 두고 살짝 띄워 보여줘요 */
+  @media (min-width:640px){
+    #app{
+      max-width:480px;
+      margin:28px auto;
+      min-height:calc(100vh - 56px);
+      border-radius:32px;
+      box-shadow:0 30px 80px rgba(22,28,38,.16), 0 1px 0 rgba(255,255,255,.6) inset;
+      background:var(--bg);
+    }
+    .tabbar{max-width:452px;}
+    .toast{max-width:448px;}
+  }
+
+  .brand-header{
+    text-align:center;
+    padding:calc(14px + var(--court-h)) 0 2px;
+  }
+  .brand-header img{
+    height:30px;
+    width:auto;
+    display:inline-block;
+  }
+  .matchbar{
+    margin:10px 12px 0;
+    padding:14px 16px;
+    border-radius:20px;
+    position:sticky; top:calc(8px + var(--court-h)); z-index:20;
+    background:var(--glass-strong);
+    backdrop-filter:blur(var(--blur-lg)) saturate(180%);
+    -webkit-backdrop-filter:blur(var(--blur-lg)) saturate(180%);
+    border:1px solid var(--glass-border-strong);
+    box-shadow:var(--glass-shadow);
+  }
+  .matchbar__row{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .matchbar__teams{font-size:16px; font-weight:600; display:flex; align-items:baseline; gap:8px; min-width:0; line-height:24px}
+  .matchbar__teams span.vs{color:var(--ink-faint); font-weight:500; font-size:12px; line-height:18px}
+  .matchbar__teams .home{color:var(--brand-dark);}
+  .matchbar__meta{font-size:12px; color:var(--ink-dim); margin-top:3px; display:flex; gap:6px; align-items:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:18px}
+  .matchbar__badge{
+    flex-shrink:0; font-size:12px; font-weight:600; color:var(--brand-dark);
+    border:1px solid rgba(255,87,31,0.3); padding:5px 10px; border-radius:100px;
+    background:rgba(255,87,31,0.1);
+    animation:pulseGlow 2.6s ease-in-out infinite; line-height:18px}
+  @keyframes pulseGlow{
+    0%,100%{box-shadow:0 0 0 0 rgba(255,87,31,0.22);}
+    50%{box-shadow:0 0 0 5px rgba(255,87,31,0);}
+  }
+
+  .view{flex:1; padding:20px 16px 116px; display:none;}
+  .view.active{display:block; animation:viewIn .45s var(--ease-out);}
+  @keyframes viewIn{
+    from{opacity:0; transform:translateY(10px) scale(.985); filter:blur(6px);}
+    to{opacity:1; transform:translateY(0) scale(1); filter:blur(0);}
+  }
+
+  h1.pagehead{font-size:22px; font-weight:600; margin:0 0 4px; color:var(--ink); line-height:30px}
+  p.pagesub{font-size:14px; color:var(--ink-dim); margin:0 0 22px; line-height:22px}
+
+  .tabbar{
+    position:fixed; left:50%; transform:translateX(-50%);
+    bottom:calc(14px + var(--court-b));
+    width:calc(100% - 28px); max-width:492px;
+    display:flex; gap:2px; padding:6px; border-radius:26px;
+    background:var(--glass-strong);
+    backdrop-filter:blur(var(--blur-lg)) saturate(180%);
+    -webkit-backdrop-filter:blur(var(--blur-lg)) saturate(180%);
+    border:1px solid var(--glass-border-strong);
+    box-shadow:var(--glass-shadow);
+    z-index:30;
+  }
+  .tab-pill{
+    position:absolute; top:6px; bottom:6px; left:6px;
+    width:calc((100% - 12px) / 5); border-radius:19px;
+    background:linear-gradient(155deg, rgba(255,122,78,0.5), rgba(255,87,31,0.32));
+    border:1px solid rgba(255,140,90,0.5);
+    box-shadow:0 4px 14px rgba(255,87,31,0.24);
+    transition:transform .5s var(--ease-spring);
+    z-index:0;
+  }
+  .tabbar__btn{
+    position:relative; z-index:1; flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
+    padding:7px 2px; transition:transform .3s var(--ease-spring);
+  }
+  .tabbar__btn svg{width:21px; height:21px; stroke:var(--ink-faint); fill:none; stroke-width:1.5; transition:stroke .25s var(--ease-out), transform .35s var(--ease-spring);}
+  .tabbar__btn span{font-size:12px; font-weight:600; color:var(--ink-faint); transition:color .25s var(--ease-out); line-height:18px}
+  .tabbar__btn.active svg{stroke:var(--brand-dark); transform:translateY(-1px) scale(1.06);}
+  .tabbar__btn.active span{color:var(--brand-dark);}
+  .tabbar__btn:active{transform:scale(.9);}
+
+  /* ============================================================
+     응원 버튼 — 사람들 눈에 띄게 계속 은은히 펄스하는 플로팅 버튼
+     ============================================================ */
+  .cheer-fab{
+    position:fixed; right:16px; bottom:calc(92px + var(--court-b)); z-index:35;
+    width:58px; height:58px; border-radius:50%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:linear-gradient(150deg, var(--brand-light), var(--brand) 55%, var(--brand-dark));
+    box-shadow:0 10px 26px rgba(255,87,31,.42);
+    border:none; color:#fff; cursor:pointer;
+    transition:transform .18s var(--ease-spring);
+  }
+  .cheer-fab:active{transform:scale(.86);}
+  .cheer-fab.tapped{animation:cheerTapBounce .5s var(--ease-spring);}
+  @keyframes cheerTapBounce{
+    0%{transform:scale(1);} 30%{transform:scale(1.22) rotate(-6deg);} 55%{transform:scale(.94) rotate(4deg);} 100%{transform:scale(1);}
+  }
+  .cheer-fab__emoji{font-size:22px; line-height:1;}
+  .cheer-fab__label{font-size:12px; font-weight:600; margin-top:1px; line-height:18px}
+  .cheer-fab__ring{
+    position:absolute; inset:-2px; border-radius:50%;
+    border:2px solid rgba(255,87,31,.55);
+    animation:cheerPulse 2.4s var(--ease-out) infinite;
+    pointer-events:none;
+  }
+  .cheer-fab__ring--2{animation-delay:1.2s;}
+  @keyframes cheerPulse{
+    0%{transform:scale(.9); opacity:.85;}
+    75%{transform:scale(1.55); opacity:0;}
+    100%{opacity:0;}
+  }
+  .cheer-fab__badge{
+    position:absolute; top:-3px; right:-3px; min-width:19px; height:19px; padding:0 5px;
+    border-radius:100px; background:#fff; color:var(--brand-dark);
+    font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 6px rgba(0,0,0,.18);
+    transform:scale(0); transition:transform .3s var(--ease-spring); line-height:18px}
+  .cheer-fab__badge.show{transform:scale(1);}
+
+  .cheer-phrase{
+    position:fixed; right:14px; bottom:calc(158px + var(--court-b)); z-index:36;
+    background:var(--ink); color:#fff; font-size:12px; font-weight:600;
+    padding:8px 14px; border-radius:100px; white-space:nowrap;
+    opacity:0; transform:translateY(6px) scale(.92);
+    transition:opacity .25s var(--ease-out), transform .25s var(--ease-out);
+    pointer-events:none; line-height:18px}
+  .cheer-phrase.show{opacity:1; transform:translateY(0) scale(1);}
+
+  .cheer-particle{
+    position:fixed; z-index:34; border-radius:2px; pointer-events:none;
+    animation:cheerFly .85s var(--ease-out) forwards;
+  }
+  @keyframes cheerFly{
+    to{ transform:translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(.4); opacity:0; }
+  }
+  @media (min-width:640px){
+    .cheer-fab{right:calc(50% - 240px + 16px);}
+    .cheer-phrase{right:calc(50% - 240px + 14px);}
+  }
+
+  .section-label{display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; color:var(--brand-dark); margin:28px 0 12px; line-height:18px}
+  .section-label:first-child{margin-top:0;}
+  .section-label .num{
+    width:18px; height:18px; border-radius:6px; background:var(--brand); color:#fff;
+    font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; flex-shrink:0; line-height:18px}
+
+  .card{
+    background:var(--glass);
+    backdrop-filter:blur(var(--blur-lg)) saturate(160%);
+    -webkit-backdrop-filter:blur(var(--blur-lg)) saturate(160%);
+    border:1px solid var(--glass-border-strong);
+    box-shadow:var(--glass-shadow);
+    border-radius:18px; padding:16px; position:relative; overflow:hidden;
+  }
+  .card::before{
+    content:''; position:absolute; top:0; left:8%; right:8%; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,.9), transparent);
+    opacity:.7;
+  }
+  .card + .card{margin-top:10px;}
+
+  /* ============================================================
+     오늘의 직관 미션 — 히어로 카드 (브랜드 그라디언트로 다른 카드와 차별화)
+     ============================================================ */
+  .mission-card{
+    background:linear-gradient(155deg, var(--brand-light), var(--brand) 55%, var(--brand-dark));
+    border-radius:20px; padding:18px; margin-bottom:18px; position:relative; overflow:hidden;
+    box-shadow:0 14px 34px rgba(255,87,31,.28);
+  }
+  .mission-card__head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px;}
+  .mission-card__title{font-size:14px; font-weight:600; color:#fff; margin:0; line-height:22px}
+  .mission-card__sub{font-size:12px; color:rgba(255,255,255,.85); margin:2px 0 0; font-weight:600; line-height:18px}
+  .mission-ring{position:relative; width:44px; height:44px; flex-shrink:0;}
+  .mission-ring svg{width:44px; height:44px; transform:rotate(-90deg);}
+  .mission-ring__bg{fill:none; stroke:rgba(255,255,255,.28); stroke-width:4;}
+  .mission-ring__fg{fill:none; stroke:#fff; stroke-width:4; stroke-linecap:round; transition:stroke-dashoffset .5s var(--ease-spring);}
+  .mission-ring__label{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:600; color:#fff; line-height:18px}
+  .mission-list{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+  .mission-item{
+    position:relative;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    padding:10px 4px; border-radius:14px; background:rgba(255,255,255,.14);
+    border:none; box-shadow:none;
+    cursor:pointer;
+    transition:background .2s var(--ease-out), transform .15s var(--ease-spring);
+  }
+  .mission-item:active{transform:scale(.94);}
+  .mission-item__icon{font-size:18px; line-height:1; opacity:.95;}
+  .mission-item__label{font-size:12px; font-weight:600; color:rgba(255,255,255,.92); text-align:center; line-height:18px}
+  .mission-item__check{
+    position:absolute; top:5px; right:5px; width:15px; height:15px; border-radius:50%;
+    background:#fff; color:var(--brand-dark); display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 5px rgba(0,0,0,.18);
+  }
+  .mission-item__check svg{width:9px; height:9px;}
+  .mission-item.done{background:rgba(255,255,255,.94);}
+  .mission-item.done .mission-item__label{color:var(--brand-dark);}
+  .mission-item.done .mission-item__icon{opacity:1;}
+  .mission-complete-banner{
+    margin-top:12px; padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.95);
+    color:var(--brand-dark); font-size:12px; font-weight:600; text-align:center;
+    opacity:0; transform:translateY(-4px); transition:opacity .3s var(--ease-out), transform .3s var(--ease-out); line-height:18px}
+  .mission-complete-banner.show{opacity:1; transform:translateY(0);}
+
+  /* Solid/CTA, Solid/Third — OK저축은행 Figma Library "Guide/Button" 스펙 준수 (radius 16, height 56, HeadLine1/SemiBold 18px) */
+  .btn{
+    display:flex; align-items:center; justify-content:center; height:56px; padding:0 16px; border-radius:16px;
+    font-size:18px; font-weight:600; color:#fff;
+    background:var(--brand);
+    border:none;
+    box-shadow:0 8px 20px rgba(255,87,31,.22);
+    transition:transform .18s var(--ease-out), background .15s var(--ease-out), box-shadow .18s var(--ease-out), opacity .3s var(--ease-out); line-height:26px}
+  .btn:active{transform:scale(0.96); background:var(--brand-dark); box-shadow:0 3px 10px rgba(255,87,31,.2);}
+  .btn.full{width:100%;}
+  .btn[disabled]{opacity:.5; box-shadow:none; pointer-events:none;}
+  .btn.ghost{
+    background:var(--ink-line); border:none; color:var(--ink-dim); box-shadow:none;
+  }
+  .btn.ghost:active{background:var(--ink-line); box-shadow:none;}
+  .btn.small{height:44px; padding:0 12px; font-size:14px; border-radius:12px; line-height:20px}
+
+  .pill{
+    display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600; color:var(--ink-dim);
+    background:var(--glass); border:1px solid var(--glass-border-strong); backdrop-filter:blur(var(--blur-sm));
+    padding:5px 10px; border-radius:100px; line-height:18px}
+
+  /* ---- 사진/플레이스홀더 공통 ---- */
+  .photo-box{
+    width:100%; border-radius:14px; overflow:hidden; position:relative;
+    background:var(--glass); border:1px solid var(--glass-border-strong);
+  }
+  .photo-box img{width:100%; height:100%; object-fit:cover; display:block;}
+  .photo-box.placeholder{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    border-style:dashed; border-color:rgba(20,18,15,0.16);
+    color:var(--ink-faint); font-size:12px; font-weight:600; text-align:center; padding:14px; line-height:18px}
+  .photo-box.placeholder svg{width:24px; height:24px; stroke:var(--ink-faint); stroke-width:1.5;}
+
+  /* ============================================================
+     1. 오시는 길 — 동선 카드(사진 포함)
+     ============================================================ */
+  .step-card{
+    background:var(--glass);
+    backdrop-filter:blur(var(--blur-lg)) saturate(150%);
+    -webkit-backdrop-filter:blur(var(--blur-lg)) saturate(150%);
+    border:1px solid var(--glass-border-strong);
+    box-shadow:var(--glass-shadow);
+    border-radius:16px; padding:14px; margin-bottom:10px;
+    opacity:0; animation:itemIn .5s var(--ease-out) forwards;
+  }
+  .step-card:nth-of-type(1){animation-delay:.05s;}
+  .step-card:nth-of-type(2){animation-delay:.13s;}
+  .step-card:nth-of-type(3){animation-delay:.21s;}
+  @keyframes itemIn{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+  .step-card__head{display:flex; gap:12px; margin-bottom:12px;}
+  .step__num{
+    width:26px; height:26px; border-radius:9px; background:var(--glass); border:1px solid var(--glass-border-strong);
+    backdrop-filter:blur(var(--blur-sm)); color:var(--brand-dark); font-size:12px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; line-height:18px}
+  .step__title{font-size:14px; font-weight:600; margin:0 0 3px; color:var(--ink); line-height:22px}
+  .step__desc{font-size:12px; color:var(--ink-dim); margin:0; line-height:18px}
+  .step-card .photo-box{aspect-ratio:16/9;}
+
+  /* ---- 경기장 배치도 ---- */
+  .venue-map.photo-box{aspect-ratio:16/10; box-shadow:var(--glass-shadow);}
+  .venue-map.placeholder{padding:30px 16px;}
+  .venue-map.placeholder svg{width:30px; height:30px;}
+
+  /* ============================================================
+     2. 내 자리 찾기
+     ============================================================ */
+  .level-tabs{
+    position:relative; display:flex; gap:4px; margin:14px 0 10px; padding:4px; border-radius:14px;
+    background:rgba(255,255,255,.28);
+    box-shadow:none;
+  }
+  .level-tab{
+    flex:1; padding:9px 6px; border-radius:10px; font-size:12px; font-weight:600; color:var(--ink-dim);
+    background:none; border:none;
+    transition:color .25s, transform .2s var(--ease-spring), background .25s, box-shadow .25s; line-height:18px}
+  .level-tab:active{transform:scale(.96);}
+  .level-tab.active{
+    color:var(--brand-dark);
+    background:rgba(255,255,255,.85);
+    box-shadow:2px 2px 5px rgba(120,80,50,.1), -1px -1px 3px rgba(255,255,255,.8);
+  }
+
+  .zone-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:9px; margin:0 0 14px;}
+  .zone-btn{
+    position:relative; aspect-ratio:1; border-radius:14px; background:rgba(255,255,255,.32); border:none;
+    box-shadow:var(--neu-out-sm);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-size:12px; font-weight:600; color:var(--ink-dim); gap:3px;
+    transition:transform .3s var(--ease-spring), background .25s, box-shadow .25s; line-height:18px}
+  .zone-btn .dot{width:7px; height:7px; border-radius:50%; flex-shrink:0;}
+  .zone-btn .tag{font-size:12px; font-weight:600; color:var(--brand-dark); line-height:18px}
+  .zone-btn:active{transform:scale(.92);}
+  .zone-btn.active{
+    background:linear-gradient(155deg, rgba(255,122,78,.4), rgba(255,87,31,.18));
+    color:var(--brand-dark); transform:translateY(-3px);
+    box-shadow:0 10px 20px rgba(255,87,31,.2);
+  }
+  .zone-btn.active .tag{color:var(--brand-dark);}
+
+  .zone-detail{
+    margin-top:12px; padding:14px; border-radius:14px; max-height:0; opacity:0; overflow:hidden;
+    background:rgba(255,135,80,.1); box-shadow:none;
+    font-size:14px; color:var(--ink);
+    transition:max-height .4s var(--ease-out), opacity .3s var(--ease-out), padding .4s var(--ease-out), margin .4s var(--ease-out); line-height:22px}
+  .zone-detail.show{max-height:200px; opacity:1;}
+  .zone-detail b{color:var(--brand-dark);}
+
+  .divider-text{
+    display:flex; align-items:center; gap:10px; margin:22px 0 14px;
+    font-size:12px; font-weight:600; color:var(--ink-faint); line-height:18px}
+  .divider-text::before, .divider-text::after{content:''; flex:1; height:1px; background:rgba(20,18,15,0.1);}
+
+  /* ---- 내 자리 가는 길 (팝업 내부) ---- */
+  .route-map{
+    position:relative; width:100%; aspect-ratio:1560/1420; border-radius:14px;
+    overflow:hidden; margin-bottom:16px; border:1px solid var(--glass-border-strong);
+    box-shadow:var(--glass-shadow); background:#eee;
+  }
+  .route-map img{width:100%; height:100%; object-fit:contain; display:block;}
+  .route-map-overlay{position:absolute; inset:0; width:100%; height:100%; z-index:1;}
+  .route-map-overlay polyline{fill:none; stroke:var(--brand-dark); stroke-width:.7; stroke-linecap:round; stroke-linejoin:round;}
+  .route-map-overlay polyline.flowing{stroke-dasharray:2 1.6; animation:routeDash 1s linear infinite;}
+  @keyframes routeDash{ to{stroke-dashoffset:-10;} }
+  .route-walker{
+    fill:#fff; stroke:var(--brand-dark); stroke-width:.6; visibility:hidden;
+    transform-box:fill-box; transform-origin:center;
+    animation:walkBob .38s ease-in-out infinite alternate;
+  }
+  .route-walker.show{visibility:visible;}
+  @keyframes walkBob{ from{transform:scale(1);} to{transform:scale(1.3);} }
+  .route-pin{position:absolute; transform:translate(-50%,-50%); z-index:2; display:flex; flex-direction:column; align-items:center;}
+  .route-pin .dot{width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.35); display:block;}
+  .route-pin.seat .dot{background:var(--brand); animation:pinPulse 1.4s ease-in-out infinite;}
+  .route-pin.gate .dot{background:#fff; border-color:var(--brand-dark);}
+  @keyframes pinPulse{ 0%,100%{box-shadow:0 1px 4px rgba(0,0,0,.35), 0 0 0 0 rgba(255,87,31,.55);} 50%{box-shadow:0 1px 4px rgba(0,0,0,.35), 0 0 0 7px rgba(255,87,31,0);} }
+  .route-pin .label{
+    margin-top:4px; font-size:12px; font-weight:600; color:#fff; background:rgba(20,18,15,.72);
+    padding:2px 6px; border-radius:100px; white-space:nowrap; line-height:18px}
+  .route-track{display:flex; align-items:center; margin-bottom:18px;}
+  .route-node{display:flex; flex-direction:column; align-items:center; gap:6px; flex:0 0 auto;}
+  .route-node span{font-size:12px; font-weight:600; color:var(--ink-dim); white-space:nowrap; line-height:18px}
+  .route-icon{
+    width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+    background:var(--glass); border:1px solid var(--glass-border-strong); backdrop-filter:blur(var(--blur-sm));
+    flex-shrink:0;
+  }
+  .route-icon svg{width:18px; height:18px; stroke:var(--brand-dark);}
+  .route-icon.seat{border:2px solid rgba(255,255,255,.8); box-shadow:var(--glass-shadow);}
+  .route-line{
+    flex:1; height:2px; margin:0 4px 22px; min-width:16px;
+    background-image:linear-gradient(90deg, var(--brand) 50%, transparent 50%);
+    background-size:10px 2px; background-repeat:repeat-x;
+    animation:routeFlow 1s linear infinite;
+  }
+  @keyframes routeFlow{ from{background-position:0 0;} to{background-position:20px 0;} }
+  .route-steps{list-style:none; margin:0; padding:0;}
+  .route-steps li{
+    position:relative; padding-left:26px; font-size:12px; color:var(--ink-dim); margin-bottom:8px;
+    counter-increment:route; line-height:18px}
+  .route-steps{counter-reset:route;}
+  .route-steps li:last-child{margin-bottom:0;}
+  .route-steps li::before{
+    content:counter(route);
+    position:absolute; left:0; top:1px; width:18px; height:18px; border-radius:6px;
+    background:var(--brand); color:#fff; font-size:12px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; line-height:18px}
+  .route-steps li b{color:var(--ink); font-weight:600;}
+  .route-note{font-size:12px; color:var(--ink-faint); margin:14px 0 0; line-height:18px}
+
+  .seatmode-toggle{
+    position:relative;
+    display:flex; gap:6px; padding:4px; border-radius:14px;
+    background:rgba(255,255,255,.28); box-shadow:none; margin-bottom:14px;
+  }
+  .seatmode-thumb{
+    position:absolute; top:4px; bottom:4px; left:4px;
+    width:calc(50% - 7px); border-radius:10px;
+    background:linear-gradient(150deg, var(--brand-light), var(--brand));
+    box-shadow:0 4px 12px rgba(255,87,31,.32);
+    transition:transform .4s var(--ease-spring);
+    z-index:0;
+  }
+  .seatmode-btn{
+    position:relative; z-index:1;
+    flex:1; padding:9px; border-radius:10px; font-size:12px; font-weight:600; color:var(--ink-dim);
+    transition:color .25s, transform .2s var(--ease-spring); line-height:18px}
+  .seatmode-btn:active{transform:scale(.96);}
+  .seatmode-btn.active{color:#fff;}
+
+  .seatmode-panel{display:none;}
+  .seatmode-panel.active{display:block; animation:viewIn .35s var(--ease-out);}
+
+  .field-label{font-size:12px; font-weight:600; color:var(--ink-dim); margin:0 0 6px; display:block; line-height:18px}
+  .glass-input, .glass-select{
+    width:100%; padding:12px 14px; border-radius:12px;
+    background:rgba(255,255,255,.3); border:none;
+    box-shadow:none;
+    font-size:14px; font-weight:600; color:var(--ink);
+    margin-bottom:14px; appearance:none; -webkit-appearance:none; line-height:22px}
+  .glass-input::placeholder{color:var(--ink-faint); font-weight:500;}
+  .field-row{display:flex; gap:10px;}
+  .field-row > div{flex:1;}
+
+  .photo-drop{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+    padding:32px 16px; border-radius:14px; border:1.5px dashed rgba(120,80,50,.22);
+    background:rgba(255,255,255,.22); box-shadow:none;
+    cursor:pointer; transition:transform .2s var(--ease-out), border-color .2s;
+  }
+  .photo-drop:active{transform:scale(.98);}
+  .photo-drop svg{width:28px; height:28px; stroke:var(--ink-faint); stroke-width:1.5;}
+  .photo-drop span{font-size:12px; color:var(--ink-dim); font-weight:600; text-align:center; line-height:18px}
+
+  .photo-preview img{width:100%; max-height:220px; object-fit:cover; border-radius:14px; display:block; box-shadow:var(--neu-out);}
+  .photo-note{font-size:12px; color:var(--ink-dim); margin:10px 0 0; line-height:18px}
+  .photo-retake{margin-top:10px;}
+
+  .seat-action-row{display:flex; gap:8px;}
+  .seat-action-row .btn{flex:1;}
+
+  /* ---- 좌석 시야 풀팝업 ---- */
+  .seat-modal{
+    position:fixed; inset:0; z-index:60; background:#0a0a0a;
+    display:flex; flex-direction:column;
+    opacity:0; pointer-events:none; transform:translateY(14px) scale(.98);
+    transition:opacity .35s var(--ease-out), transform .4s var(--ease-spring);
+  }
+  .seat-modal.show{opacity:1; pointer-events:auto; transform:translateY(0) scale(1);}
+  .seat-modal__bar{
+    display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
+    padding:calc(12px + var(--court-h)) 16px 12px;
+    background:rgba(0,0,0,.6); backdrop-filter:blur(14px);
+  }
+  .seat-modal__label{color:#fff; font-size:14px; font-weight:600; line-height:20px}
+  .seat-modal__close{
+    width:34px; height:34px; border-radius:10px; background:rgba(255,255,255,.15);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    transition:transform .2s var(--ease-spring);
+  }
+  .seat-modal__close:active{transform:scale(.88);}
+  .seat-modal__close svg{width:16px; height:16px; stroke:#fff;}
+  .seat-modal iframe{flex:1; border:0; width:100%;}
+  .route-modal__body{flex:1; overflow-y:auto; padding:16px; background:var(--bg);}
+  .route-modal .route-map{margin-bottom:16px;}
+
+  /* ============================================================
+     예측/설문/MVP/막차 (기존과 동일)
+     ============================================================ */
+  .countdown-banner{
+    display:flex; align-items:center; justify-content:space-between;
+    background:rgba(255,255,255,.28); box-shadow:none; border-radius:14px; padding:12px 14px; margin-bottom:18px;
+  }
+  .countdown-banner .lbl{font-size:12px; color:var(--ink-dim); font-weight:600; line-height:18px}
+  .countdown-banner .val{font-size:16px; font-weight:600; color:var(--brand-dark); font-variant-numeric:tabular-nums; animation:tick 1s steps(1) infinite; line-height:24px}
+  @keyframes tick{ 0%,90%{opacity:1;} 95%{opacity:.55;} 100%{opacity:1;} }
+
+  .predict-card{margin-bottom:12px; opacity:0; animation:itemIn .5s var(--ease-out) forwards;}
+  .predict-card:nth-of-type(1){animation-delay:.05s;}
+  .predict-card:nth-of-type(2){animation-delay:.12s;}
+  .predict-card:nth-of-type(3){animation-delay:.19s;}
+  .predict-card .q{font-size:14px; font-weight:600; margin:0 0 12px; color:var(--ink); line-height:22px}
+  .opt-grid{display:flex; flex-direction:column; gap:8px;}
+  .opt{
+    display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-radius:12px;
+    background:rgba(255,255,255,.3); border:none;
+    box-shadow:var(--neu-out-sm); font-size:14px; font-weight:600; color:var(--ink);
+    transition:transform .25s var(--ease-spring), background .25s, box-shadow .25s; line-height:22px}
+  .opt:active{transform:scale(.97);}
+  .opt.selected{
+    color:var(--brand-dark);
+    background:linear-gradient(155deg, rgba(255,122,78,.38), rgba(255,87,31,.16));
+    box-shadow:0 6px 16px rgba(255,87,31,.18);
+  }
+  .opt.pulse, .player-vote-btn.pulse{animation:optPulse .4s var(--ease-spring);}
+  @keyframes optPulse{ 0%{transform:scale(1);} 40%{transform:scale(1.03);} 100%{transform:scale(1);} }
+  .opt .check{
+    width:18px; height:18px; border-radius:50%; border:1.5px solid var(--ink-faint); flex-shrink:0; position:relative;
+    transition:border-color .25s, background .25s, transform .3s var(--ease-spring);
+  }
+  .opt.selected .check{border-color:var(--brand); background:var(--brand); transform:scale(1.08);}
+  .opt.selected .check::after{content:''; position:absolute; inset:4px; border-radius:50%; background:#fff;}
+  .predict-status{
+    margin-top:14px; text-align:center; font-size:12px; color:var(--ok); font-weight:600;
+    opacity:0; transform:translateY(4px); transition:opacity .4s var(--ease-out), transform .4s var(--ease-out); line-height:18px}
+  .predict-status.show{opacity:1; transform:translateY(0);}
+
+  /* ---- 추첨 응모 ---- */
+  .raffle-card{margin-top:14px;}
+  .raffle-title{font-size:14px; font-weight:600; color:var(--ink); margin:0 0 5px; line-height:22px}
+  .raffle-desc{font-size:12px; color:var(--ink-dim); margin:0 0 14px; line-height:18px}
+  .raffle-consent{display:flex; align-items:flex-start; gap:8px; font-size:12px; color:var(--ink-dim); cursor:pointer; line-height:18px}
+  .raffle-consent input{margin-top:2px; flex-shrink:0; accent-color:var(--brand);}
+  .raffle-error{font-size:12px; color:var(--negative,#EC3444); margin:8px 0 0; min-height:1em; line-height:18px}
+  .raffle-done{
+    display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; color:var(--positive-text);
+    margin:0; line-height:18px}
+  .raffle-done svg{width:16px; height:16px; stroke:var(--positive-text); flex-shrink:0;}
+
+  .progress-track{height:5px; background:var(--glass); border:1px solid var(--glass-border-strong); border-radius:100px; overflow:hidden; margin-bottom:20px;}
+  .progress-fill{height:100%; background:linear-gradient(90deg, var(--brand-dark), var(--brand), var(--brand-light)); width:0%; transition:width .5s var(--ease-spring);}
+  .survey-q{display:none;}
+  .survey-q.active{display:block; animation:viewIn .4s var(--ease-out);}
+  .survey-q .qnum{font-size:12px; font-weight:600; color:var(--brand-dark); margin-bottom:8px; line-height:18px}
+  .survey-q .qtext{font-size:18px; font-weight:600; margin:0 0 18px; color:var(--ink); line-height:26px}
+  .survey-nav{display:flex; gap:8px; margin-top:20px;}
+  .survey-nav .btn{flex:1;}
+  .survey-done{text-align:center; padding:40px 10px;}
+  .survey-done svg{width:48px; height:48px; stroke:var(--ok); margin-bottom:14px; animation:checkPop .5s var(--ease-spring);}
+  @keyframes checkPop{ from{transform:scale(.4); opacity:0;} to{transform:scale(1); opacity:1;} }
+  .survey-done h3{font-size:18px; margin:0 0 6px; color:var(--ink); line-height:26px}
+  .survey-done p{font-size:14px; color:var(--ink-dim); margin:0; line-height:22px}
+
+  .player-row{
+    display:flex; align-items:center; gap:12px; padding:12px 0; flex-wrap:wrap;
+    border-bottom:1px solid rgba(20,18,15,0.06);
+    opacity:0; animation:itemIn .45s var(--ease-out) forwards;
+  }
+  .player-row:nth-child(1){animation-delay:.03s;}
+  .player-row:nth-child(2){animation-delay:.08s;}
+  .player-row:nth-child(3){animation-delay:.13s;}
+  .player-row:nth-child(4){animation-delay:.18s;}
+  .player-row:nth-child(5){animation-delay:.23s;}
+  .player-row:last-child{border-bottom:none;}
+  .player-num{
+    width:34px; height:34px; border-radius:10px; flex-shrink:0; background:rgba(255,255,255,.32); border:none;
+    box-shadow:var(--neu-out-sm); display:flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:600; color:var(--ink-dim); line-height:20px}
+  .player-info{flex:1; min-width:0; flex-basis:0;}
+  .player-info .name{font-size:14px; font-weight:600; color:var(--ink); line-height:22px}
+  .player-info .pos{font-size:12px; color:var(--ink-faint); line-height:18px}
+  .player-vote-btn{
+    flex-shrink:0; padding:8px 14px; border-radius:100px; font-size:12px; font-weight:600;
+    background:rgba(255,255,255,.32); border:none; color:var(--ink-dim);
+    box-shadow:var(--neu-out-sm);
+    transition:transform .25s var(--ease-spring), background .25s, color .25s, box-shadow .25s; line-height:18px}
+  .player-vote-btn:active{transform:scale(.92);}
+  .player-vote-btn.voted{
+    background:linear-gradient(150deg, var(--brand-light), var(--brand) 60%); color:#fff;
+    box-shadow:0 4px 12px rgba(255,87,31,.28);
+  }
+  .player-result{margin-top:8px; flex-basis:100%;}
+  .bar-track{height:6px; background:rgba(120,80,50,.1); box-shadow:none; border-radius:100px; overflow:hidden;}
+  .bar-fill{height:100%; background:linear-gradient(90deg, var(--brand-dark), var(--brand)); border-radius:100px; transition:width .7s var(--ease-spring); width:0%;}
+  .bar-pct{font-size:12px; color:var(--ink-dim); margin-top:4px; font-weight:600; font-variant-numeric:tabular-nums; line-height:18px}
+  .mvp-note{font-size:12px; color:var(--ink-faint); margin-top:14px; line-height:18px}
+
+  .clock-card{text-align:center; padding:26px 16px; margin-bottom:16px;}
+  .clock-card .now{font-size:32px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink); line-height:40px; letter-spacing:-0.04em}
+  .clock-card .lbl{font-size:12px; color:var(--ink-dim); margin-top:4px; line-height:18px}
+
+  .alert-banner{
+    display:flex; align-items:flex-start; gap:10px; background:var(--glass-warn); border:1px solid rgba(255,211,57,.55);
+    backdrop-filter:blur(var(--blur-sm)); border-radius:14px; padding:14px; margin-bottom:16px;
+    max-height:0; opacity:0; overflow:hidden; padding-top:0; padding-bottom:0; margin-bottom:0;
+    transition:max-height .45s var(--ease-out), opacity .35s var(--ease-out), padding .45s var(--ease-out), margin .45s var(--ease-out);
+  }
+  .alert-banner.show{max-height:120px; opacity:1; padding:14px; margin-bottom:16px; animation:alertGlow 2.2s ease-in-out .45s infinite;}
+  @keyframes alertGlow{
+    0%,100%{box-shadow:0 0 0 0 rgba(255,211,57,.28);}
+    50%{box-shadow:0 0 0 6px rgba(255,211,57,0);}
+  }
+  .alert-banner svg{width:20px; height:20px; stroke:var(--warning-text); flex-shrink:0; margin-top:1px;}
+  .alert-banner .t{font-size:14px; font-weight:600; color:var(--warning-text); margin:0 0 3px; line-height:22px}
+  .alert-banner .d{font-size:12px; color:var(--ink-dim); margin:0; line-height:18px}
+
+  .line-row{padding:14px 0; border-bottom:1px solid rgba(20,18,15,0.06); cursor:pointer;}
+  .line-row:last-child{border-bottom:none;}
+  .line-row:active .line-info{transform:scale(.98);}
+  .line-track{position:relative; height:16px; margin-bottom:8px; overflow:hidden;}
+  .line-track::before{
+    content:''; position:absolute; left:0; right:0; top:50%; height:3px; border-radius:2px;
+    background:repeating-linear-gradient(90deg, var(--line3) 0 7px, transparent 7px 14px);
+    opacity:.55;
+    transform:translateY(-50%);
+  }
+  .line-train{
+    position:absolute; top:50%; left:-8%; font-size:16px; line-height:1; opacity:0;
+    transform:translateY(-50%);
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,.15));
+    animation:trainIn 1.3s var(--ease-out) forwards;
+    animation-delay:var(--delay, 0s);
+  }
+  .line-row[data-dir="down"] .line-train{ transform:translateY(-50%) scaleX(-1); animation-name:trainInReverse; left:98%; }
+  @keyframes trainIn{
+    0%{ left:-8%; opacity:0; }
+    18%{ opacity:1; }
+    75%{ left:90%; opacity:1; }
+    100%{ left:90%; opacity:1; }
+  }
+  @keyframes trainInReverse{
+    0%{ left:98%; opacity:0; }
+    18%{ opacity:1; }
+    75%{ left:0%; opacity:1; }
+    100%{ left:0%; opacity:1; }
+  }
+  .line-info{display:flex; align-items:center; justify-content:space-between; transition:transform .2s var(--ease-spring);}
+  .line-tag{
+    font-size:12px; font-weight:600; padding:4px 9px 4px 7px; border-radius:7px;
+    background:var(--line3); border:1px solid rgba(0,0,0,.06); color:#fff; display:inline-flex; align-items:center; gap:4px; line-height:18px}
+  .line-tag::before{content:''; width:5px; height:5px; border-radius:50%; background:#fff; opacity:.85; flex-shrink:0;}
+  .line-dir{font-size:12px; color:var(--ink-dim); flex:1; margin-left:10px; line-height:18px}
+  .line-time{font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; color:var(--ink); transition:color .3s, opacity .3s; line-height:22px}
+  .line-time.pending{opacity:.32;}
+  .line-time.pop{animation:timePop .45s var(--ease-spring);}
+  @keyframes timePop{ 0%{transform:scale(.75);} 55%{transform:scale(1.1);} 100%{transform:scale(1);} }
+  .line-time.soon{color:var(--warning-text); animation:tick 1s steps(1) infinite;}
+  .config-note{font-size:12px; color:var(--ink-faint); margin-top:14px; line-height:18px}
+  .empty-note{font-size:12px; color:var(--ink-faint); text-align:center; padding:20px 10px; line-height:18px}
+
+  /* ============================================================
+     막차 토스트
+     ============================================================ */
+  .toast{
+    position:fixed; left:50%; bottom:calc(92px + var(--court-b));
+    transform:translateX(-50%) translateY(20px);
+    width:calc(100% - 32px); max-width:480px;
+    display:flex; align-items:flex-start; gap:10px;
+    padding:14px; border-radius:16px;
+    background:var(--glass-warn);
+    backdrop-filter:blur(var(--blur-lg)) saturate(180%);
+    -webkit-backdrop-filter:blur(var(--blur-lg)) saturate(180%);
+    border:1px solid rgba(255,211,57,.55);
+    box-shadow:var(--glass-shadow);
+    opacity:0; pointer-events:none; z-index:40;
+    transition:opacity .4s var(--ease-out), transform .4s var(--ease-spring);
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto;}
+  .toast svg{width:19px; height:19px; stroke:var(--warning-text); flex-shrink:0; margin-top:1px;}
+  .toast-body{flex:1; min-width:0;}
+  .toast-t{font-size:14px; font-weight:600; color:var(--warning-text); margin:0 0 2px; line-height:22px}
+  .toast-d{font-size:12px; color:var(--ink-dim); margin:0; line-height:18px}
+  .toast-action{
+    flex-shrink:0; font-size:12px; font-weight:600; color:var(--warning-text);
+    background:rgba(255,255,255,.6); border:1px solid rgba(255,211,57,.5);
+    padding:7px 12px; border-radius:100px; align-self:center; line-height:18px}
+  .toast-close{
+    flex-shrink:0; width:22px; height:22px; display:flex; align-items:center; justify-content:center;
+    color:var(--ink-faint);
+  }
+  .toast-close svg{width:14px; height:14px; stroke:var(--ink-faint);}
+
+  /* ============================================================
+     하단 탭바 — 영문 라벨 모드 (CONFIG.NAV_LANG = 'en' 또는 ?nav=en)
+     ============================================================ */
+  .nav-en .tabbar__btn span{font-size:12px; font-weight:600; line-height:18px}
+  .tabbar__btn:focus-visible, .seg__btn:focus-visible, .chip:focus-visible, .squad-tile:focus-visible,
+  .pick-player:focus-visible, .icon-btn:focus-visible, .rl-cta:focus-visible{
+    outline:2px solid var(--brand); outline-offset:2px;
+  }
+
+  /* ============================================================
+     세그먼트 컨트롤 (안내 · PICK · 기록 탭 안의 하위 메뉴 공통)
+     ============================================================ */
+  .seg{
+    --n:2; position:relative; display:flex; padding:4px; border-radius:14px;
+    background:rgba(255,255,255,.28); box-shadow:none; margin-bottom:18px;
+  }
+  .seg__thumb{
+    position:absolute; top:4px; bottom:4px; left:4px; width:calc((100% - 8px) / var(--n)); border-radius:10px;
+    background:linear-gradient(150deg, var(--brand-light), var(--brand));
+    box-shadow:0 4px 12px rgba(255,87,31,.32);
+    transition:transform .4s var(--ease-spring); z-index:0;
+  }
+  .seg__btn{
+    position:relative; z-index:1; flex:1; min-width:0; padding:10px 4px; border-radius:10px;
+    font-size:14px; font-weight:600; color:var(--ink-dim); white-space:nowrap;
+    transition:color .25s, transform .2s var(--ease-spring); line-height:20px}
+  .seg__btn:active{transform:scale(.96);}
+  .seg__btn.active{color:#fff;}
+  .seg--sub{background:none; box-shadow:none; padding:0; border-radius:0; border-bottom:1px solid var(--ink-line); margin:18px 0 16px;}
+  .seg--sub .seg__thumb{top:auto; bottom:-1px; left:0; height:2.5px; width:calc(100% / var(--n)); border-radius:2px; background:var(--brand); box-shadow:none;}
+  .seg--sub .seg__btn{padding:10px 4px 12px; font-size:14px; line-height:20px}
+  .seg--sub .seg__btn.active{color:var(--brand-dark);}
+  .seg-panel{display:none;}
+  .seg-panel.active{display:block; animation:viewIn .35s var(--ease-out);}
+
+  .chip-row{display:flex; gap:6px; overflow-x:auto; margin:0 -16px 14px; padding:2px 16px 4px; scrollbar-width:none;}
+  .chip-row::-webkit-scrollbar{display:none;}
+  .chip{
+    flex-shrink:0; padding:7px 13px; border-radius:100px; font-size:12px; font-weight:600; color:var(--ink-dim);
+    background:rgba(255,255,255,.4); box-shadow:var(--neu-out-sm); transition:background .2s, color .2s; line-height:18px}
+  .chip.active{background:var(--ink); color:#fff; box-shadow:none;}
+
+  /* ============================================================
+     안내 — 장소 카드 · 대중교통
+     ============================================================ */
+  .place-card__name{font-size:16px; font-weight:600; margin:0; line-height:24px}
+  .place-card__addr{font-size:12px; color:var(--ink-dim); margin:4px 0 0; line-height:18px}
+  .place-card__addr:empty{display:none;}
+  .map-links{display:flex; gap:8px; margin-top:14px;}
+  .map-links .btn{flex:1; text-decoration:none; font-size:14px; line-height:20px}
+
+  .transit-block + .transit-block{margin-top:10px;}
+  .transit-block__title{font-size:12px; font-weight:600; color:var(--brand-dark); margin:0 0 10px; line-height:18px}
+  .transit-row{display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-bottom:1px solid rgba(20,18,15,.06);}
+  .transit-row:last-child{border-bottom:none; padding-bottom:0;}
+  .transit-row:first-of-type{padding-top:0;}
+  .transit-badge{
+    flex-shrink:0; min-width:48px; padding:4px 8px; border-radius:7px; text-align:center;
+    font-size:12px; font-weight:600; color:#fff; background:var(--line3); line-height:18px}
+  .transit-badge.bus{background:#3B6FE0;}
+  .transit-row__t{font-size:14px; font-weight:600; margin:0 0 3px; line-height:22px}
+  .transit-row__d{font-size:12px; color:var(--ink-dim); margin:0; line-height:18px}
+  .transit-tags{display:flex; flex-wrap:wrap; gap:5px; margin-top:7px;}
+  .transit-tags .pill{font-size:12px; line-height:18px}
+
+  /* ============================================================
+     선수 얼굴 아바타 — photo URL이 있으면 실사진, 없으면 캐릭터 얼굴 크롭
+     ============================================================ */
+  .face{
+    --sz:48px; --fx:50; --fy:25; --fs:118;
+    position:relative; display:block; width:var(--sz); height:var(--sz); border-radius:50%; overflow:hidden; flex-shrink:0;
+    background:radial-gradient(circle at 50% 35%, #FFEDE4, #FFC8B1);
+    box-shadow: 0 2px 6px rgba(120,80,50,.12);
+  }
+  .face img{position:absolute; left:50%; top:50%; width:calc(var(--fs) * 1%); max-width:none; height:auto;
+    transform:translate(calc(var(--fx) * -1%), calc(var(--fy) * -1%)); pointer-events:none;}
+  .face img.is-photo{left:0; top:0; width:100%; height:100%; object-fit:cover; transform:none;}
+  .face--num{display:flex; align-items:center; justify-content:center; font-weight:600; color:var(--brand-dark); font-size:calc(var(--sz) * .36);}
+
+  /* ---- 예측: 선수 선택 그리드 ---- */
+  .pick-grid{display:grid; grid-template-columns:repeat(4, 1fr); gap:8px;}
+  .pick-player{
+    display:flex; flex-direction:column; align-items:center; gap:5px; padding:10px 2px 8px; border-radius:14px;
+    background:rgba(255,255,255,.3); box-shadow:var(--neu-out-sm);
+    transition:transform .25s var(--ease-spring), background .25s, box-shadow .25s;
+  }
+  .pick-player:active{transform:scale(.95);}
+  .pick-player .face{--sz:50px;}
+  .pick-player__n{font-size:12px; font-weight:600; color:var(--ink); line-height:18px}
+  .pick-player__p{font-size:12px; color:var(--ink-faint); font-weight:600; line-height:18px}
+  .pick-player.selected{
+    background:linear-gradient(155deg, rgba(255,122,78,.38), rgba(255,87,31,.16));
+    box-shadow:0 6px 16px rgba(255,87,31,.18);
+  }
+  .pick-player.selected .face{box-shadow:0 0 0 2.5px var(--brand), 0 4px 10px rgba(255,87,31,.3);}
+  .pick-player.selected .pick-player__n{color:var(--brand-dark);}
+  .pick-player.pulse{animation:optPulse .4s var(--ease-spring);}
+
+  /* ---- MVP ---- */
+  .mvp-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;}
+  .mvp-grid .pick-player{padding:12px 4px 10px;}
+  .mvp-grid .pick-player .face{--sz:62px;}
+  .mvp-confirm{
+    position:sticky; bottom:calc(96px + var(--court-b)); margin-top:16px; z-index:5;
+    transition:opacity .3s var(--ease-out), transform .3s var(--ease-out);
+  }
+  .mvp-confirm[disabled]{opacity:.45;}
+  .mvp-rank{display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid rgba(20,18,15,.06);}
+  .mvp-rank:last-child{border-bottom:none;}
+  .mvp-rank__pos{width:18px; font-size:14px; font-weight:600; color:var(--ink-faint); text-align:center; flex-shrink:0; line-height:20px}
+  .mvp-rank.top .mvp-rank__pos{color:var(--brand-dark);}
+  .mvp-rank__body{flex:1; min-width:0;}
+  .mvp-rank__name{font-size:14px; font-weight:600; display:flex; justify-content:space-between; gap:8px; margin-bottom:6px; line-height:20px}
+  .mvp-rank__name em{font-style:normal; font-size:12px; color:var(--ink-dim); font-weight:600; font-variant-numeric:tabular-nums; line-height:18px}
+  .mine-badge{display:inline-block; vertical-align:1px; margin-left:4px; font-size:12px; font-weight:600; color:#fff; background:var(--brand); padding:2px 7px; border-radius:100px; line-height:18px}
+  .mvp-rank .face{--sz:40px;}
+
+  /* ============================================================
+     홈 — 룰렛 (Figma: OK읏맨서포터즈_배구룰렛_00 · 01당첨 · 02꽝)
+     기준 프레임 360px — 휠 360 · 디스크 312 · 경품 56 · 꼭지 38×48 · 읏맨 72×82
+     ============================================================ */
+  .rl-stage{
+    position:relative; margin:0 -16px 14px; padding:28px 0 26px; overflow:hidden; text-align:center;
+    background:linear-gradient(180deg, #2E1507 0%, #291E18 100%);
+  }
+  .rl-stage::before{ /* Figma 고정 BG(빛 번짐·별) — 휠 영역 뒤에 깔려요 */
+    content:''; position:absolute; left:0; right:0; top:var(--rl-bg-top, 150px); height:143.3vw; max-height:688px;
+    background:var(--rl-bg) center top / 100% auto no-repeat; pointer-events:none;
+  }
+  @media (min-width:640px){ .rl-stage{ margin:0 -16px 14px; } .rl-stage::before{ height:688px; } }
+  /* 타이틀 — Figma 크기(24/32 · 28/36 · 44/52)를 Pretendard로 */
+  .rl-title{position:relative; margin:0 auto; width:min(305px, 84.7%); display:flex; flex-direction:column; align-items:center; gap:2px;
+    font-family:'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; text-align:center; word-break:keep-all;}
+  .rl-title span{display:block;}
+  .rl-title__l1{font-size:20px; font-weight:600; color:#fff; line-height:28px}
+  .rl-title__l2{font-size:24px; font-weight:600; color:var(--brand); line-height:32px}
+  .rl-title__l3{margin-top:6px; font-size:32px; font-weight:700; color:var(--brand);
+    text-shadow:0 4px 18px rgba(255,87,31,.35); line-height:40px; letter-spacing:-0.04em}
+  .rl-wheel-wrap{position:relative; width:min(360px, 100%); aspect-ratio:1; margin:18px auto 16px;}
+  .rl-wheel{
+    position:absolute; inset:0;
+    transition:transform 4.8s cubic-bezier(.12,.72,.16,1); will-change:transform;
+  }
+  .rl-wheel__disc{position:absolute; left:-1.667%; top:-1.667%; width:103.333%; height:103.333%; display:block; pointer-events:none;}
+  .rl-item{position:absolute; width:15.556%; height:15.556%; transform:translate(-50%,-50%); pointer-events:none;}
+  .rl-item img{width:100%; height:100%; display:block;}
+  .rl-pointer{position:absolute; left:45%; top:4.167%; width:10.556%; height:auto; z-index:2; filter:drop-shadow(0 3px 4px rgba(0,0,0,.35)); transform-origin:50% 20%;}
+  .rl-wrap-spin .rl-pointer{animation:rlTick .16s ease-in-out infinite alternate;}
+  @keyframes rlTick{ from{transform:rotate(-6deg);} to{transform:rotate(6deg);} }
+  .rl-mascot{position:absolute; left:40%; top:37.222%; width:20%; height:auto; z-index:2; pointer-events:none;}
+  .rl-cta{position:relative; width:200px; margin:0 auto; box-shadow:0 8px 22px rgba(255,87,31,.35);}
+  .rl-cta[disabled]{opacity:1; background:#5A4A40; color:rgba(255,255,255,.55); box-shadow:none;}
+  .rl-chance{position:relative; margin:14px 0 2px; font-size:14px; font-weight:600; color:#fff; line-height:20px}
+  .rl-chance b{color:var(--brand-light);}
+  .rl-sub{position:relative; margin:0; font-size:12px; color:rgba(255,255,255,.6); padding:0 24px; line-height:18px}
+  .rl-last{position:relative; margin-top:10px; font-size:12px; font-weight:600; color:rgba(255,255,255,.85); text-decoration:underline; text-underline-offset:3px; line-height:18px}
+
+  /* ---- 당첨: 교환권 화면 ---- */
+  .rl-win{
+    position:fixed; inset:0; z-index:80; display:flex; flex-direction:column; color:#fff;
+    background:linear-gradient(180deg, #2E1507 0%, #1E1510 100%);
+    opacity:0; pointer-events:none; transform:translateY(16px);
+    transition:opacity .35s var(--ease-out), transform .45s var(--ease-spring);
+  }
+  .rl-win.show{opacity:1; pointer-events:auto; transform:none;}
+  .rl-win__bar{position:relative; height:48px; margin-top:var(--court-h); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .rl-win__bar-t{font-size:16px; font-weight:600; line-height:24px}
+  .rl-win__close{position:absolute; right:12px; top:5px; background:none;}
+  .rl-win__body{flex:1; overflow-y:auto; width:100%; max-width:360px; margin:0 auto; padding:24px 24px 24px; display:flex; flex-direction:column; align-items:center;}
+  .rl-win__chip{display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:8px; background:rgba(255,255,255,.2);}
+  .rl-win__chip span{font-size:14px; font-weight:500; line-height:20px}
+  .rl-win__chip b{font-size:18px; font-weight:600; font-variant-numeric:tabular-nums; line-height:26px}
+  .rl-win__title{margin:16px 0 2px; font-size:32px; font-weight:700; text-align:center; word-break:keep-all; line-height:40px; letter-spacing:-0.04em}
+  .rl-win__desc{margin:0; font-size:16px; font-weight:500; text-align:center; line-height:24px}
+  .rl-win__desc:empty{display:none;}
+  .rl-win__img{position:relative; width:312px; max-width:100%; aspect-ratio:312/238; margin-top:4px;}
+  .rl-win__box{position:absolute; inset:0; width:100%; height:100%;}
+  .rl-win__item{position:absolute; left:30.77%; top:24.79%; width:38.46%; height:auto; animation:rlItemPop .6s var(--ease-spring) .15s both;}
+  @keyframes rlItemPop{ from{transform:scale(.4) rotate(-8deg); opacity:0;} to{transform:none; opacity:1;} }
+  .rl-notice{list-style:none; margin:4px 0 0; padding:0; width:100%; display:flex; flex-direction:column; gap:4px;}
+  .rl-notice li{position:relative; padding-left:20px; font-size:14px; color:#fff; text-align:left; line-height:22px}
+  .rl-notice li::before{content:''; position:absolute; left:8px; top:9px; width:4px; height:4px; border-radius:50%; background:#fff;}
+  .rl-notice em{font-style:normal; font-weight:600; color:var(--brand);}
+  .rl-win__save{
+    flex-shrink:0; height:56px; width:100%; background:var(--brand); color:#fff; font-size:16px; font-weight:600;
+    padding-bottom:var(--court-b); box-sizing:content-box; line-height:24px}
+  .rl-win__save:active{background:var(--brand-dark);}
+
+  /* ---- 꽝 ---- */
+  .rl-lose{
+    position:fixed; inset:0; z-index:80; display:flex; align-items:center; justify-content:center;
+    background:rgba(10,8,7,.92); color:#fff; text-align:center;
+    opacity:0; pointer-events:none; transition:opacity .3s var(--ease-out);
+  }
+  .rl-lose.show{opacity:1; pointer-events:auto;}
+  .rl-lose__con{width:312px; max-width:calc(100% - 48px);}
+  .rl-lose__img{display:block; width:100%; height:auto; animation:rlShake .5s ease-in-out .1s both;}
+  .rl-lose.show .rl-lose__img{animation:rlShake .5s ease-in-out .1s both;}
+  @keyframes rlShake{ 0%{transform:scale(.6); opacity:0;} 40%{transform:scale(1.05) rotate(-4deg); opacity:1;} 60%{transform:rotate(4deg);} 80%{transform:rotate(-2deg);} 100%{transform:none;} }
+  .rl-lose__title{margin:4px 0 16px; font-size:32px; font-weight:700; line-height:40px; letter-spacing:-0.04em}
+  .rl-lose__desc{margin:0; font-size:20px; font-weight:500; line-height:28px}
+  .rl-lose__close{margin-top:28px; padding:10px 24px; border-radius:100px; background:rgba(255,255,255,.12); font-size:14px; font-weight:600; line-height:22px}
+
+  @media (prefers-reduced-motion: reduce){
+    .rl-wheel{transition-duration:.01s;} .rl-wrap-spin .rl-pointer, .rl-win__item, .rl-lose__img{animation:none;}
+  }
+
+  /* ============================================================
+     홈 — 굿즈샵 링크 카드
+     ============================================================ */
+  .goods-card{
+    position:relative; display:flex; align-items:stretch; min-height:132px; border-radius:20px; overflow:hidden;
+    background:var(--ink); color:#fff; text-decoration:none;
+    box-shadow:0 14px 30px rgba(22,28,38,.22);
+    transition:transform .2s var(--ease-spring);
+  }
+  .goods-card:active{transform:scale(.98);}
+  .goods-card::before{
+    content:''; position:absolute; right:-40px; bottom:-60px; width:220px; height:220px; border-radius:50%;
+    background:radial-gradient(circle, rgba(255,87,31,.55), transparent 65%);
+  }
+  .goods-card__text{position:relative; z-index:1; padding:18px; flex:1; min-width:0; display:flex; flex-direction:column;}
+  .goods-card__title{font-size:16px; font-weight:600; margin:0 0 4px; line-height:24px}
+  .goods-card__desc{font-size:12px; color:rgba(255,255,255,.72); margin:0; max-width:15em; line-height:18px}
+  .goods-card__cta{
+    margin-top:auto; padding-top:12px; display:inline-flex; align-items:center; gap:4px;
+    font-size:14px; font-weight:600; color:var(--brand-lighter); line-height:20px}
+  .goods-card__cta svg{width:15px; height:15px; stroke:currentColor;}
+  .goods-card.disabled{pointer-events:none;}
+  .goods-card.disabled .goods-card__cta{color:rgba(255,255,255,.5);}
+  .goods-card__figs{position:relative; z-index:1; width:138px; flex-shrink:0;}
+  .goods-card__figs img{position:absolute; bottom:-16px; height:118px; width:auto; filter:drop-shadow(0 4px 8px rgba(0,0,0,.3));}
+  .goods-card__figs img:nth-child(1){right:58px; transform:rotate(-6deg); height:104px;}
+  .goods-card__figs img:nth-child(2){right:4px; z-index:2;}
+
+  /* ============================================================
+     기록 — 우리 선수 그리드
+     ============================================================ */
+  .squad-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;}
+  .squad-tile{
+    position:relative; aspect-ratio:3/4.1; border-radius:16px; overflow:hidden; text-align:left;
+    background:linear-gradient(165deg, var(--brand-lighter) 0%, var(--brand) 55%, var(--brand-dark) 100%);
+    box-shadow:0 8px 18px rgba(255,87,31,.22);
+    transition:transform .25s var(--ease-spring);
+  }
+  .squad-tile:active{transform:scale(.95);}
+  .squad-tile.libero{background:linear-gradient(165deg, #7FB2E8 0%, #3B6FE0 60%, #24479C 100%); box-shadow:0 8px 18px rgba(59,111,224,.22);}
+  .squad-tile__ovr{position:absolute; left:9px; top:8px; z-index:2; color:#fff; line-height:1; display:flex; flex-direction:column; align-items:center;}
+  .squad-tile__ovr b{font-size:20px; font-weight:600; line-height:28px}
+  .squad-tile__ovr small{font-size:12px; font-weight:600; opacity:.9; margin-top:2px; line-height:18px}
+  .squad-tile__fig{position:absolute; left:50%; top:10%; width:84%; transform:translateX(-34%); z-index:1;}
+  .squad-tile__fig img{width:100%; height:auto; display:block; filter:drop-shadow(0 4px 6px rgba(0,0,0,.18));}
+  .squad-tile__name{
+    position:absolute; left:0; right:0; bottom:0; z-index:2; padding:16px 8px 8px;
+    background:linear-gradient(to top, rgba(22,28,38,.78), rgba(22,28,38,0));
+    color:#fff; font-size:12px; font-weight:600; text-align:center; line-height:18px}
+  .squad-tile__name span{display:block; font-size:12px; font-weight:600; opacity:.8; line-height:18px}
+
+  /* ---- 리그 순위 ---- */
+  .stand-card{padding:6px 4px;}
+  .stand-table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums;}
+  .stand-table th{font-size:12px; font-weight:600; color:var(--ink-faint); padding:8px 4px; text-align:center; white-space:nowrap; line-height:18px}
+  .stand-table th:nth-child(2){text-align:left;}
+  .stand-table td{font-size:14px; padding:11px 6px; text-align:center; border-top:1px solid rgba(20,18,15,.06); line-height:20px}
+  .stand-table td.team{text-align:left; font-weight:600; white-space:nowrap;}
+  .stand-table td.rank{font-weight:600; color:var(--ink-faint); width:26px;}
+  .stand-table td.pts{font-weight:600;}
+  .stand-table tr.row{cursor:pointer;}
+  .stand-table tr.row:active td{background:rgba(255,255,255,.4);}
+  .stand-table tr.us td{background:rgba(255,87,31,.08);}
+  .stand-table tr.us td.team, .stand-table tr.us td.rank{color:var(--brand-dark);}
+  .stand-table tr.detail td{padding:0; border-top:none;}
+  .team-detail{padding:4px 12px 14px; display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; animation:viewIn .3s var(--ease-out);}
+  .team-stat__l{font-size:12px; color:var(--ink-dim); font-weight:600; display:flex; justify-content:space-between; line-height:18px}
+  .team-stat__l b{color:var(--ink); font-weight:600;}
+  .team-stat__bar{position:relative; height:6px; border-radius:100px; background:rgba(120,80,50,.1); margin-top:5px; overflow:visible;}
+  .team-stat__fill{position:absolute; left:0; top:0; bottom:0; border-radius:100px; background:linear-gradient(90deg, var(--brand-dark), var(--brand));}
+  .team-stat__avg{position:absolute; top:-3px; width:2px; height:12px; background:var(--ink); border-radius:1px;}
+  .team-detail__note{grid-column:1 / -1; font-size:12px; color:var(--ink-faint); margin:0; line-height:18px}
+  .data-hint{font-size:12px; color:var(--ink-faint); margin:10px 2px 0; line-height:18px}
+  .data-note{font-size:12px; color:var(--ink-faint); margin:16px 2px 0; line-height:18px}
+
+  /* ---- 경기 결과 ---- */
+  .result-card{padding:14px 16px;}
+  .result-card__meta{font-size:12px; color:var(--ink-faint); font-weight:600; margin:0 0 10px; line-height:18px}
+  .result-card__row{display:flex; align-items:center; gap:10px;}
+  .result-card__team{flex:1; font-size:14px; font-weight:600; color:var(--ink-dim); min-width:0; line-height:22px}
+  .result-card__team.win{color:var(--ink); font-weight:600;}
+  .result-card__team.right{text-align:right;}
+  .result-card__team.us{color:var(--brand-dark);}
+  .result-card__score{font-size:22px; font-weight:600; font-variant-numeric:tabular-nums; flex-shrink:0; line-height:30px}
+  .result-card__score span{color:var(--ink-faint); font-weight:500; margin:0 6px; font-size:16px; line-height:24px}
+  .result-card__sets{display:flex; justify-content:center; gap:6px; margin-top:10px; flex-wrap:wrap;}
+  .result-card__sets span{font-size:12px; font-weight:600; color:var(--ink-dim); padding:3px 8px; border-radius:100px; background:rgba(255,255,255,.5); font-variant-numeric:tabular-nums; line-height:18px}
+
+  /* ============================================================
+     선수 능력치 카드 (FIFA 스타일) — 다크 무대 위 3D 아크릴 스탠디 + 육각형 레이더
+     ============================================================ */
+  .pcard-modal{
+    position:fixed; inset:0; z-index:70; color:#fff; display:flex; flex-direction:column;
+    background:radial-gradient(120% 60% at 50% 8%, #5A2A14 0%, #23161A 45%, #161C26 75%);
+    opacity:0; pointer-events:none; transform:translateY(18px);
+    transition:opacity .35s var(--ease-out), transform .45s var(--ease-spring);
+  }
+  .pcard-modal.show{opacity:1; pointer-events:auto; transform:translateY(0);}
+  .pcard-modal__bar{display:flex; align-items:center; justify-content:space-between; padding:calc(12px + var(--court-h)) 16px 6px; flex-shrink:0;}
+  .pcard-modal__count{font-size:12px; font-weight:600; color:rgba(255,255,255,.6); font-variant-numeric:tabular-nums; line-height:18px}
+  .pcard-modal__nav{display:flex; gap:6px;}
+  .icon-btn{
+    width:38px; height:38px; border-radius:12px; background:rgba(255,255,255,.1);
+    display:flex; align-items:center; justify-content:center; transition:transform .2s var(--ease-spring), background .2s;
+  }
+  .icon-btn:active{transform:scale(.88); background:rgba(255,255,255,.18);}
+  .icon-btn svg{width:18px; height:18px; stroke:#fff;}
+  .pcard-modal__body{flex:1; overflow-y:auto; width:100%; max-width:480px; margin:0 auto; padding:26px 20px calc(30px + var(--court-b));}
+
+  .pcard{position:relative; width:min(290px, 78vw); aspect-ratio:3/4.15; margin:0 auto;}
+  .pcard.reveal{animation:packReveal .8s var(--ease-spring);}
+  @keyframes packReveal{
+    0%{transform:scale(.55) rotateY(-30deg); opacity:0; filter:brightness(2.2);}
+    55%{opacity:1; filter:brightness(1.4);}
+    100%{transform:scale(1) rotateY(0); filter:brightness(1);}
+  }
+  .pcard__bg{
+    position:absolute; inset:0;
+    clip-path:polygon(14% 0, 86% 0, 100% 7%, 100% 84%, 50% 100%, 0 84%, 0 7%);
+    background:
+      radial-gradient(90% 55% at 50% 30%, rgba(255,255,255,.28), transparent 70%),
+      linear-gradient(160deg, #FFB49A 0%, var(--brand-light) 22%, var(--brand) 52%, #A8330C 100%);
+  }
+  .pcard__bg::after{
+    content:''; position:absolute; inset:7px;
+    clip-path:polygon(14% 0, 86% 0, 100% 7%, 100% 84%, 50% 100%, 0 84%, 0 7%);
+    border:1.5px solid rgba(255,255,255,.55);
+    background:repeating-linear-gradient(135deg, rgba(255,255,255,.05) 0 2px, transparent 2px 9px);
+  }
+  .pcard.libero .pcard__bg{background:
+      radial-gradient(90% 55% at 50% 30%, rgba(255,255,255,.28), transparent 70%),
+      linear-gradient(160deg, #B9D6F5 0%, #6E9FE6 25%, #3B6FE0 55%, #1E3C86 100%);}
+  .pcard.gold .pcard__bg{background:
+      radial-gradient(90% 55% at 50% 30%, rgba(255,255,255,.35), transparent 70%),
+      linear-gradient(160deg, #FFE7A3 0%, #FFD339 20%, var(--brand) 60%, #A8330C 100%);}
+  .pcard__top{position:absolute; left:10%; top:10%; z-index:4; display:flex; flex-direction:column; align-items:center; line-height:1; text-shadow:0 2px 6px rgba(120,40,0,.35);}
+  .pcard__ovr{font-size:32px; font-weight:700; line-height:40px; letter-spacing:-0.04em}
+  .pcard__pos{font-size:16px; font-weight:600; margin-top:2px; line-height:24px}
+  .pcard__tier{margin-top:8px; font-size:12px; font-weight:600; padding:3px 7px; border-radius:100px; background:rgba(255,255,255,.25); text-shadow:none; line-height:18px}
+  .pcard__tier:empty{display:none;}
+  .pcard__stage{
+    position:absolute; left:14%; right:-12%; top:-9%; bottom:27%; z-index:3;
+    perspective:900px; touch-action:pan-y; cursor:grab;
+  }
+  .pcard__stage:active{cursor:grabbing;}
+  .fig3d{position:absolute; inset:0; transform-style:preserve-3d;}
+  .fig3d__rot{
+    position:absolute; inset:0; transform-style:preserve-3d;
+    transform:rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  }
+  .fig3d__rot img{
+    position:absolute; left:50%; bottom:0; height:100%; width:auto; max-width:none;
+    transform:translateX(-50%) translateZ(var(--z, 0px));
+    filter:var(--f, none); -webkit-user-drag:none; user-select:none; pointer-events:none;
+  }
+  .fig3d__rot img.front{filter:drop-shadow(0 10px 14px rgba(60,20,0,.35));}
+  .fig3d__base{
+    position:absolute; left:50%; bottom:-14%; width:66%; aspect-ratio:1; border-radius:50%;
+    transform:translateX(-50%) rotateX(78deg) rotateZ(calc(var(--ry, 0deg) * -1));
+    border:2px dashed rgba(255,255,255,.5);
+    background:radial-gradient(circle, rgba(255,255,255,.4) 0%, rgba(255,255,255,.1) 50%, transparent 70%);
+    pointer-events:none;
+  }
+  .pcard__stage model-viewer{width:100%; height:100%; --poster-color:transparent; background:transparent;}
+  .pcard__plate{position:absolute; left:10%; right:10%; bottom:15%; z-index:4; text-align:center;}
+  .pcard__name{font-size:20px; font-weight:600; margin:0; text-shadow:0 2px 6px rgba(120,40,0,.35); line-height:28px}
+  .pcard__meta{font-size:12px; font-weight:600; margin:4px 0 0; opacity:.92; line-height:18px}
+  .pcard__shine{
+    position:absolute; inset:0; z-index:5; pointer-events:none;
+    clip-path:polygon(14% 0, 86% 0, 100% 7%, 100% 84%, 50% 100%, 0 84%, 0 7%);
+    background:linear-gradient(110deg, transparent 35%, rgba(255,255,255,.32) 48%, transparent 60%);
+    transform:translateX(var(--shine, -70%)); mix-blend-mode:soft-light;
+  }
+  .pcard-hint{font-size:12px; color:rgba(255,255,255,.55); text-align:center; margin:14px 0 0; line-height:18px}
+
+  .pc-panel{margin-top:18px; padding:16px; border-radius:20px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);}
+  .pc-panel__title{font-size:14px; font-weight:600; margin:0 0 6px; color:rgba(255,255,255,.9); line-height:22px}
+  .pc-radar svg{width:100%; max-width:320px; display:block; margin:0 auto; overflow:visible;}
+  .radar-grid{fill:none; stroke:rgba(255,255,255,.14); stroke-width:1;}
+  .radar-axis{stroke:rgba(255,255,255,.12); stroke-width:1;}
+  .radar-poly{fill:rgba(255,87,31,.42); stroke:var(--brand-light); stroke-width:2; stroke-linejoin:round;
+    transform-origin:150px 140px; animation:radarGrow .9s var(--ease-spring) .2s both;}
+  @keyframes radarGrow{ from{transform:scale(0); opacity:0;} to{transform:scale(1); opacity:1;} }
+  .radar-dot{fill:#fff; stroke:var(--brand); stroke-width:2;}
+  .radar-label{fill:rgba(255,255,255,.7); font-size:12px; font-weight:600; line-height:18px}
+  .radar-val{fill:#fff; font-size:16px; font-weight:600; line-height:24px}
+  .pc-season{display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:6px;}
+  .pc-season__item{padding:12px 6px; border-radius:14px; background:rgba(255,255,255,.06); text-align:center;}
+  .pc-season__v{font-size:18px; font-weight:600; font-variant-numeric:tabular-nums; line-height:26px}
+  .pc-season__l{font-size:12px; color:rgba(255,255,255,.6); font-weight:600; margin-top:3px; line-height:18px}
+
+  @media (prefers-reduced-motion: reduce){
+    .pcard.reveal, .radar-poly{animation:none;}
+  }
+
+  /* ============================================================
+     눌린(inset) 그림자 없이 — 평면 채움 + 1px 라인으로 정리
+     ============================================================ */
+  :root{
+    --fill-1:#EEF0F4;   /* Ink/200 계열 — 토글·트랙 바탕 */
+    --line-1:#E9EBF0;   /* Line/250 */
+    --neu-in:none;
+    --neu-out:0 1px 2px rgba(22,28,38,.05), 0 0 0 1px var(--line-1);
+    --neu-out-sm:0 1px 2px rgba(22,28,38,.05), 0 0 0 1px var(--line-1);
+  }
+  .seg, .seatmode-toggle, .level-tabs{background:var(--fill-1); box-shadow:none;}
+  .seg--sub{background:none;}
+  .level-tab.active{background:#fff; box-shadow:0 1px 3px rgba(22,28,38,.12);}
+  .zone-btn, .opt, .pick-player, .chip, .player-num, .player-vote-btn{background:#fff;}
+  .chip.active{background:var(--ink); box-shadow:none;}
+  .zone-btn.active, .opt.selected, .pick-player.selected{background:rgba(255,87,31,.1); box-shadow:0 0 0 1.5px var(--brand);}
+  .zone-detail.show{background:rgba(255,87,31,.07); border:1px solid rgba(255,87,31,.2);}
+  .countdown-banner{background:#fff; border:1px solid var(--line-1);}
+  .glass-input, .glass-select{background:#fff; border:1px solid var(--line-1);}
+  .glass-input:focus, .glass-select:focus{outline:none; border-color:var(--brand);}
+  .photo-drop{background:#fff;}
+  .bar-track{background:var(--fill-1);}
+  .mission-item{background:rgba(255,255,255,.16);}
+  .mission-item.done{background:#fff;}
+  .face{box-shadow:0 0 0 1.5px #fff, 0 2px 6px rgba(22,28,38,.1);}
+  .face--num{font-size:14px; line-height:20px}
+  .pick-player.selected .face{box-shadow:0 0 0 2px var(--brand);}
+</style>
+</head>
+<body>
+
+<div id="splash" class="splash">
+  <span class="splash__ball">🏐</span>
+  <p class="splash__title">부산 OK 저축은행 읏맨</p>
+  <p class="splash__sub">직관 가이드</p>
+  <div class="splash__chars" id="splash-chars"><!-- JS로 채움 --></div>
+  <div class="splash__loading">
+    <span class="splash__dot"></span><span class="splash__dot"></span><span class="splash__dot"></span>
+  </div>
+  <p class="splash__tap">화면을 탭하면 바로 시작해요</p>
+</div>
+
+<div class="bg-orbs" aria-hidden="true">
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+  <div class="orb o3"></div>
+</div>
+
+<div id="app">
+
+  <!-- ============ 브랜드 로고 ============ -->
+  <div class="brand-header">
+    <img src="images/brand/logo.webp" alt="부산 OK 저축은행 읏맨 프로배구단">
+  </div>
+
+  <!-- ============ 상단 매치 정보 ============ -->
+  <div class="matchbar">
+    <div class="matchbar__row">
+      <div>
+        <div class="matchbar__teams">
+          <span class="home" id="mb-home">OK저축은행 읏맨</span>
+          <span class="vs">VS</span>
+          <span id="mb-away">상대팀</span>
+        </div>
+        <div class="matchbar__meta">
+          <span id="mb-venue">부산 강서실내체육관</span>·<span id="mb-date">경기 정보 입력 필요</span>
+        </div>
+      </div>
+      <div class="matchbar__badge" id="mb-badge">🏐 직관 가이드</div>
+    </div>
+  </div>
+
+  <!-- ============ 홈 — 직관 미션 · 룰렛 · 굿즈샵 ============ -->
+  <div class="view active" id="view-home">
+    <h1 class="pagehead">오늘의 직관</h1>
+    <p class="pagesub">미션을 채우면 룰렛 기회가 한 번 더 생겨요.</p>
+
+    <div class="mission-card" id="mission-card">
+      <div class="mission-card__head">
+        <div>
+          <p class="mission-card__title">🏐 오늘의 직관 미션</p>
+          <p class="mission-card__sub" id="mission-sub">0/6 완료</p>
+        </div>
+        <div class="mission-ring">
+          <svg viewBox="0 0 40 40">
+            <circle class="mission-ring__bg" cx="20" cy="20" r="17"/>
+            <circle class="mission-ring__fg" id="mission-ring-fg" cx="20" cy="20" r="17"/>
+          </svg>
+          <span class="mission-ring__label" id="mission-ring-label">0%</span>
+        </div>
+      </div>
+      <ul class="mission-list" id="mission-list"><!-- JS로 채움 --></ul>
+      <input type="file" accept="image/*" capture="environment" id="checkin-photo-input" hidden>
+    </div>
+
+    <!-- 룰렛 — Figma "OK읏맨서포터즈_배구룰렛_00" 디자인 기준 -->
+    <section class="rl-stage" aria-labelledby="rl-title">
+      <h2 class="rl-title" id="rl-title">
+        <span class="rl-title__l1">OK읏맨 서포터즈라면</span>
+        <span class="rl-title__l2">지금 바로 룰렛 돌리고</span>
+        <span class="rl-title__l3">부산OK<br>응원경품 받자!</span>
+      </h2>
+      <div class="rl-wheel-wrap" id="rl-wrap">
+        <div class="rl-wheel" id="roulette-wheel"><!-- JS로 채움 --></div>
+        <img class="rl-pointer" id="rl-pointer" alt="">
+        <img class="rl-mascot" id="rl-mascot" alt="">
+      </div>
+      <button class="btn rl-cta" id="roulette-spin">룰렛 돌리기</button>
+      <p class="rl-chance" id="roulette-chance">남은 기회 1회</p>
+      <p class="rl-sub" id="roulette-sub"></p>
+      <button class="rl-last" id="rl-last" hidden>지난 당첨 교환권 보기</button>
+    </section>
+
+    <a class="goods-card" id="goods-link" target="_blank" rel="noopener">
+      <div class="goods-card__text">
+        <p class="goods-card__title" id="goods-title">읏맨 공식 굿즈샵</p>
+        <p class="goods-card__desc" id="goods-desc">유니폼과 응원 도구를 온라인에서 만나보세요.</p>
+        <span class="goods-card__cta" id="goods-cta">굿즈샵 가기
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+        </span>
+      </div>
+      <div class="goods-card__figs" id="goods-figs" aria-hidden="true"></div>
+    </a>
+  </div>
+
+  <!-- ============ 안내 — 오시는길 · 자리안내 · 막차안내 ============ -->
+  <div class="view" id="view-guide">
+    <h1 class="pagehead">경기장 안내</h1>
+    <p class="pagesub">오는 길부터 내 자리, 돌아가는 막차까지 여기서 확인하세요.</p>
+
+    <div class="seg" data-seg="guide" data-target="guide-panels" role="tablist">
+      <div class="seg__thumb"></div>
+      <button class="seg__btn active" data-key="route" role="tab">오시는길</button>
+      <button class="seg__btn" data-key="seat" role="tab">자리안내</button>
+      <button class="seg__btn" data-key="lastrain" role="tab">막차안내</button>
+    </div>
+
+    <div id="guide-panels">
+      <!-- 오시는길 -->
+      <div class="seg-panel active" data-key="route">
+        <div class="card place-card">
+          <p class="place-card__name" id="place-name">부산 강서실내체육관</p>
+          <p class="place-card__addr" id="place-addr"></p>
+          <div class="map-links">
+            <a class="btn ghost small" id="map-kakao" target="_blank" rel="noopener">카카오맵 길찾기</a>
+            <a class="btn ghost small" id="map-naver" target="_blank" rel="noopener">네이버 지도</a>
+          </div>
+        </div>
+
+        <div class="seg seg--sub" data-seg="transport" data-target="transport-panels" role="tablist">
+          <div class="seg__thumb"></div>
+          <button class="seg__btn active" data-key="car" role="tab">🚗 자차</button>
+          <button class="seg__btn" data-key="transit" role="tab">🚇 대중교통</button>
+        </div>
+
+        <div id="transport-panels">
+          <div class="seg-panel active" data-key="car">
+            <div class="section-label"><span class="num">1</span>주차장 → 좌석 동선</div>
+            <div id="step-list"><!-- JS로 채움 --></div>
+            <div class="section-label"><span class="num">2</span>경기장 배치도</div>
+            <div class="venue-map photo-box" id="venue-map"><!-- JS로 채움 --></div>
+          </div>
+          <div class="seg-panel" data-key="transit">
+            <div id="transit-list"><!-- JS로 채움 --></div>
+            <button class="btn ghost full" id="transit-to-lastrain" style="margin-top:14px;">돌아가는 막차 시간 보기</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 자리안내 -->
+      <div class="seg-panel" data-key="seat">
+        <div class="card">
+          <div class="seatmode-toggle">
+            <div class="seatmode-thumb" id="seatmode-thumb"></div>
+            <button class="seatmode-btn active" data-mode="manual">선택</button>
+            <button class="seatmode-btn" data-mode="photo">티켓 촬영</button>
+          </div>
+
+          <div class="seatmode-panel active" id="seatmode-manual">
+            <div class="level-tabs" id="level-tabs"><!-- JS로 채움 --></div>
+            <div class="zone-grid" id="zone-grid"><!-- JS로 채움 --></div>
+          </div>
+
+          <div class="seatmode-panel" id="seatmode-photo">
+            <label class="photo-drop" id="photo-drop">
+              <input type="file" accept="image/*" capture="environment" id="seat-photo-input" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z"/>
+                <circle cx="12" cy="13" r="3.5"/>
+              </svg>
+              <span>티켓을 촬영하거나 사진을 선택하세요</span>
+            </label>
+            <div class="photo-preview" id="photo-preview" style="display:none;">
+              <img id="photo-preview-img" alt="촬영한 티켓 사진">
+              <p class="photo-note" id="photo-note"></p>
+              <button class="btn ghost small full photo-retake" id="photo-retake">다시 촬영</button>
+            </div>
+          </div>
+
+          <div class="zone-detail" id="zone-detail"></div>
+
+          <div class="seat-action-row">
+            <button class="btn ghost" id="seat-guide-submit">좌석안내</button>
+            <button class="btn" id="seat-view-submit">시야보기</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 막차안내 -->
+      <div class="seg-panel" data-key="lastrain">
+        <p class="pagesub" style="margin-bottom:14px;">경기가 길어지면 화면에 알림이 떠요. 언제든 여기서 시간표를 확인할 수 있어요.</p>
+        <div class="card clock-card">
+          <div class="now" id="clock-now">--:--</div>
+          <div class="lbl">현재 시각</div>
+        </div>
+        <div class="card">
+          <div id="subway-list"><!-- JS로 채움 --></div>
+          <p class="config-note" id="subway-config-note"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PICK — 경기 예측 · MVP ============ -->
+  <div class="view" id="view-pick">
+    <h1 class="pagehead">읏맨 PICK</h1>
+    <p class="pagesub">경기 전엔 예측, 경기 후엔 MVP. 참여하면 경품 추첨에 응모할 수 있어요.</p>
+
+    <div class="seg" data-seg="pick" data-target="pick-panels" role="tablist">
+      <div class="seg__thumb"></div>
+      <button class="seg__btn active" data-key="predict" role="tab">🔮 경기 예측</button>
+      <button class="seg__btn" data-key="mvp" role="tab">🏆 MVP 투표</button>
+    </div>
+
+    <div id="pick-panels">
+      <div class="seg-panel active" data-key="predict">
+        <div class="countdown-banner">
+          <span class="lbl">예측 마감까지</span>
+          <span class="val" id="predict-countdown">--:--:--</span>
+        </div>
+        <div id="predict-list"><!-- JS로 채움 --></div>
+        <button class="btn full" id="predict-submit" style="margin-top:6px;">예측 제출하기</button>
+        <p class="predict-status" id="predict-status">예측을 제출했어요. 경기 중 결과를 확인하세요!</p>
+        <div class="card raffle-card" id="predict-raffle" style="display:none;"></div>
+      </div>
+
+      <div class="seg-panel" data-key="mvp">
+        <div id="mvp-list"><!-- JS로 채움 --></div>
+        <p class="mvp-note" id="mvp-note"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 기록 — 우리 선수 · 리그 순위 · 경기 결과 ============ -->
+  <div class="view" id="view-players">
+    <h1 class="pagehead">선수 · 리그 기록</h1>
+    <p class="pagesub">선수를 누르면 능력치 카드가 열려요.</p>
+
+    <div class="seg" data-seg="players" data-target="players-panels" role="tablist">
+      <div class="seg__thumb"></div>
+      <button class="seg__btn active" data-key="squad" role="tab">우리 선수</button>
+      <button class="seg__btn" data-key="standings" role="tab">리그 순위</button>
+      <button class="seg__btn" data-key="results" role="tab">경기 결과</button>
+    </div>
+
+    <div id="players-panels">
+      <div class="seg-panel active" data-key="squad">
+        <div class="chip-row" id="pos-chips"><!-- JS로 채움 --></div>
+        <div class="squad-grid" id="squad-grid"><!-- JS로 채움 --></div>
+      </div>
+      <div class="seg-panel" data-key="standings">
+        <div class="card stand-card">
+          <table class="stand-table" id="stand-table"><!-- JS로 채움 --></table>
+        </div>
+        <p class="data-hint">팀을 누르면 시즌 팀 기록을 리그 평균과 비교해 보여드려요.</p>
+      </div>
+      <div class="seg-panel" data-key="results">
+        <div class="chip-row" id="result-chips">
+          <button class="chip active" data-filter="all">전체 경기</button>
+          <button class="chip" data-filter="us">읏맨 경기</button>
+        </div>
+        <div id="results-list"><!-- JS로 채움 --></div>
+      </div>
+    </div>
+    <p class="data-note" id="stats-note"></p>
+  </div>
+
+  <!-- ============ 설문조사 (기존과 동일) ============ -->
+  <div class="view" id="view-survey">
+    <h1 class="pagehead">📝 관람 설문</h1>
+    <p class="pagesub">오늘 직관은 어떠셨나요? 1분이면 충분해요.</p>
+
+    <div class="progress-track"><div class="progress-fill" id="survey-progress"></div></div>
+    <div id="survey-body"><!-- JS로 채움 --></div>
+  </div>
+
+  <!-- ============ 하단 탭바 ============ -->
+  <nav class="tabbar" aria-label="하단 메뉴">
+    <div class="tab-pill" id="tab-pill"></div>
+    <button class="tabbar__btn" data-view="guide">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.33-7-11a7 7 0 0 1 14 0c0 5.67-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+      <span>안내</span>
+    </button>
+    <button class="tabbar__btn" data-view="pick">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="0.8" fill="currentColor"/></svg>
+      <span>이벤트</span>
+    </button>
+    <button class="tabbar__btn active" data-view="home">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5H15v-5.5H9v5.5H5.5A1.5 1.5 0 0 1 4 19v-8.5Z"/></svg>
+      <span>홈</span>
+    </button>
+    <button class="tabbar__btn" data-view="players">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M10 20V5M15 20v-7M20 20V9"/></svg>
+      <span>기록</span>
+    </button>
+    <button class="tabbar__btn" data-view="survey">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4"/><path d="M9.5 12.5h5M9.5 16h5"/></svg>
+      <span>설문</span>
+    </button>
+  </nav>
+
+  <!-- ============ 응원 버튼 (플로팅) ============ -->
+  <div class="cheer-phrase" id="cheer-phrase"></div>
+  <button class="cheer-fab" id="cheer-fab" aria-label="응원하기">
+    <span class="cheer-fab__ring"></span>
+    <span class="cheer-fab__ring cheer-fab__ring--2"></span>
+    <span class="cheer-fab__emoji">📣</span>
+    <span class="cheer-fab__label">응원</span>
+    <span class="cheer-fab__badge" id="cheer-badge"></span>
+  </button>
+
+</div>
+
+<!-- ============ 막차 토스트 ============ -->
+<div class="toast" id="subway-toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <div class="toast-body">
+    <p class="toast-t">경기가 길어지고 있어요</p>
+    <p class="toast-d" id="toast-desc">막차 시간을 확인해보세요.</p>
+  </div>
+  <button class="toast-action" id="toast-action">확인</button>
+  <button class="toast-close" id="toast-close" aria-label="닫기">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+</div>
+
+<!-- ============ 좌석 시야 풀팝업 ============ -->
+<div class="seat-modal" id="seat-modal">
+  <div class="seat-modal__bar">
+    <span class="seat-modal__label" id="seat-modal-label"></span>
+    <button class="seat-modal__close" id="seat-modal-close" aria-label="닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <iframe id="seat-modal-iframe" loading="lazy" allowfullscreen></iframe>
+</div>
+
+<!-- ============ 좌석안내 풀팝업 ============ -->
+<div class="seat-modal route-modal" id="route-modal">
+  <div class="seat-modal__bar">
+    <span class="seat-modal__label" id="route-modal-label">내 자리 가는 길</span>
+    <button class="seat-modal__close" id="route-modal-close" aria-label="닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="route-modal__body">
+    <div class="route-map" id="route-map">
+      <img id="route-map-img" alt="경기장 배치도">
+      <svg class="route-map-overlay" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <polyline id="route-line" points=""/>
+        <circle id="route-walker" class="route-walker" r="1.8" cx="-10" cy="-10"></circle>
+      </svg>
+      <div class="route-pin gate" id="route-pin-gate"><span class="dot"></span><span class="label" id="route-pin-gate-label"></span></div>
+      <div class="route-pin seat" id="route-pin-seat"><span class="dot"></span><span class="label" id="route-pin-seat-label"></span></div>
+    </div>
+    <div class="route-track" id="route-track"></div>
+    <ol class="route-steps" id="route-steps"></ol>
+    <p class="route-note">배치도상 위치를 기준으로 추정한 경로예요. 실제 동선은 현장 안내 표지판을 따라주세요.</p>
+  </div>
+</div>
+
+<!-- ============ 선수 능력치 카드 (FIFA 스타일) ============ -->
+<div class="pcard-modal" id="pcard-modal" role="dialog" aria-modal="true" aria-labelledby="pc-name">
+  <div class="pcard-modal__bar">
+    <button class="icon-btn" id="pc-close" aria-label="닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <span class="pcard-modal__count" id="pc-count">1 / 17</span>
+    <div class="pcard-modal__nav">
+      <button class="icon-btn" id="pc-prev" aria-label="이전 선수">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      </button>
+      <button class="icon-btn" id="pc-next" aria-label="다음 선수">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="pcard-modal__body">
+    <div class="pcard" id="pcard">
+      <div class="pcard__bg"></div>
+      <div class="pcard__top">
+        <span class="pcard__ovr" id="pc-ovr">--</span>
+        <span class="pcard__pos" id="pc-pos">--</span>
+        <span class="pcard__tier" id="pc-tier"></span>
+      </div>
+      <div class="pcard__stage" id="pc-stage"></div>
+      <div class="pcard__plate">
+        <p class="pcard__name" id="pc-name">선수</p>
+        <p class="pcard__meta" id="pc-meta"></p>
+      </div>
+      <div class="pcard__shine" id="pc-shine"></div>
+    </div>
+    <p class="pcard-hint" id="pc-hint">좌우로 드래그해서 돌려보세요</p>
+
+    <div class="pc-panel">
+      <p class="pc-panel__title">능력치</p>
+      <div class="pc-radar" id="pc-radar"></div>
+    </div>
+
+    <div class="pc-panel">
+      <p class="pc-panel__title" id="pc-season-title">시즌 기록</p>
+      <div class="pc-season" id="pc-season"></div>
+    </div>
+
+    <button class="btn full" id="pc-mvp" style="margin-top:18px;">이 선수에게 MVP 투표하기</button>
+  </div>
+</div>
+
+<!-- ============ 룰렛 결과 — 당첨(교환권) ============ -->
+<div class="rl-win" id="rl-win" role="dialog" aria-modal="true" aria-labelledby="rlw-title">
+  <div class="rl-win__bar">
+    <span class="rl-win__bar-t">교환권</span>
+    <button class="icon-btn rl-win__close" id="rlw-close" aria-label="닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="rl-win__body">
+    <div class="rl-win__chip"><span>교환권번호</span><b id="rlw-code">-</b></div>
+    <p class="rl-win__title" id="rlw-title">-</p>
+    <p class="rl-win__desc" id="rlw-desc"></p>
+    <div class="rl-win__img">
+      <img class="rl-win__box" id="rlw-box" alt="">
+      <img class="rl-win__item" id="rlw-item" alt="">
+    </div>
+    <ul class="rl-notice" id="rlw-notice"></ul>
+  </div>
+  <button class="rl-win__save" id="rlw-save">이미지 저장</button>
+</div>
+
+<!-- ============ 룰렛 결과 — 꽝 ============ -->
+<div class="rl-lose" id="rl-lose" role="dialog" aria-modal="true" aria-labelledby="rll-title">
+  <div class="rl-lose__con">
+    <img class="rl-lose__img" id="rll-img" alt="">
+    <p class="rl-lose__title" id="rll-title">아쉽게도 꽝!</p>
+    <p class="rl-lose__desc">다음 기회에서 행운을<br>잡아보세요!</p>
+    <button class="rl-lose__close" id="rll-close">닫기</button>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   0. 스플래시 — 선수 캐릭터가 팝콘처럼 튀어오르는 인트로 화면
+   ================================================================ */
+// 스플래시 · 선수 캐릭터 이미지 (00=감독, 이후 등번호 순) — 같은 이름으로 바꿔 넣으면 교체돼요.
+const SPLASH_CHARACTERS = [
+  "images/players/00-coach.webp",
+  "images/players/01-no1.webp",
+  "images/players/02-no3.webp",
+  "images/players/03-no5.webp",
+  "images/players/04-no6.webp",
+  "images/players/05-no7.webp",
+  "images/players/06-no8.webp",
+  "images/players/07-no10.webp",
+  "images/players/08-no11.webp",
+  "images/players/09-no12.webp",
+  "images/players/10-no14.webp",
+  "images/players/11-no15.webp",
+  "images/players/12-no16.webp",
+  "images/players/13-no17.webp",
+  "images/players/14-no19.webp",
+  "images/players/15-no22.webp",
+  "images/players/16-no31.webp",
+  "images/players/17-no40.webp"
+  ];
+(function initSplash(){
+  const splash = document.getElementById('splash');
+  if(!splash) return;
+  const charsWrap = document.getElementById('splash-chars');
+
+  document.documentElement.style.overflow = 'hidden';
+
+  SPLASH_CHARACTERS.forEach((b64, i)=>{
+    const img = document.createElement('img');
+    img.src = b64;
+    img.className = 'splash__char';
+    img.alt = '';
+    const rot = (Math.random() * 16 - 8).toFixed(1);
+    img.style.setProperty('--rot', rot + 'deg');
+    img.style.setProperty('--delay', (i * 0.05).toFixed(2) + 's');
+    charsWrap.appendChild(img);
+  });
+
+  function dismissSplash(){
+    if(splash.classList.contains('hide')) return;
+    splash.classList.add('hide');
+    document.documentElement.style.overflow = '';
+    setTimeout(()=> splash.remove(), 550);
+  }
+  splash.addEventListener('click', dismissSplash);
+  setTimeout(dismissSplash, 2600);
+})();
+
+/* ================================================================
+   CONFIG — 실제 서비스 배포 전 이 영역만 채워 넣으면 됩니다.
+   ================================================================ */
+/* ================================================================
+   실제 배치도(업로드해주신 좌석도) 기준 구역 데이터 생성
+   레벨(1/2/3) + 번호로 구성되고, 색상은 배치도 이미지의 구역 색과 맞췄어요.
+   ================================================================ */
+function zoneRange(level, start, end, color, extra){
+  const out = [];
+  for(let n = start; n <= end; n++){
+    out.push(Object.assign({ id: `${level}-${n}`, label: `${level}-${n}`, level, color }, extra || {}));
+  }
+  return out;
+}
+const ZONES_DATA = [
+  // 1층 코트사이드 (1-1 ~ 1-18)
+  ...zoneRange('1', 1, 2, 'cyan'),
+  ...zoneRange('1', 3, 6, 'green'),
+  ...zoneRange('1', 7, 8, 'cyan'),
+  ...zoneRange('1', 9, 9, 'yellow'),
+  ...zoneRange('1', 10, 11, 'cyan'),
+  ...zoneRange('1', 12, 15, 'green'),
+  ...zoneRange('1', 16, 17, 'cyan'),
+  ...zoneRange('1', 18, 18, 'yellow'),
+
+  // 2층 메인 (2-1 ~ 2-23)
+  ...zoneRange('2', 1, 1, 'orange'),
+  ...zoneRange('2', 2, 4, 'orange', { accessible: true }),
+  ...zoneRange('2', 5, 5, 'orange'),
+  ...zoneRange('2', 6, 12, 'blue'),
+  ...zoneRange('2', 13, 13, 'yellow'),
+  ...zoneRange('2', 14, 15, 'yellow', { accessible: true }),
+  ...zoneRange('2', 16, 16, 'yellow'),
+  ...zoneRange('2', 17, 22, 'purple'),
+  ...zoneRange('2', 23, 23, 'gray'),
+
+  // 3층 상단 (3-1 ~ 3-14) — 배치도에 GATE로 표시된 구역만 gate:true
+  ...zoneRange('3', 1, 2, 'brown'),
+  ...zoneRange('3', 3, 3, 'brown', { gate: true }),
+  ...zoneRange('3', 4, 4, 'brown'),
+  ...zoneRange('3', 5, 5, 'brown', { gate: true }),
+  ...zoneRange('3', 6, 7, 'brown'),
+  ...zoneRange('3', 8, 9, 'green'),
+  ...zoneRange('3', 10, 10, 'green', { gate: true }),
+  ...zoneRange('3', 11, 11, 'gray'),
+  ...zoneRange('3', 12, 12, 'brown', { gate: true }),
+  ...zoneRange('3', 13, 14, 'brown'),
+
+  // 특별석 — 배치도의 플로어석/중앙석/장애인석 (숫자 구역과 별개의 좌석군)
+  { id:'F', label:'플로어석', level:'S', color:'pink' },
+  { id:'center', label:'중앙석', level:'S', color:'gray' },
+  { id:'ads1', label:'장애인석1', level:'S', color:'olive', accessible:true },
+  { id:'ads2', label:'장애인석2', level:'S', color:'olive', accessible:true },
+  { id:'ads3', label:'장애인석3', level:'S', color:'olive', accessible:true },
+  { id:'ads4', label:'장애인석4', level:'S', color:'olive', accessible:true },
+  { id:'ads5', label:'장애인석5', level:'S', color:'olive', accessible:true },
+];
+
+// 배치도 이미지에서 실측한 구역별 중심 좌표 (이미지 기준 %, 0~100)
+// map.png의 색상 영역을 픽셀 단위로 분석해서 얻은 값이라 실제 배치도와 맞아요.
+const ZONE_COORDS = {
+  '1-1':[29.1,27.4], '1-2':[34.7,27.4], '1-3':[42.3,27.4], '1-4':[48.1,27.4],
+  '1-5':[52.1,27.4], '1-6':[57.5,27.4], '1-7':[64.9,27.4], '1-8':[70.4,27.4],
+  '1-9':[74.3,45.7], '1-10':[70.5,64.3], '1-11':[64.9,64.3], '1-12':[57.4,64.3],
+  '1-13':[51.6,64.3], '1-14':[47.2,64.3], '1-15':[41.6,64.3], '1-16':[34.4,64.3],
+  '1-17':[28.8,64.3], '1-18':[25.7,45.7],
+
+  '2-1':[33.2,18.6], '2-2':[41.7,18.6], '2-3':[49.9,18.6], '2-4':[58.2,18.6],
+  '2-5':[66.5,18.6], '2-6':[76.6,18.0], '2-7':[82.4,27.8], '2-8':[83.5,36.4],
+  '2-9':[83.5,45.6], '2-10':[83.5,54.9], '2-11':[83.0,63.0], '2-12':[77.9,71.8],
+  '2-13':[66.2,73.7], '2-14':[58.0,71.9], '2-15':[41.9,71.9], '2-16':[33.6,73.8],
+  '2-17':[22.1,71.8], '2-18':[17.0,63.0], '2-19':[16.4,54.9], '2-20':[16.4,45.7],
+  '2-21':[16.4,36.6], '2-22':[17.6,27.8], '2-23':[23.4,18.0],
+
+  '3-1':[24.4,9.2], '3-2':[34.4,9.2], '3-3':[42.1,7.8], '3-4':[50.0,9.2],
+  '3-5':[58.1,7.8], '3-6':[65.7,9.2], '3-7':[75.4,9.2], '3-8':[75.7,82.6],
+  '3-9':[65.9,82.5], '3-10':[56.4,82.6], '3-11':[50.0,82.5], '3-12':[43.6,82.5],
+  '3-13':[34.0,82.6], '3-14':[24.1,82.6],
+
+  'F':[50.0,32.4], 'center':[49.9,72.9],
+  'ads1':[41.7,15.0], 'ads2':[49.9,15.0], 'ads3':[58.1,15.0],
+  'ads4':[41.9,76.5], 'ads5':[57.9,76.5],
+};
+
+// 배치도의 흰색 통로(경계선)를 따라가는 실제 경로 — 색상 마스크 위에서 최단경로를 계산해
+// 뽑아낸 좌표예요 (게이트 → 좌석 순서). 중앙 코트/플로어석 구역은 지나가지 못하게 막아서
+// 반대쪽으로 가는 지름길로 쓰이지 않도록 했어요.
+const ZONE_PATHS = {
+  '1-1':[[42.2,12.5],[42.31,12.82],[39.62,12.89],[38.65,13.94],[30.51,13.94],[29.29,14.23],[29.1,27.39]],
+  '1-2':[[42.2,12.5],[42.31,12.82],[39.81,12.89],[38.78,14.01],[37.88,14.15],[37.88,21.9],[37.31,22.54],[37.31,24.51],[34.68,27.39]],
+  '1-3':[[42.2,12.5],[42.69,12.82],[44.29,12.82],[45.51,14.15],[45.45,23.94],[42.31,27.39]],
+  '1-4':[[42.2,12.5],[42.69,12.82],[44.29,12.82],[45.77,14.58],[45.77,22.18],[46.09,22.54],[46.09,25.21],[48.08,27.39]],
+  '1-5':[[57.6,12.5],[57.31,12.82],[55.45,12.89],[54.29,14.15],[53.78,25.56],[52.12,27.39]],
+  '1-6':[[57.6,12.5],[57.31,12.82],[55.45,12.89],[54.29,14.15],[54.36,23.94],[57.5,27.39]],
+  '1-7':[[57.6,12.5],[58.01,12.82],[60.9,12.82],[62.12,14.15],[62.18,16.9],[62.63,17.39],[62.69,25.0],[64.87,27.39]],
+  '1-8':[[57.6,12.5],[58.01,12.82],[61.15,12.82],[61.99,13.59],[70.13,13.94],[70.38,14.23],[70.38,27.39]],
+  '1-9':[[57.6,12.5],[58.01,12.82],[61.15,12.82],[61.99,13.59],[65.13,13.59],[65.38,13.87],[86.92,13.94],[87.44,14.51],[87.44,40.63],[80.13,40.77],[79.55,41.41],[79.55,44.58],[78.53,45.7],[74.29,45.7]],
+  '1-10':[[57.6,78.7],[59.1,77.54],[69.87,77.54],[70.19,77.18],[70.19,69.37],[70.51,69.01],[70.51,64.3]],
+  '1-11':[[57.6,78.7],[58.97,77.46],[61.86,77.25],[61.86,69.51],[62.37,68.94],[62.37,67.04],[64.87,64.3]],
+  '1-12':[[57.6,78.7],[56.28,77.46],[54.17,77.25],[54.23,67.75],[57.37,64.3]],
+  '1-13':[[57.6,78.7],[56.28,77.46],[54.17,77.25],[54.17,71.69],[51.6,69.01],[51.6,64.3]],
+  '1-14':[[41.3,78.7],[44.49,78.52],[45.77,77.25],[45.77,74.79],[46.41,74.08],[46.41,69.72],[47.18,69.01],[47.18,64.3]],
+  '1-15':[[41.3,78.7],[39.17,78.52],[38.01,77.25],[38.01,69.01],[38.08,68.17],[41.6,64.3]],
+  '1-16':[[41.3,78.7],[39.17,78.52],[38.01,77.25],[37.5,67.68],[34.42,64.3]],
+  '1-17':[[41.3,78.7],[38.85,78.52],[38.21,77.82],[33.91,77.75],[33.59,77.39],[29.68,77.25],[29.68,69.58],[29.1,68.94],[29.1,64.65],[28.78,64.3]],
+  '1-18':[[41.3,78.7],[38.85,78.52],[38.21,77.82],[33.78,77.75],[33.53,77.46],[12.88,77.39],[12.5,76.97],[12.5,50.7],[19.74,50.63],[20.38,49.93],[20.38,46.83],[21.41,45.7],[25.71,45.7]],
+  '2-1':[[42.2,12.5],[42.31,12.82],[39.81,12.89],[38.78,14.01],[38.01,14.01],[37.88,17.04],[37.37,17.61],[34.68,17.61],[33.85,18.52],[33.21,18.59]],
+  '2-2':[[42.2,12.5],[42.69,12.82],[44.29,12.82],[45.51,14.15],[45.51,15.7],[41.92,15.77],[41.73,18.59]],
+  '2-3':[[42.2,12.5],[42.69,12.82],[44.29,12.82],[45.51,14.15],[45.77,15.35],[46.15,15.77],[49.68,15.77],[49.87,18.59]],
+  '2-4':[[57.6,12.5],[57.31,12.82],[55.45,12.89],[54.29,14.15],[54.29,15.63],[58.21,15.99],[58.21,18.59]],
+  '2-5':[[57.6,12.5],[58.01,12.82],[61.15,12.82],[61.99,13.59],[70.13,13.94],[70.38,14.23],[70.38,17.68],[67.76,17.68],[67.18,18.52],[66.47,18.59]],
+  '2-6':[[57.6,12.5],[58.01,12.82],[61.15,12.82],[61.99,13.59],[65.13,13.59],[65.38,13.87],[76.47,13.94],[76.6,18.03]],
+  '2-7':[[57.6,12.5],[58.01,12.82],[61.15,12.82],[61.99,13.59],[65.13,13.59],[65.38,13.87],[86.92,13.94],[87.44,14.51],[87.44,31.41],[79.62,31.55],[79.29,28.1],[82.37,27.82]],
+  '2-8':[[57.6,12.5],[58.01,12.82],[61.15,12.82],[61.99,13.59],[65.13,13.59],[65.38,13.87],[86.92,13.94],[87.44,14.51],[87.44,35.99],[85.26,35.99],[84.29,36.83],[83.78,36.83],[83.53,36.41]],
+  '2-9':[[57.6,12.5],[58.01,12.82],[61.15,12.82],[61.99,13.59],[65.13,13.59],[65.38,13.87],[86.92,13.94],[87.44,14.51],[87.44,45.28],[83.53,45.63]],
+  '2-10':[[57.6,78.7],[58.53,78.52],[59.17,77.82],[86.67,77.75],[87.44,76.9],[87.44,55.07],[85.71,55.07],[85.38,55.35],[84.94,54.65],[84.17,54.23],[83.53,54.93]],
+  '2-11':[[57.6,78.7],[58.53,78.52],[59.17,77.82],[86.67,77.75],[87.44,76.9],[87.44,59.86],[83.01,59.72],[83.01,63.03]],
+  '2-12':[[57.6,78.7],[58.53,78.52],[59.17,77.82],[86.35,77.75],[86.79,77.18],[80.19,69.93],[78.27,72.04],[77.88,71.83]],
+  '2-13':[[57.6,78.7],[58.97,77.46],[61.67,77.46],[61.86,74.15],[62.31,73.66],[64.23,73.66],[65.06,72.75],[65.64,72.89],[66.22,73.73]],
+  '2-14':[[57.6,78.7],[58.97,77.46],[61.86,77.25],[61.86,72.54],[59.49,72.54],[58.4,71.48],[58.01,71.9]],
+  '2-15':[[57.6,78.7],[56.15,77.54],[46.67,77.54],[46.35,77.18],[46.35,73.03],[45.77,72.39],[43.91,72.39],[43.46,71.9],[42.5,71.9],[42.12,71.48],[41.92,71.9]],
+  '2-16':[[41.3,78.7],[39.17,78.52],[38.01,77.25],[37.95,73.66],[37.56,73.24],[34.42,73.31],[33.59,73.8]],
+  '2-17':[[41.3,78.7],[38.85,78.52],[38.21,77.82],[33.78,77.75],[33.53,77.46],[13.33,77.39],[13.21,77.18],[19.62,70.14],[21.54,72.25],[22.12,71.83]],
+  '2-18':[[41.3,78.7],[38.85,78.52],[38.21,77.82],[33.78,77.75],[33.53,77.46],[12.88,77.39],[12.5,76.97],[12.5,59.86],[16.99,59.79],[16.99,63.03]],
+  '2-19':[[41.3,78.7],[38.85,78.52],[38.21,77.82],[33.78,77.75],[33.53,77.46],[12.88,77.39],[12.5,76.97],[12.5,55.63],[14.55,55.63],[15.38,54.72],[16.41,54.93]],
+  '2-20':[[41.3,78.7],[38.85,78.52],[38.21,77.82],[33.78,77.75],[33.53,77.46],[12.88,77.39],[12.5,76.97],[12.5,46.62],[14.42,46.62],[15.38,45.56],[16.41,45.7]],
+  '2-21':[[41.3,78.7],[38.85,78.52],[38.21,77.82],[33.78,77.75],[33.53,77.46],[12.88,77.39],[12.5,76.97],[12.5,37.32],[14.81,37.32],[15.64,36.41],[16.41,36.62]],
+  '2-22':[[41.3,78.7],[38.85,78.52],[38.21,77.82],[33.78,77.75],[33.53,77.46],[12.88,77.39],[12.5,76.97],[12.5,32.39],[19.81,32.25],[20.38,31.62],[20.64,28.1],[17.63,27.82]],
+  '2-23':[[41.3,78.7],[38.85,78.52],[38.21,77.82],[33.78,77.75],[33.53,77.46],[12.88,77.39],[12.5,76.97],[12.5,14.79],[13.4,14.72],[19.74,21.69],[22.82,18.17],[23.4,18.03]],
+  '3-1':[[42.2,12.5],[42.31,11.69],[41.86,11.2],[39.81,11.2],[39.29,10.63],[39.29,5.49],[38.72,4.86],[23.97,4.86],[23.97,8.52],[24.42,9.23]],
+  '3-2':[[42.2,12.5],[42.31,11.69],[41.86,11.2],[39.81,11.2],[38.78,9.93],[35.45,9.93],[34.42,9.23]],
+  '3-3':[[42.2,12.5]],
+  '3-4':[[57.6,12.5],[56.99,12.82],[56.92,11.62],[56.47,11.2],[55.45,11.2],[54.49,9.72],[50.58,9.72],[50.0,9.23]],
+  '3-5':[[57.6,12.5]],
+  '3-6':[[57.6,12.5],[59.04,12.82],[59.49,11.34],[60.64,11.2],[61.73,9.72],[65.13,9.72],[65.71,9.23]],
+  '3-7':[[57.6,12.5],[59.04,12.82],[59.1,11.97],[59.62,11.2],[60.64,11.2],[61.15,10.63],[61.15,7.82],[61.6,7.32],[61.79,4.86],[74.55,4.86],[74.55,8.45],[75.0,9.3],[75.38,9.23]],
+  '3-8':[[57.6,78.7],[58.53,78.52],[59.17,77.82],[74.81,77.82],[74.81,81.62],[75.13,82.32],[75.71,82.61]],
+  '3-9':[[57.6,78.7],[57.82,78.59],[58.59,80.14],[60.51,80.14],[61.09,80.77],[61.09,82.39],[61.6,82.96],[65.32,83.17],[65.9,82.54]],
+  '3-10':[[57.6,78.7]],
+  '3-11':[[41.3,78.7],[45.06,78.52],[45.77,77.82],[47.82,77.82],[48.72,78.87],[48.72,81.13],[50.0,82.54]],
+  '3-12':[[41.3,78.7]],
+  '3-13':[[41.3,78.7],[41.09,79.51],[40.51,80.14],[39.49,80.21],[38.33,82.04],[34.55,81.83],[33.97,82.61]],
+  '3-14':[[41.3,78.7],[38.85,78.52],[38.21,77.82],[29.81,77.82],[29.68,82.32],[29.17,82.89],[25.06,82.82],[24.68,82.04],[24.1,82.61]],
+  'F':[[57.6,12.5],[57.31,12.82],[55.45,12.89],[54.29,14.15],[54.29,18.31],[53.97,18.66],[53.78,23.52],[50.0,27.75],[50.0,32.39]],
+  'center':[[57.6,78.7],[56.28,77.46],[54.36,77.46],[50.64,73.24],[49.87,72.89]],
+  'ads1':[[57.6,12.5],[57.31,12.82],[55.0,12.89],[54.42,13.52],[46.28,13.94],[46.03,15.14],[45.45,15.77],[41.73,15.77],[41.73,15.0]],
+  'ads2':[[57.6,12.5],[57.31,12.82],[55.45,12.89],[54.29,14.15],[54.29,15.14],[53.72,15.77],[50.0,15.77],[50.19,15.14],[49.87,15.0]],
+  'ads3':[[57.6,12.5],[58.08,15.0]],
+  'ads4':[[57.6,78.7],[56.15,77.54],[42.05,77.54],[41.92,76.48]],
+  'ads5':[[57.6,78.7],[57.88,76.48]]
+};
+
+const GATE_COORDS = {
+  '3-3':[42.2,12.5],
+  '3-5':[57.6,12.5],
+  '3-10':[57.6,78.7],
+  '3-12':[41.3,78.7]
+};
+
+const CONFIG = {
+  DATA_MODE: 'local', // 'local' = 기기 내 데모 저장 · 'api' = 아래 API_BASE 연동
+  API_BASE: '', // 예: 'https://wm-api.yourname.workers.dev'
+
+  MATCH: {
+    home: 'OK저축은행 읏맨',
+    away: '상대팀',
+    venue: '부산 강서실내체육관',
+    date: ''
+  },
+
+  // 경기 구분자 — 경기마다 응답 데이터가 따로 쌓이도록 하는 값이에요.
+  // 비워두면 오늘 날짜(YYYY-MM-DD)로 자동 지정돼요. 하루에 두 경기가 있는 등
+  // 날짜만으로 구분이 안 될 때만 직접 값을 넣어주세요 (예: '2026-10-03-away').
+  // 관리자 대시보드에서 경기를 고를 때도 이 값이 쓰여요.
+  MATCH_ID: '',
+
+  // 오시는 길 — 단계별 사진. image에 URL(또는 리포지토리 상대경로, 예: 'images/step1.jpg')을 넣으면
+  // 자동으로 표시되고, 비워두면 "사진 준비중" 플레이스홀더가 보여요.
+  STEPS: [
+    { title:'주차장 도착', desc:'체육관 지하·옥외 주차장 입구에서 안내 요원의 구역 배정을 따라 주차하세요. 주차 구역 알파벳(A~D)을 꼭 기억해두세요.', image:'' },
+    { title:'티켓 입구로 이동', desc:'주차 구역별로 가까운 출입구가 달라요. 아래 좌석 구역 안내에서 내 티켓 구역을 선택하면 가장 가까운 출입구를 알려드려요.', image:'' },
+    { title:'좌석 구역 입장', desc:'출입구 진입 후 통로 색상 표시를 따라가면 좌석 구역 계단으로 바로 연결돼요.', image:'' },
+  ],
+
+  // 경기장 전체 배치도(조감도/동선 안내도) 이미지. 비워두면 준비중 표시.
+  VENUE_MAP_IMAGE: 'images/venue/map.webp',
+
+  // 좌석 구역: 실제 배치도 기준 (1층 코트사이드 1-1~1-18 · 2층 메인 2-1~2-23 · 3층 상단 3-1~3-14)
+  // ZONES_DATA는 CONFIG 바깥에서 zoneRange()로 생성해요. 색상은 배치도 이미지의 구역 색과 맞춰뒀고,
+  // gate:true는 배치도에 실제 "GATE"로 표시된 구역, accessible:true는 휠체어석 표시가 있는 구역이에요.
+  ZONES: ZONES_DATA,
+  LEVEL_LABELS: { '1':'1층 코트사이드', '2':'2층 메인', '3':'3층 상단', 'S':'특별석' },
+  ZONE_COLORS: {
+    cyan:'#22B8CF', green:'#3DAA5C', yellow:'#F4B400', orange:'#FF6B3D',
+    blue:'#3B6FE0', purple:'#7C5CBF', gray:'#5B6270', brown:'#9C6B3E',
+    pink:'#F06292', olive:'#8A8555'
+  },
+
+  // 360° 좌석 시야 — KOVO 코트 투어
+  SEAT_TOUR_BASE: 'https://cdn.kovo.co.kr/court-views/okMan/tour.html',
+  // KOVO 투어의 씬 ID는 배치도 구역 코드 그대로 'OK' + 구역코드 형태예요
+  // (예: 1-1구역 → OK1-1). 그래서 대부분은 자동으로 매칭돼요 —
+  // SEAT_SCENE_MAP은 이 규칙에서 벗어나는 예외가 있을 때만 채워주세요
+  // (열 단위로 더 정밀하게 매핑하려면 '1-1:12' 같은 키도 쓸 수 있어요).
+  SEAT_SCENE_DEFAULT: 'OK1-1',
+  SEAT_SCENE_MAP: {
+    // 3층 뒤쪽 구역은 번호가 하나씩 밀려서 매칭돼요
+    '3-12': 'OK3-11',
+    '3-13': 'OK3-12',
+    '3-14': 'OK3-13',
+    // 특별석
+    'F': 'F',
+    'center': 'center',
+    'ads1': 'ADS1',
+    'ads2': 'ADS2',
+    'ads3': 'ADS3',
+    'ads4': 'ADS4',
+    'ads5': 'ADS5',
+  },
+
+  PREDICT_DEADLINE: '',
+  // 예측 항목 — type:'player'면 선수 얼굴 카드로 고르는 문항이 돼요.
+  // candidates에 등번호 배열을 넣으면 그 선수들만 보여요. 비워두면 리베로를 뺀 전체 선수가 나와요.
+  PREDICT_EVENTS: [
+    { id:'first_point', q:'첫 득점 팀은 어디일까요?', options:['OK저축은행 읏맨','상대팀'] },
+    { id:'first_block', q:'첫 블로킹을 성공시킬 선수는?', type:'player', candidates:null },
+    { id:'set_score', q:'세트 스코어를 예측해보세요', options:['3:0','3:1','3:2','2:3 이하'] },
+  ],
+
+  SURVEY_QUESTIONS: [
+    { q:'오늘 경기장 좌석 안내는 찾기 쉬웠나요?', options:['매우 쉬움','쉬움','보통','어려움'] },
+    { q:'오늘 응원 분위기는 어땠나요?', options:['최고였어요','좋았어요','보통이었어요','아쉬웠어요'] },
+    { q:'다음에도 직관하러 오실 의향이 있나요?', options:['꼭 다시 올게요','아마도요','잘 모르겠어요'] },
+    { q:'경기장 내 편의시설(매점·화장실 등)은 만족스러웠나요?', options:['매우 만족','만족','보통','불만족'] },
+  ],
+
+  /* ---------------------------------------------------------------
+     하단 탭 라벨 — NAV_LANG: 'ko'(기본) | 'en'. 주소 뒤에 ?nav=en을 붙이면 바로 비교해볼 수 있어요.
+     --------------------------------------------------------------- */
+  NAV_LANG: 'ko',
+  NAV_LABELS: {
+    ko: { guide:'안내', pick:'이벤트', home:'홈', players:'기록', survey:'설문' },
+    en: { guide:'Guide', pick:'Pick', home:'Home', players:'Stats', survey:'Survey' },
+  },
+
+  /* ---------------------------------------------------------------
+     선수 명단 — 예측(첫 블로킹) · MVP · 기록 탭 · 능력치 카드가 모두 이 목록을 써요.
+       name    : 비워두면 "1번 선수"처럼 표시돼요.
+       photo   : 얼굴 사진 URL(정사각형 권장). 비워두면 캐릭터 일러스트 얼굴이 자동으로 들어가요.
+       figure  : 스플래시 캐릭터 순서(0=감독). 능력치 카드의 3D 피규어로도 쓰여요.
+       face    : 캐릭터 얼굴 크롭 위치 [가로%, 세로%, 확대%] — 캐릭터를 바꿀 때만 조정하세요.
+       model   : .glb 3D 모델 URL. 넣으면 캐릭터 대신 실제 3D 모델이 돌아가요.
+       ability : 육각형 능력치(0~100) — atk 공격 · srv 서브 · blk 블로킹 · dig 디그 · rcv 리시브 · set 세트
+       season  : 시즌 기록 — g 경기 · pts 득점 · atk 공격성공률% · blk 세트당 블로킹 · ace 세트당 서브 · dig 세트당 디그 · rcv 리시브효율%
+     ⚠ 아래 이름·포지션·능력치·기록은 화면 확인용 샘플이에요. 실제 값으로 바꿔주세요.
+     --------------------------------------------------------------- */
+  PLAYERS: [
+    { num:1,  name:'', pos:'OH', figure:1,  face:[42,26,118], photo:'', model:'', ability:{atk:84,srv:78,blk:62,dig:72,rcv:77,set:55}, season:{g:24,pts:388,atk:52.4,blk:0.31,ace:0.29,dig:1.85,rcv:36.2} },
+    { num:3,  name:'', pos:'L',  figure:2,  face:[47,26,118], photo:'', model:'', ability:{atk:20,srv:30,blk:15,dig:88,rcv:86,set:64}, season:{g:24,pts:0,atk:null,blk:null,ace:null,dig:2.94,rcv:47.8} },
+    { num:5,  name:'', pos:'L',  figure:3,  face:[56,24,118], photo:'', model:'', ability:{atk:18,srv:28,blk:14,dig:84,rcv:82,set:60}, season:{g:18,pts:0,atk:null,blk:null,ace:null,dig:2.41,rcv:44.1} },
+    { num:6,  name:'', pos:'MB', figure:4,  face:[53,25,112], photo:'', model:'', ability:{atk:80,srv:66,blk:86,dig:48,rcv:30,set:52}, season:{g:24,pts:271,atk:58.9,blk:0.72,ace:0.12,dig:0.41,rcv:null} },
+    { num:7,  name:'', pos:'S',  figure:5,  face:[42,29,118], photo:'', model:'', ability:{atk:52,srv:74,blk:64,dig:72,rcv:48,set:88}, season:{g:24,pts:98,atk:41.0,blk:0.28,ace:0.21,dig:1.52,rcv:null} },
+    { num:8,  name:'', pos:'OH', figure:6,  face:[46,27,118], photo:'', model:'', ability:{atk:79,srv:72,blk:60,dig:74,rcv:80,set:54}, season:{g:23,pts:302,atk:50.1,blk:0.26,ace:0.18,dig:1.98,rcv:39.4} },
+    { num:10, name:'', pos:'OP', figure:7,  face:[44,23,115], photo:'', model:'', ability:{atk:94,srv:88,blk:78,dig:55,rcv:38,set:48}, season:{g:24,pts:612,atk:55.3,blk:0.45,ace:0.44,dig:1.02,rcv:null} },
+    { num:11, name:'', pos:'OH', figure:8,  face:[45,24,115], photo:'', model:'', ability:{atk:76,srv:70,blk:58,dig:70,rcv:74,set:52}, season:{g:20,pts:176,atk:48.7,blk:0.19,ace:0.15,dig:1.61,rcv:33.9} },
+    { num:12, name:'', pos:'MB', figure:9,  face:[58,25,118], photo:'', model:'', ability:{atk:78,srv:62,blk:84,dig:46,rcv:28,set:50}, season:{g:24,pts:244,atk:57.2,blk:0.66,ace:0.09,dig:0.38,rcv:null} },
+    { num:14, name:'', pos:'OH', figure:10, face:[44,26,118], photo:'', model:'', ability:{atk:73,srv:68,blk:56,dig:72,rcv:76,set:50}, season:{g:16,pts:94,atk:46.3,blk:0.14,ace:0.11,dig:1.44,rcv:35.0} },
+    { num:15, name:'', pos:'MB', figure:11, face:[50,28,118], photo:'', model:'', ability:{atk:74,srv:60,blk:80,dig:44,rcv:26,set:48}, season:{g:19,pts:121,atk:54.6,blk:0.58,ace:0.07,dig:0.33,rcv:null} },
+    { num:16, name:'', pos:'S',  figure:12, face:[48,23,115], photo:'', model:'', ability:{atk:48,srv:70,blk:60,dig:70,rcv:44,set:82}, season:{g:14,pts:31,atk:38.5,blk:0.17,ace:0.13,dig:1.20,rcv:null} },
+    { num:17, name:'', pos:'OH', figure:13, face:[52,26,115], photo:'', model:'', ability:{atk:77,srv:74,blk:60,dig:68,rcv:70,set:52}, season:{g:22,pts:210,atk:49.5,blk:0.22,ace:0.24,dig:1.37,rcv:31.8} },
+    { num:19, name:'', pos:'MB', figure:14, face:[47,26,118], photo:'', model:'', ability:{atk:72,srv:64,blk:78,dig:42,rcv:24,set:46}, season:{g:12,pts:58,atk:52.0,blk:0.49,ace:0.10,dig:0.29,rcv:null} },
+    { num:22, name:'', pos:'OP', figure:15, face:[45,24,115], photo:'', model:'', ability:{atk:82,srv:78,blk:70,dig:48,rcv:34,set:44}, season:{g:17,pts:141,atk:50.8,blk:0.33,ace:0.27,dig:0.74,rcv:null} },
+    { num:31, name:'', pos:'OH', figure:16, face:[48,25,115], photo:'', model:'', ability:{atk:70,srv:66,blk:54,dig:66,rcv:70,set:48}, season:{g:9,pts:33,atk:44.2,blk:0.11,ace:0.10,dig:1.12,rcv:30.5} },
+    { num:40, name:'', pos:'OH', figure:17, face:[38,23,115], photo:'', model:'', ability:{atk:75,srv:72,blk:58,dig:72,rcv:72,set:54}, season:{g:21,pts:189,atk:47.9,blk:0.20,ace:0.19,dig:1.58,rcv:34.7} },
+  ],
+  // MVP 후보 — 등번호 배열. 비워두면(null) 전체 선수가 후보예요. 경기 당일 출전 명단만 넣어도 돼요.
+  MVP_CANDIDATES: null,
+
+  /* ---------------------------------------------------------------
+     리그 순위 · 팀 기록 · 경기 결과 — 화면 확인용 샘플이에요.
+     DATA_MODE:'api'로 바꾸면 API_BASE/stats 응답({ players, teams, results })으로 덮어써요.
+     --------------------------------------------------------------- */
+  TEAMS: [
+    { id:'kal', name:'대한항공',     g:24, w:18, l:6,  pts:52, setRatio:1.92, atk:54.1, blk:2.41, ace:1.38, rcv:41.2 },
+    { id:'hc',  name:'현대캐피탈',   g:24, w:17, l:7,  pts:49, setRatio:1.71, atk:53.2, blk:2.55, ace:1.29, rcv:38.9 },
+    { id:'ok',  name:'OK저축은행',   g:24, w:15, l:9,  pts:44, setRatio:1.38, atk:52.6, blk:2.37, ace:1.41, rcv:37.6, us:true },
+    { id:'kb',  name:'KB손해보험',   g:24, w:12, l:12, pts:35, setRatio:1.04, atk:51.0, blk:2.18, ace:1.22, rcv:36.4 },
+    { id:'wc',  name:'우리카드',     g:24, w:9,  l:15, pts:28, setRatio:0.81, atk:49.8, blk:2.09, ace:1.17, rcv:35.1 },
+    { id:'ss',  name:'삼성화재',     g:24, w:8,  l:16, pts:24, setRatio:0.69, atk:49.1, blk:2.02, ace:1.08, rcv:34.8 },
+    { id:'kp',  name:'한국전력',     g:24, w:5,  l:19, pts:17, setRatio:0.52, atk:47.6, blk:1.94, ace:1.02, rcv:33.0 },
+  ],
+  RESULTS: [
+    { round:'4라운드', date:'', home:'ok', away:'kb',  sets:['25-21','23-25','25-19','25-22'] },
+    { round:'4라운드', date:'', home:'kal', away:'wc', sets:['25-20','25-18','25-23'] },
+    { round:'4라운드', date:'', home:'hc', away:'ss',  sets:['22-25','25-21','25-17','26-24'] },
+    { round:'4라운드', date:'', home:'kp', away:'ok',  sets:['25-23','21-25','19-25','25-22','12-15'] },
+    { round:'4라운드', date:'', home:'wc', away:'hc',  sets:['20-25','25-23','22-25','21-25'] },
+    { round:'3라운드', date:'', home:'ok', away:'kal', sets:['23-25','25-22','20-25','21-25'] },
+    { round:'3라운드', date:'', home:'ss', away:'kb',  sets:['25-22','18-25','25-23','25-21'] },
+  ],
+
+  /* ---------------------------------------------------------------
+     홈 — 룰렛 · 굿즈샵
+     --------------------------------------------------------------- */
+  ROULETTE: {
+    BASE_SPINS: 1,      // 경기당 기본 횟수
+    MISSION_BONUS: 1,   // 직관 미션을 모두 채우면 추가되는 횟수
+    // 휠 8칸 — 12시 방향 오른쪽 칸부터 시계방향 순서예요 (Figma 휠 배치 그대로).
+    // img: 휠에 들어가는 경품 이미지 키(soju · doll · miss · fan · ticket · photo · signball)
+    // weight가 클수록 잘 나와요. miss:true는 꽝이에요. (확률·경품 구성은 샘플)
+    PRIZES: [
+      { id:'soju',     img:'soju',     title:'읏맨 변온 소주잔',        desc:'(경품 수령처에서 교환)',            weight:14 },
+      { id:'doll',     img:'doll',     title:'25cm 읏맨 봉제인형',      desc:'(경품 수령처에서 교환)',            weight:6 },
+      { id:'miss1',    img:'miss',     miss:true,                                                               weight:20 },
+      { id:'fan',      img:'fan',      title:'돈바람 부채',             desc:'(경품 수령처에서 교환)',            weight:14 },
+      { id:'ticket',   img:'ticket',   title:'일반석 티켓 교환권\n(1인 2매)', desc:'(다음 홈경기 사용 가능)',      weight:10 },
+      { id:'photo',    img:'photo',    title:'지정 선수 사진 촬영권\n(1인 1회)', desc:'(평일 홈경기 한정, 직접 방문 수령)', weight:4 },
+      { id:'miss2',    img:'miss',     miss:true,                                                               weight:20 },
+      { id:'signball', img:'signball', title:'선수 사인 배구공',        desc:'(경품 수령처에서 교환)',            weight:2 },
+    ],
+    // 당첨 화면 안내 문구 — <em>…</em>은 주황색 강조예요.
+    WIN_NOTICES: [
+      '<em>당첨 즉시 하단 버튼을 눌러 이미지 저장 또는 캡처해주세요.</em> 교환권은 <em>다음 날 저녁 11시 59분까지 다시 볼 수 있으며, 이후 파기</em>돼요. (교환권 재발행 불가)',
+      '경품 수령처에서 직원에게 교환권을 보여주세요. (교환권으로 입장 불가)',
+      '<em>교환은 이벤트 기간 중 홈경기가 있는 날에 한해 가능</em>하며, 기간 연장 및 분실 시 재발행이 안 돼요.',
+      '중복 수령이 불가하며, 부정 참여 시 당첨이 취소될 수 있어요.',
+      '유효기간이 지난 교환권은 사용할 수 없어요.',
+      '당첨된 경품의 타인 양도 및 판매는 원칙적으로 금지예요.',
+    ],
+    VOUCHER_HOURS: 0,   // 0이면 '다음 날 23:59'까지 교환권을 다시 보여줘요. 숫자를 넣으면 그 시간(시간 단위)만큼.
+  },
+  GOODS: {
+    url: '',  // 굿즈샵 주소를 넣으면 카드가 그 링크로 열려요.
+    title: '읏맨 공식 굿즈샵',
+    desc: '유니폼과 응원 도구를 온라인에서 만나보세요.',
+  },
+
+  /* ---------------------------------------------------------------
+     안내 — 장소 · 대중교통 (출구 번호·버스 노선은 현장 확인 후 채워주세요)
+     --------------------------------------------------------------- */
+  VENUE_ADDRESS: '',   // 예: '부산광역시 강서구 ○○로 ○○'
+  TRANSIT: {
+    subway: [
+      { line:'3호선', station:'체육공원역', exit:'', walk:'', desc:'체육공원역에서 내려 체육관 방면 출구로 나오세요.' },
+    ],
+    bus: [
+      // { no:'○○번', stop:'○○ 정류장', desc:'하차 후 도보 ○분' },
+    ],
+  },
+
+  SUBWAY: {
+    station: '체육공원역',
+    alertAfter: '21:30',
+    lines: [
+      { tag:'3호선', dir:'구포·연산·수영 방면', last:'23:41' },
+      { tag:'3호선', dir:'대저 방면', last:'24:36' },
+    ]
+  }
+};
+
+/* ================================================================
+   데이터 계층 — 경기(MATCH_ID)별로 분리해서 저장합니다.
+   ================================================================ */
+const MATCH_KEY = CONFIG.MATCH_ID || new Date().toISOString().slice(0, 10);
+const STORAGE_KEY = 'wm_guide_v1__' + MATCH_KEY;
+const MATCH_REGISTRY_KEY = 'wm_guide_matches_v1';
+
+function loadLocal(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }catch(e){ return {}; } }
+function saveLocal(data){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  touchMatchRegistry();
+}
+let LOCAL = loadLocal();
+
+// 관리자 대시보드가 "지금까지 데이터가 쌓인 경기 목록"을 찾을 수 있도록
+// 이 브라우저에 응답이 쌓인 경기를 별도 레지스트리에 기록해둡니다.
+// (로컬 데모 한정 — API 모드에서는 백엔드가 경기 목록을 직접 내려줘야 해요)
+function touchMatchRegistry(){
+  try{
+    const reg = JSON.parse(localStorage.getItem(MATCH_REGISTRY_KEY)) || {};
+    reg[MATCH_KEY] = {
+      id: MATCH_KEY,
+      label: `${CONFIG.MATCH.home} vs ${CONFIG.MATCH.away}` + (CONFIG.MATCH.date ? ` · ${CONFIG.MATCH.date}` : ` · ${MATCH_KEY}`),
+      updatedAt: Date.now()
+    };
+    localStorage.setItem(MATCH_REGISTRY_KEY, JSON.stringify(reg));
+  }catch(e){}
+}
+touchMatchRegistry();
+
+async function fetchData(path){
+  if(CONFIG.DATA_MODE === 'api'){ const res = await fetch(`${CONFIG.API_BASE}/matches/${MATCH_KEY}/${path}`); return res.json(); }
+  return LOCAL[path] ?? null;
+}
+async function postData(path, body){
+  if(CONFIG.DATA_MODE === 'api'){
+    const res = await fetch(`${CONFIG.API_BASE}/matches/${MATCH_KEY}/${path}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    return res.json();
+  }
+  LOCAL[path] = body; saveLocal(LOCAL); return body;
+}
+
+// 아이폰 햅틱처럼 선택 동작마다 아주 짧게 '톡' 떨리는 가벼운 피드백이에요.
+function hapticTick(){ if(navigator.vibrate) navigator.vibrate(8); }
+
+/* ================================================================
+   추첨 응모 — 설문/예측 완료 뒤에 노출되는 공통 컴포넌트
+   이메일 또는 휴대폰번호 중 하나만, 명시적 동의를 받은 뒤에만 저장합니다.
+   ================================================================ */
+const RAFFLE_KEY = 'raffle_entries';
+function getRaffleEntries(){ return LOCAL[RAFFLE_KEY] || []; }
+function hasEnteredRaffle(){ return getRaffleEntries().some(e=> e.deviceEntry); }
+
+function raffleDoneHtml(){
+  return `<p class="raffle-done">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    추첨에 응모됐어요. 당첨 시 남겨주신 연락처로 안내드려요.
+  </p>`;
+}
+
+function renderRaffleBox(container, source){
+  if(hasEnteredRaffle()){
+    container.innerHTML = raffleDoneHtml();
+    return;
+  }
+  container.innerHTML = `
+    <p class="raffle-title">🎁 경품 추첨에 응모하시겠어요?</p>
+    <p class="raffle-desc">당첨자 안내 용도로만 사용하고, 추첨이 끝나면 삭제해요. 이메일 또는 휴대폰번호 중 하나만 남겨주세요.</p>
+    <input class="glass-input" type="text" id="raffle-contact-${source}" placeholder="이메일 또는 휴대폰번호" style="margin-bottom:10px;">
+    <label class="raffle-consent">
+      <input type="checkbox" id="raffle-consent-${source}">
+      <span>추첨 목적의 개인정보 수집·이용에 동의해요</span>
+    </label>
+    <button class="btn full" id="raffle-submit-${source}" style="margin-top:12px;">응모하기</button>
+    <p class="raffle-error" id="raffle-error-${source}"></p>
+  `;
+  document.getElementById(`raffle-submit-${source}`).addEventListener('click', async ()=>{
+    const contactEl = document.getElementById(`raffle-contact-${source}`);
+    const consentEl = document.getElementById(`raffle-consent-${source}`);
+    const errEl = document.getElementById(`raffle-error-${source}`);
+    const contact = contactEl.value.trim();
+    if(!contact){ errEl.textContent = '이메일 또는 휴대폰번호를 입력해주세요.'; return; }
+    if(!consentEl.checked){ errEl.textContent = '개인정보 수집·이용에 동의해주셔야 응모할 수 있어요.'; return; }
+    errEl.textContent = '';
+    const entry = { contact, source, deviceEntry: true, consentAt: new Date().toISOString() };
+    const entries = getRaffleEntries();
+    entries.push(entry);
+    LOCAL[RAFFLE_KEY] = entries;
+    saveLocal(LOCAL);
+    await postData('raffle_entry', entry);
+    container.innerHTML = raffleDoneHtml();
+  });
+}
+
+/* ================================================================
+   선수 데이터 헬퍼 — 얼굴 아바타 · 이름 · 포지션 · 종합 능력치
+   ================================================================ */
+const POS = {
+  OH:{ ko:'아웃사이드 히터', chip:'아웃사이드' },
+  OP:{ ko:'아포짓',          chip:'아포짓' },
+  MB:{ ko:'미들 블로커',     chip:'미들 블로커' },
+  S: { ko:'세터',            chip:'세터' },
+  L: { ko:'리베로',          chip:'리베로' },
+};
+// 포지션마다 중요한 능력이 달라서, 종합 점수(OVR)도 포지션별 가중치로 계산해요.
+const OVR_WEIGHTS = {
+  OH:{ atk:.30, srv:.15, blk:.10, dig:.15, rcv:.25, set:.05 },
+  OP:{ atk:.45, srv:.20, blk:.20, dig:.10, rcv:0,   set:.05 },
+  MB:{ atk:.30, srv:.10, blk:.45, dig:.05, rcv:0,   set:.10 },
+  S: { atk:.05, srv:.15, blk:.10, dig:.15, rcv:.05, set:.50 },
+  L: { atk:0,   srv:0,   blk:0,   dig:.45, rcv:.45, set:.10 },
+};
+const PLAYERS = CONFIG.PLAYERS;
+
+const FIGURE_URLS = SPLASH_CHARACTERS; // images/players/*.webp
+function figureSrc(p){ return Number.isInteger(p.figure) && FIGURE_URLS[p.figure] ? FIGURE_URLS[p.figure] : ''; }
+function playerName(p){ return p.name || `${p.num}번 선수`; }
+function playerByNum(num){ return PLAYERS.find(p=> String(p.num) === String(num)); }
+function playerOvr(p){
+  const w = OVR_WEIGHTS[p.pos] || OVR_WEIGHTS.OH; const a = p.ability || {};
+  return Math.round(Object.keys(w).reduce((s, k)=> s + (a[k] || 0) * w[k], 0));
+}
+function faceHtml(p, size){
+  const sz = size ? `--sz:${size}px;` : '';
+  if(p.photo) return `<span class="face" style="${sz}"><img class="is-photo" src="${p.photo}" alt=""></span>`;
+  const fig = figureSrc(p);
+  if(fig){
+    const [fx, fy, fs] = p.face || [50, 25, 118];
+    return `<span class="face" style="${sz}--fx:${fx};--fy:${fy};--fs:${fs}"><img src="${fig}" alt=""></span>`;
+  }
+  return `<span class="face face--num" style="${sz}">${p.num}</span>`;
+}
+
+/* ================================================================
+   세그먼트(하위 메뉴) — 안내 · PICK · 기록 탭 안에서 쓰는 공통 토글
+   ================================================================ */
+const SEGS = {};
+document.querySelectorAll('.seg').forEach(root=>{
+  const name = root.dataset.seg;
+  const btns = Array.from(root.querySelectorAll('.seg__btn'));
+  const thumb = root.querySelector('.seg__thumb');
+  const scope = document.getElementById(root.dataset.target);
+  root.style.setProperty('--n', btns.length);
+  function set(key, silent){
+    const i = btns.findIndex(b=> b.dataset.key === key);
+    if(i < 0) return;
+    btns.forEach((b, j)=>{ b.classList.toggle('active', j === i); b.setAttribute('aria-selected', j === i); });
+    thumb.style.transform = `translateX(${i * 100}%)`;
+    Array.from(scope.children).forEach(p=>{ if(p.classList.contains('seg-panel')) p.classList.toggle('active', p.dataset.key === key); });
+    SEGS[name].current = key;
+    if(!silent) document.dispatchEvent(new CustomEvent('wm:seg', { detail:{ seg:name, key } }));
+  }
+  btns.forEach(b=> b.addEventListener('click', ()=>{
+    if(b.classList.contains('active')) return;
+    hapticTick(); set(b.dataset.key);
+  }));
+  SEGS[name] = { set, current:(btns.find(b=> b.classList.contains('active')) || btns[0]).dataset.key };
+});
+
+/* ================================================================
+   탭 네비게이션 — 안내 · 이벤트(PICK) · 홈 · 기록 · 설문
+   navigate('guide','lastrain')처럼 탭 + 하위 메뉴를 한 번에 열 수 있어요.
+   ================================================================ */
+const tabButtons = Array.from(document.querySelectorAll('.tabbar__btn'));
+const tabPill = document.getElementById('tab-pill');
+const VIEW_SEG = { guide:'guide', pick:'pick', players:'players' };
+function moveTabPill(index){ tabPill.style.transform = `translateX(${index * 100}%)`; }
+
+const NAV_LANG = (new URLSearchParams(location.search).get('nav') || CONFIG.NAV_LANG || 'ko') === 'en' ? 'en' : 'ko';
+document.body.classList.toggle('nav-en', NAV_LANG === 'en');
+tabButtons.forEach(btn=>{
+  const label = (CONFIG.NAV_LABELS[NAV_LANG] || {})[btn.dataset.view];
+  if(label) btn.querySelector('span').textContent = label;
+});
+
+function navigate(view, sub){
+  const idx = tabButtons.findIndex(b=> b.dataset.view === view);
+  if(idx < 0) return;
+  tabButtons.forEach((b, i)=>{ b.classList.toggle('active', i === idx); b.setAttribute('aria-current', i === idx ? 'page' : 'false'); });
+  document.querySelectorAll('.view').forEach(v=> v.classList.toggle('active', v.id === 'view-' + view));
+  moveTabPill(idx);
+  if(sub && VIEW_SEG[view]) SEGS[VIEW_SEG[view]].set(sub, true);
+  window.scrollTo({ top:0 });
+  document.dispatchEvent(new CustomEvent('wm:nav', { detail:{ view, sub: VIEW_SEG[view] ? SEGS[VIEW_SEG[view]].current : null } }));
+}
+tabButtons.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    if(btn.classList.contains('active')) return;
+    hapticTick();
+    navigate(btn.dataset.view);
+  });
+});
+moveTabPill(tabButtons.findIndex(b=> b.classList.contains('active')));
+
+(function renderMatchbar(){
+  document.getElementById('mb-home').textContent = CONFIG.MATCH.home;
+  document.getElementById('mb-away').textContent = CONFIG.MATCH.away;
+  document.getElementById('mb-venue').textContent = CONFIG.MATCH.venue;
+  document.getElementById('mb-date').textContent = CONFIG.MATCH.date || '경기 일시 입력 필요';
+})();
+
+/* ================================================================
+   사진 박스 렌더 헬퍼
+   ================================================================ */
+function photoBoxHtml(url, alt, placeholderText){
+  if(url){
+    return `<img src="${url}" alt="${alt}">`;
+  }
+  return `<div class="placeholder-inner" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:100%;height:100%;">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z"/>
+      <circle cx="12" cy="13" r="3.5"/>
+    </svg>
+    <span>${placeholderText}</span>
+  </div>`;
+}
+
+/* ================================================================
+   1. 오시는 길 — 동선 카드 + 배치도
+   ================================================================ */
+(function initSteps(){
+  const list = document.getElementById('step-list');
+  CONFIG.STEPS.forEach((s, i)=>{
+    const el = document.createElement('div');
+    el.className = 'step-card';
+    el.innerHTML = `
+      <div class="step-card__head">
+        <div class="step__num">${i+1}</div>
+        <div>
+          <p class="step__title">${s.title}</p>
+          <p class="step__desc">${s.desc}</p>
+        </div>
+      </div>
+      <div class="photo-box${s.image ? '' : ' placeholder'}">${photoBoxHtml(s.image, s.title, '사진 준비중')}</div>
+    `;
+    list.appendChild(el);
+  });
+
+  const map = document.getElementById('venue-map');
+  if(!CONFIG.VENUE_MAP_IMAGE) map.classList.add('placeholder');
+  map.innerHTML = photoBoxHtml(CONFIG.VENUE_MAP_IMAGE, '경기장 배치도', '배치도 이미지 준비중');
+})();
+
+
+/* ================================================================
+   1-1. 오시는 길 — 장소 카드(지도 앱 연결) + 대중교통
+   ================================================================ */
+(function initPlaceAndTransit(){
+  const venue = CONFIG.MATCH.venue;
+  document.getElementById('place-name').textContent = venue;
+  document.getElementById('place-addr').textContent = CONFIG.VENUE_ADDRESS || '';
+  const q = encodeURIComponent(CONFIG.VENUE_ADDRESS || venue);
+  document.getElementById('map-kakao').href = `https://map.kakao.com/link/search/${q}`;
+  document.getElementById('map-naver').href = `https://map.naver.com/p/search/${q}`;
+
+  const T = CONFIG.TRANSIT || {};
+  const list = document.getElementById('transit-list');
+  const subwayRows = (T.subway || []).map(s=> `
+    <div class="transit-row">
+      <span class="transit-badge">${s.line}</span>
+      <div>
+        <p class="transit-row__t">${s.station} 하차</p>
+        <p class="transit-row__d">${s.desc || ''}</p>
+        ${(s.exit || s.walk) ? `<div class="transit-tags">
+          ${s.exit ? `<span class="pill">${s.exit}번 출구</span>` : ''}
+          ${s.walk ? `<span class="pill">도보 ${s.walk}</span>` : ''}
+        </div>` : ''}
+      </div>
+    </div>`).join('');
+  const busRows = (T.bus || []).length
+    ? T.bus.map(b=> `
+      <div class="transit-row">
+        <span class="transit-badge bus">${b.no}</span>
+        <div>
+          <p class="transit-row__t">${b.stop}</p>
+          <p class="transit-row__d">${b.desc || ''}</p>
+        </div>
+      </div>`).join('')
+    : `<p class="empty-note" style="padding:8px 0 0; text-align:left;">버스 노선 안내를 준비하고 있어요. 지도 앱 길찾기를 이용해주세요.</p>`;
+
+  list.innerHTML = `
+    <div class="card transit-block"><p class="transit-block__title">지하철</p>${subwayRows}</div>
+    <div class="card transit-block"><p class="transit-block__title">버스</p>${busRows}</div>`;
+
+  document.getElementById('transit-to-lastrain').addEventListener('click', ()=>{
+    hapticTick(); SEGS.guide.set('lastrain');
+  });
+})();
+
+/* ================================================================
+   2. 내 자리 시야 찾기 — 구역 그리드 + 직접입력 + 사진촬영 + 360투어
+   ================================================================ */
+(function initSeatFinder(){
+  const grid = document.getElementById('zone-grid');
+  const levelTabs = document.getElementById('level-tabs');
+  const detail = document.getElementById('zone-detail');
+  let selectedZoneId = '';
+
+  const COLOR_LABELS = { cyan:'하늘색', green:'초록', yellow:'노랑', orange:'오렌지', blue:'파랑', purple:'보라', gray:'회색', brown:'갈색', pink:'핑크', olive:'올리브' };
+  let currentLevel = '1';
+
+  // 층 탭 렌더
+  Object.keys(CONFIG.LEVEL_LABELS).forEach(lv=>{
+    const b = document.createElement('button');
+    b.className = 'level-tab' + (lv === currentLevel ? ' active' : '');
+    b.dataset.level = lv;
+    b.textContent = ({ '1':'1층', '2':'2층', '3':'3층', 'S':'특별석' })[lv] || CONFIG.LEVEL_LABELS[lv];
+    b.addEventListener('click', ()=>{
+      if(lv === currentLevel) return;
+      hapticTick();
+      currentLevel = lv;
+      document.querySelectorAll('.level-tab').forEach(t=> t.classList.toggle('active', t.dataset.level === lv));
+      renderZoneGrid();
+    });
+    levelTabs.appendChild(b);
+  });
+
+  function renderZoneGrid(){
+    grid.innerHTML = '';
+    CONFIG.ZONES.filter(z=> z.level === currentLevel).forEach(z=>{
+      const b = document.createElement('button');
+      b.className = 'zone-btn' + (z.id === selectedZoneId ? ' active' : '');
+      b.dataset.zone = z.id;
+      const dotColor = CONFIG.ZONE_COLORS[z.color] || 'transparent';
+      b.innerHTML = `<span class="dot" style="background:${dotColor}"></span>${z.label}${z.gate ? '<span class="tag">GATE</span>' : ''}`;
+      b.addEventListener('click', ()=> applySeatSelection(z.id));
+      grid.appendChild(b);
+    });
+  }
+  renderZoneGrid();
+
+  const LEVEL_SHORT = { '1':'1층', '2':'2층', '3':'3층', 'S':'특별석' };
+  const GATE_LABELS = { '3-3':'3-3 게이트 (위쪽)', '3-5':'3-5 게이트 (위쪽)', '3-10':'3-10 게이트 (아래쪽)', '3-12':'3-12 게이트 (아래쪽)' };
+  const routeModal = document.getElementById('route-modal');
+  const routeTrack = document.getElementById('route-track');
+  const routeSteps = document.getElementById('route-steps');
+
+  // 배치도상 위치를 기준으로 가장 가까운 게이트를 추정해요 (실제 게이트 배정표가
+  // 없어 근사치예요 — GATE_LABELS의 "위쪽/아래쪽"도 배치도에 보이는 위치 기준입니다).
+  function computeNearestGate(zone){
+    const n = parseInt(zone.id.split('-')[1], 10);
+    if(zone.level === '1'){
+      if(n >= 1 && n <= 4) return '3-3';
+      if(n >= 5 && n <= 9) return '3-5';
+      if(n >= 10 && n <= 13) return '3-10';
+      if(n >= 14 && n <= 18) return '3-12';
+    }
+    if(zone.level === '2'){
+      if(n >= 1 && n <= 3) return '3-3';
+      if(n >= 4 && n <= 9) return '3-5';
+      if(n >= 10 && n <= 15) return '3-10';
+      if(n >= 16 && n <= 23) return '3-12';
+    }
+    if(zone.level === '3'){
+      if(n <= 3) return '3-3';
+      if(n <= 7) return '3-5';
+      if(n <= 10) return '3-10';
+      return '3-12';
+    }
+    if(zone.level === 'S'){
+      if(zone.id.startsWith('ads')){
+        const k = parseInt(zone.id.replace('ads',''), 10);
+        return k <= 3 ? '3-5' : '3-10';
+      }
+      return '3-5';
+    }
+    return '3-5';
+  }
+
+  const gateIconSvg = `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V5a2 2 0 0 1 2-2h6l4 4v14"/><path d="M5 21h12M15 12v.01"/></svg>`;
+  const stairsIconSvg = `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21v-4h4v-4h4v-4h4V5h6"/></svg>`;
+
+  const routeMapImg = document.getElementById('route-map-img');
+  const routeLine = document.getElementById('route-line');
+
+  const routeWalker = document.getElementById('route-walker');
+
+  // 게이트 지점에서 시작해서 좌석까지, 매 프레임 직접 길이를 늘려가며 선을 그려요.
+  // (CSS transition/SMIL 대신 rAF로 직접 그려서 브라우저에 상관없이 확실히 동작해요.)
+  // 걷는 점은 그려지는 선 끝을 따라가며 뚜벅뚜벅 바운스해요. 다 그려지면 흐르는 점선으로 바뀌어요.
+  let routeRafId = null;
+  function drawRouteLine(pts){
+    if(routeRafId){ cancelAnimationFrame(routeRafId); routeRafId = null; }
+    routeLine.classList.remove('flowing');
+    routeLine.style.transition = 'none';
+
+    const len = routeLine.getTotalLength();
+    const durMs = Math.min(4500, Math.max(1500, len / 22 * 1000));
+    const hasWalk = pts && pts.length > 1 && len > 0;
+    routeWalker.classList.toggle('show', hasWalk);
+
+    if(len <= 0){
+      routeLine.style.strokeDasharray = '';
+      routeLine.style.strokeDashoffset = '';
+      routeLine.classList.add('flowing');
+      return;
+    }
+
+    routeLine.style.strokeDasharray = String(len);
+    routeLine.style.strokeDashoffset = String(len);
+
+    const startTime = performance.now();
+    function step(now){
+      const t = Math.min(1, (now - startTime) / durMs);
+      const eased = 1 - Math.pow(1 - t, 2); // ease-out
+      const drawnLen = len * eased;
+      routeLine.style.strokeDashoffset = String(len - drawnLen);
+      if(hasWalk){
+        const pt = routeLine.getPointAtLength(drawnLen);
+        routeWalker.setAttribute('cx', pt.x);
+        routeWalker.setAttribute('cy', pt.y);
+      }
+      if(t < 1){
+        routeRafId = requestAnimationFrame(step);
+      } else {
+        routeRafId = null;
+        routeLine.style.strokeDasharray = '';
+        routeLine.style.strokeDashoffset = '';
+        routeLine.classList.add('flowing');
+        routeWalker.classList.remove('show');
+      }
+    }
+    routeRafId = requestAnimationFrame(step);
+  }
+  const routePinGate = document.getElementById('route-pin-gate');
+  const routePinSeat = document.getElementById('route-pin-seat');
+  if(CONFIG.VENUE_MAP_IMAGE) routeMapImg.src = CONFIG.VENUE_MAP_IMAGE;
+
+  function openRouteModal(zone){
+    hapticTick();
+    const gateId = computeNearestGate(zone);
+    const gateLabel = GATE_LABELS[gateId] || gateId;
+    const levelShort = LEVEL_SHORT[zone.level] || '';
+    const dotColor = CONFIG.ZONE_COLORS[zone.color] || 'var(--brand)';
+
+    document.getElementById('route-modal-label').textContent = `${zone.label} 가는 길`;
+    routeModal.classList.add('show');
+
+    // 배치도 위 핀 + 경로선 — 실측 좌표(ZONE_COORDS)가 있을 때만 표시
+    const seatXY = ZONE_COORDS[zone.id];
+    const gateXY = GATE_COORDS[gateId] || ZONE_COORDS[gateId];
+    if(seatXY && gateXY && CONFIG.VENUE_MAP_IMAGE){
+      document.getElementById('route-map').style.display = 'block';
+      routePinGate.style.left = gateXY[0] + '%';
+      routePinGate.style.top = gateXY[1] + '%';
+      document.getElementById('route-pin-gate-label').textContent = gateId;
+      routePinSeat.style.left = seatXY[0] + '%';
+      routePinSeat.style.top = seatXY[1] + '%';
+      document.getElementById('route-pin-seat-label').textContent = zone.label;
+      const pathPts = ZONE_PATHS[zone.id];
+      const finalPts = (pathPts && pathPts.length) ? pathPts : [gateXY, seatXY];
+      const pointsAttr = finalPts.map(p => p.join(',')).join(' ');
+      routeLine.setAttribute('points', pointsAttr);
+      drawRouteLine(finalPts);
+    } else {
+      document.getElementById('route-map').style.display = 'none';
+    }
+
+    routeTrack.innerHTML = `
+      <div class="route-node">
+        <div class="route-icon gate">${gateIconSvg}</div>
+        <span>${gateId}</span>
+      </div>
+      <div class="route-line"></div>
+      <div class="route-node">
+        <div class="route-icon">${stairsIconSvg}</div>
+        <span>${levelShort}</span>
+      </div>
+      <div class="route-line"></div>
+      <div class="route-node">
+        <div class="route-icon seat" style="background:${dotColor}"></div>
+        <span>${zone.label}</span>
+      </div>
+    `;
+    const levelStep = zone.level === '3'
+      ? '이 층 표지판을 따라 이동하세요.'
+      : `계단·에스컬레이터로 ${levelShort}까지 이동하세요.`;
+    routeSteps.innerHTML = `
+      <li><b>${gateLabel}</b>로 입장하세요.</li>
+      <li>${levelStep}</li>
+      <li><b>${zone.label}</b> 구역 표지판이 보이면 도착이에요.</li>
+    `;
+  }
+  document.getElementById('route-modal-close').addEventListener('click', ()=>{
+    routeModal.classList.remove('show');
+  });
+
+  function zoneDetailHtml(zone){
+    const levelLabel = CONFIG.LEVEL_LABELS[zone.level];
+    const colorLabel = COLOR_LABELS[zone.color];
+    let html = `<b>${zone.label}</b> · ${levelLabel}${colorLabel ? ` · 배치도상 ${colorLabel} 구역` : ''}`;
+    if(zone.gate) html += `<br>배치도에 표시된 실제 게이트 위치가 이 구역 앞이에요.`;
+    if(zone.accessible) html += `<br>휠체어석이 포함된 구역이에요.`;
+    return html;
+  }
+
+  function applySeatSelection(zoneId){
+    const zone = CONFIG.ZONES.find(z=>z.id===zoneId);
+    if(!zone) return;
+    hapticTick();
+
+    if(zone.level !== currentLevel){
+      currentLevel = zone.level;
+      document.querySelectorAll('.level-tab').forEach(t=> t.classList.toggle('active', t.dataset.level === zone.level));
+      renderZoneGrid();
+    }
+
+    selectedZoneId = zoneId;
+    document.querySelectorAll('.zone-btn').forEach(b=> b.classList.toggle('active', b.dataset.zone===zoneId));
+
+    detail.innerHTML = zoneDetailHtml(zone);
+    requestAnimationFrame(()=> detail.classList.add('show'));
+  }
+  // 전역에서 접근할 수 있도록 노출 (사진 인식 흐름에서도 사용)
+  window.__applySeatSelection = applySeatSelection;
+
+  // 좌석 시야 풀팝업
+  const seatModal = document.getElementById('seat-modal');
+  const seatModalIframe = document.getElementById('seat-modal-iframe');
+  const seatModalLabel = document.getElementById('seat-modal-label');
+  function openSeatModal(src, label){
+    hapticTick();
+    seatModalIframe.src = src;
+    seatModalLabel.textContent = label || '';
+    seatModal.classList.add('show');
+  }
+  function closeSeatModal(){
+    seatModal.classList.remove('show');
+    seatModalIframe.src = 'about:blank';
+  }
+  document.getElementById('seat-modal-close').addEventListener('click', closeSeatModal);
+
+  document.getElementById('seat-guide-submit').addEventListener('click', ()=>{
+    const zone = CONFIG.ZONES.find(z=>z.id===selectedZoneId);
+    if(zone) openRouteModal(zone);
+  });
+  document.getElementById('seat-view-submit').addEventListener('click', ()=>{
+    const zone = CONFIG.ZONES.find(z=>z.id===selectedZoneId);
+    if(!zone) return;
+    const sceneId = CONFIG.SEAT_SCENE_MAP[zone.id] || `OK${zone.id}`;
+    const src = `${CONFIG.SEAT_TOUR_BASE}?startscene=${encodeURIComponent(sceneId)}`;
+    openSeatModal(src, `${zone.label} 시야`);
+  });
+
+  // 모드 토글 (선택 / 티켓 촬영)
+  const seatmodeThumb = document.getElementById('seatmode-thumb');
+  document.querySelectorAll('.seatmode-btn').forEach((btn, i)=>{
+    btn.addEventListener('click', ()=>{
+      if(btn.classList.contains('active')) return;
+      hapticTick();
+      document.querySelectorAll('.seatmode-btn').forEach(b=>b.classList.toggle('active', b===btn));
+      seatmodeThumb.style.transform = i === 0 ? 'translateX(0)' : 'translateX(calc(100% + 6px))';
+      const mode = btn.dataset.mode;
+      document.getElementById('seatmode-manual').classList.toggle('active', mode==='manual');
+      document.getElementById('seatmode-photo').classList.toggle('active', mode==='photo');
+    });
+  });
+
+  // 티켓 촬영
+  const photoInput = document.getElementById('seat-photo-input');
+  const photoDrop = document.getElementById('photo-drop');
+  const photoPreview = document.getElementById('photo-preview');
+  const photoPreviewImg = document.getElementById('photo-preview-img');
+  const photoNote = document.getElementById('photo-note');
+
+  photoDrop.addEventListener('click', ()=> photoInput.click());
+  document.getElementById('photo-retake').addEventListener('click', ()=>{
+    photoInput.value = '';
+    photoPreview.style.display = 'none';
+    photoDrop.style.display = 'flex';
+  });
+
+  photoInput.addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    photoPreviewImg.src = URL.createObjectURL(file);
+    photoPreview.style.display = 'block';
+    photoDrop.style.display = 'none';
+
+    if(CONFIG.DATA_MODE === 'api'){
+      photoNote.textContent = '사진에서 좌석 정보를 확인하고 있어요...';
+      try{
+        const seat = await recognizeSeatFromPhoto(file);
+        if(seat && seat.zone && CONFIG.ZONES.some(z=>z.id===seat.zone)){
+          photoNote.textContent = `${seat.zone}구역으로 확인했어요. 아니라면 아래 선택에서 다시 골라주세요.`;
+          document.querySelector('.seatmode-btn[data-mode="manual"]').click();
+          applySeatSelection(seat.zone);
+        } else {
+          photoNote.textContent = '좌석 정보를 정확히 읽지 못했어요. 아래 선택에서 구역을 골라주세요.';
+          document.querySelector('.seatmode-btn[data-mode="manual"]').click();
+        }
+      }catch(err){
+        photoNote.textContent = '인식에 실패했어요. 아래 선택에서 구역을 골라주세요.';
+        document.querySelector('.seatmode-btn[data-mode="manual"]').click();
+      }
+    } else {
+      // 데모 모드: 자동 인식 백엔드가 없어 촬영한 사진은 참고용으로만 보여주고
+      // 선택 탭으로 안내합니다. API_BASE 연동 시 자동으로 동작해요.
+      photoNote.textContent = '사진 자동 인식은 서버 연동 후 동작해요. 촬영한 사진을 참고해서 아래 선택에서 구역을 골라주세요.';
+      document.querySelector('.seatmode-btn[data-mode="manual"]').click();
+    }
+  });
+
+  // 실제 배포 시: Cloudflare Worker 등에서 Vision API로 티켓 사진을 분석해
+  // { zone } 형태로 응답하도록 구현하면 이 함수가 그대로 동작합니다.
+  async function recognizeSeatFromPhoto(file){
+    const form = new FormData();
+    form.append('photo', file);
+    const res = await fetch(CONFIG.API_BASE + '/seat-ocr', { method:'POST', body:form });
+    return res.json();
+  }
+})();
+
+/* ================================================================
+   3. PICK — 경기 예측 (선수 문항은 얼굴 카드로 선택)
+   ================================================================ */
+(function initPredict(){
+  const list = document.getElementById('predict-list');
+  const submitBtn = document.getElementById('predict-submit');
+  const statusEl = document.getElementById('predict-status');
+  const selections = {};
+  const saved = LOCAL['predictions'];
+
+  CONFIG.PREDICT_EVENTS.forEach(ev=>{
+    const card = document.createElement('div');
+    card.className = 'card predict-card';
+    let optsHtml;
+    if(ev.type === 'player'){
+      const cands = ev.candidates && ev.candidates.length
+        ? PLAYERS.filter(p=> ev.candidates.includes(p.num))
+        : PLAYERS.filter(p=> p.pos !== 'L');
+      optsHtml = `<div class="pick-grid">${cands.map(p=> `
+        <button class="pick-player" data-opt="${p.num}" aria-label="${playerName(p)}">
+          ${faceHtml(p)}
+          <span class="pick-player__n">${p.name ? p.name : '#' + p.num}</span>
+          <span class="pick-player__p">${p.name ? '#' + p.num + ' · ' : ''}${p.pos}</span>
+        </button>`).join('')}</div>`;
+    } else {
+      optsHtml = `<div class="opt-grid">${ev.options.map(opt=> `<div class="opt" data-opt="${opt}"><span>${opt}</span><span class="check"></span></div>`).join('')}</div>`;
+    }
+    card.innerHTML = `<p class="q">${ev.q}</p>${optsHtml}`;
+    card.querySelectorAll('[data-opt]').forEach(optEl=>{
+      optEl.addEventListener('click', ()=>{
+        if(LOCAL['predictions']) return;
+        hapticTick();
+        card.querySelectorAll('[data-opt]').forEach(o=> o.classList.remove('selected'));
+        optEl.classList.add('selected');
+        optEl.classList.remove('pulse'); void optEl.offsetWidth; optEl.classList.add('pulse');
+        selections[ev.id] = optEl.dataset.opt;
+      });
+    });
+    list.appendChild(card);
+  });
+
+  if(saved) lockPredictUI(saved);
+
+  submitBtn.addEventListener('click', async ()=>{
+    if(Object.keys(selections).length < CONFIG.PREDICT_EVENTS.length){
+      submitBtn.textContent = '모든 항목을 골라주세요';
+      submitBtn.style.animation = 'optPulse .4s var(--ease-spring)';
+      setTimeout(()=>{ submitBtn.textContent = '예측 제출하기'; submitBtn.style.animation = ''; }, 1400);
+      return;
+    }
+    LOCAL['predictions'] = Object.assign({}, selections); saveLocal(LOCAL);
+    await postData('predictions', selections);
+    lockPredictUI(selections);
+  });
+
+  function lockPredictUI(data){
+    document.querySelectorAll('#predict-list .predict-card').forEach((card, i)=>{
+      const ev = CONFIG.PREDICT_EVENTS[i];
+      const chosen = String(data[ev.id]);
+      card.querySelectorAll('[data-opt]').forEach(o=>{
+        o.style.pointerEvents = 'none';
+        const isChosen = o.dataset.opt === chosen;
+        o.classList.toggle('selected', isChosen);
+        o.style.opacity = isChosen ? '1' : '0.5';
+      });
+    });
+    submitBtn.setAttribute('disabled', 'true');
+    submitBtn.textContent = '제출 완료';
+    statusEl.classList.add('show');
+    const raffleBox = document.getElementById('predict-raffle');
+    raffleBox.style.display = 'block';
+    renderRaffleBox(raffleBox, 'predict');
+  }
+
+  const countdownEl = document.getElementById('predict-countdown');
+  if(CONFIG.PREDICT_DEADLINE){
+    const deadline = new Date(CONFIG.PREDICT_DEADLINE).getTime();
+    setInterval(()=>{
+      const diff = deadline - Date.now();
+      if(diff <= 0){ countdownEl.textContent = '마감'; return; }
+      const h = String(Math.floor(diff/3600000)).padStart(2,'0');
+      const m = String(Math.floor(diff/60000)%60).padStart(2,'0');
+      const s = String(Math.floor(diff/1000)%60).padStart(2,'0');
+      countdownEl.textContent = `${h}:${m}:${s}`;
+    }, 1000);
+  } else {
+    countdownEl.textContent = '경기 시작 전';
+  }
+})();
+
+/* ================================================================
+   4. 설문조사
+   ================================================================ */
+(function initSurvey(){
+  const body = document.getElementById('survey-body');
+  const progress = document.getElementById('survey-progress');
+  const qs = CONFIG.SURVEY_QUESTIONS;
+  let idx = 0;
+  const answers = {};
+  const saved = LOCAL['survey'];
+
+  if(saved){ renderDone(); return; }
+
+  qs.forEach((q, i)=>{
+    const el = document.createElement('div');
+    el.className = 'survey-q' + (i===0 ? ' active' : '');
+    el.dataset.idx = i;
+    const optsHtml = q.options.map(opt=>`<div class="opt" data-opt="${opt}"><span>${opt}</span><span class="check"></span></div>`).join('');
+    el.innerHTML = `<div class="qnum">${i+1} / ${qs.length}</div><p class="qtext">${q.q}</p><div class="opt-grid">${optsHtml}</div>
+      <div class="survey-nav">
+        ${i>0 ? '<button class="btn ghost prev">이전</button>' : ''}
+        <button class="btn next" disabled>다음</button>
+      </div>`;
+    body.appendChild(el);
+
+    const nextBtn = el.querySelector('.next');
+    el.querySelectorAll('.opt').forEach(optEl=>{
+      optEl.addEventListener('click', ()=>{
+        hapticTick();
+        el.querySelectorAll('.opt').forEach(o=>o.classList.remove('selected'));
+        optEl.classList.add('selected');
+        optEl.classList.remove('pulse'); void optEl.offsetWidth; optEl.classList.add('pulse');
+        answers[i] = optEl.dataset.opt;
+        nextBtn.removeAttribute('disabled');
+        nextBtn.textContent = (i === qs.length-1) ? '제출하기' : '다음';
+      });
+    });
+    const prevBtn = el.querySelector('.prev');
+    if(prevBtn) prevBtn.addEventListener('click', ()=> goTo(i-1));
+    nextBtn.addEventListener('click', async ()=>{
+      if(i === qs.length-1){ await postData('survey', answers); renderDone(); }
+      else { goTo(i+1); }
+    });
+  });
+
+  updateProgress();
+
+  function goTo(newIdx){
+    idx = newIdx;
+    document.querySelectorAll('.survey-q').forEach(el=> el.classList.toggle('active', +el.dataset.idx === idx));
+    updateProgress();
+  }
+  function updateProgress(){ progress.style.width = `${Math.round((idx / qs.length) * 100)}%`; }
+  function renderDone(){
+    progress.style.width = '100%';
+    body.innerHTML = `<div class="survey-done">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M20 6 9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h3>🎉 설문에 참여해주셔서 감사해요</h3>
+      <p>다음 경기에서 더 나은 직관 경험으로 찾아올게요.</p>
+    </div>
+    <div class="card raffle-card" id="survey-raffle"></div>`;
+    renderRaffleBox(document.getElementById('survey-raffle'), 'survey');
+  }
+})();
+
+/* ================================================================
+   5. PICK — MVP 투표 (얼굴 카드 선택 → 확인 버튼 → 순위 결과)
+   ================================================================ */
+(function initMVP(){
+  const list = document.getElementById('mvp-list');
+  const note = document.getElementById('mvp-note');
+  let voted = LOCAL['mvp_voted'];
+  const counts = LOCAL['mvp_counts'] || {};
+  let picked = null;
+  const candidates = () => (CONFIG.MVP_CANDIDATES && CONFIG.MVP_CANDIDATES.length)
+    ? PLAYERS.filter(p=> CONFIG.MVP_CANDIDATES.includes(p.num))
+    : PLAYERS;
+
+  function countUp(el, target){
+    const start = performance.now(); const dur = 700;
+    function step(now){
+      const t = Math.min(1, (now - start) / dur);
+      el.textContent = Math.round(target * (1 - Math.pow(1 - t, 3))) + '%';
+      if(t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function renderPicker(){
+    list.innerHTML = `
+      <div class="mvp-grid">${candidates().map(p=> `
+        <button class="pick-player${picked === p.num ? ' selected' : ''}" data-num="${p.num}" aria-label="${playerName(p)}">
+          ${faceHtml(p)}
+          <span class="pick-player__n">${playerName(p)}</span>
+          <span class="pick-player__p">#${p.num} · ${POS[p.pos] ? POS[p.pos].chip : p.pos}</span>
+        </button>`).join('')}
+      </div>
+      <button class="btn full mvp-confirm" id="mvp-confirm" ${picked ? '' : 'disabled'}>
+        ${picked ? `${playerName(playerByNum(picked))}에게 투표하기` : '선수를 골라주세요'}
+      </button>`;
+    note.textContent = '선수 한 명에게만 투표할 수 있어요.';
+
+    list.querySelectorAll('.pick-player').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        hapticTick();
+        picked = +btn.dataset.num;
+        list.querySelectorAll('.pick-player').forEach(b=> b.classList.toggle('selected', b === btn));
+        btn.classList.remove('pulse'); void btn.offsetWidth; btn.classList.add('pulse');
+        const c = document.getElementById('mvp-confirm');
+        c.removeAttribute('disabled');
+        c.textContent = `${playerName(playerByNum(picked))}에게 투표하기`;
+      });
+    });
+    document.getElementById('mvp-confirm').addEventListener('click', async ()=>{
+      if(!picked || voted) return;
+      if(navigator.vibrate) navigator.vibrate(25);
+      counts[picked] = (counts[picked] || 0) + 1;
+      voted = picked;
+      LOCAL['mvp_counts'] = counts;
+      LOCAL['mvp_voted'] = voted;
+      saveLocal(LOCAL);
+      await postData('mvp_counts', counts);
+      render();
+    });
+  }
+
+  function renderResult(){
+    const total = Object.values(counts).reduce((a, b)=> a + b, 0);
+    const ranked = candidates()
+      .map(p=> ({ p, c: counts[p.num] || 0 }))
+      .sort((a, b)=> b.c - a.c || a.p.num - b.p.num);
+    list.innerHTML = `<div class="card">${ranked.map((r, i)=>{
+      const pct = total ? Math.round(r.c / total * 100) : 0;
+      return `<div class="mvp-rank${i < 3 && r.c ? ' top' : ''}${r.p.num === voted ? ' mine' : ''}">
+        <span class="mvp-rank__pos">${i + 1}</span>
+        ${faceHtml(r.p)}
+        <div class="mvp-rank__body">
+          <div class="mvp-rank__name"><span>${playerName(r.p)}${r.p.num === voted ? ' <span class="mine-badge">내 투표</span>' : ''}</span><em><span class="pct-num">0%</span> · ${r.c}표</em></div>
+          <div class="bar-track"><div class="bar-fill" data-target="${pct}"></div></div>
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+    requestAnimationFrame(()=>{
+      list.querySelectorAll('.mvp-rank').forEach(row=>{
+        const bar = row.querySelector('.bar-fill');
+        const pct = +bar.dataset.target;
+        bar.style.width = pct + '%';
+        countUp(row.querySelector('.pct-num'), pct);
+      });
+    });
+    note.textContent = '투표해주셔서 감사해요. 지금은 이 기기 기준 데모 집계예요 — 서버 연동 후 전체 관람객 결과로 바뀌어요.';
+  }
+
+  function render(){ voted ? renderResult() : renderPicker(); }
+  render();
+
+  // 능력치 카드의 "MVP 투표하기" 버튼에서 선수를 미리 골라둔 채로 들어올 때 써요.
+  window.__mvpPreselect = (num)=>{
+    if(voted) return;
+    picked = num; renderPicker();
+    const el = list.querySelector(`.pick-player[data-num="${num}"]`);
+    if(el) setTimeout(()=> el.scrollIntoView({ behavior:'smooth', block:'center' }), 120);
+  };
+})();
+
+/* ================================================================
+   6. 막차 안내 + 토스트 알림
+   ================================================================ */
+(function initSubway(){
+  const clockEl = document.getElementById('clock-now');
+  const listEl = document.getElementById('subway-list');
+  const noteEl = document.getElementById('subway-config-note');
+  const toastEl = document.getElementById('subway-toast');
+  const toastDesc = document.getElementById('toast-desc');
+  let toastDismissed = false;
+
+  function nearestLine(now){
+    let nearest = null;
+    listEl.querySelectorAll('.line-time').forEach(el=>{
+      const last = el.dataset.last;
+      if(!last) return;
+      const [lh, lm] = last.split(':').map(Number);
+      const lastDate = new Date(now); lastDate.setHours(0, 0, 0, 0); lastDate.setMinutes(lh * 60 + lm);
+      const diffMin = Math.round((lastDate - now) / 60000);
+      if(diffMin >= 0 && (!nearest || diffMin < nearest.diffMin)){
+        nearest = { tag: el.closest('.line-row').querySelector('.line-tag').textContent, last, diffMin };
+      }
+    });
+    return nearest;
+  }
+
+  function tick(){
+    const now = new Date();
+    clockEl.textContent = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+    listEl.querySelectorAll('.line-time').forEach(el=>{
+      const last = el.dataset.last;
+      if(!last) return;
+      const [lh, lm] = last.split(':').map(Number);
+      const lastDate = new Date(now); lastDate.setHours(0, 0, 0, 0); lastDate.setMinutes(lh * 60 + lm);
+      const diffMin = Math.round((lastDate - now) / 60000);
+      el.classList.toggle('soon', diffMin <= 30 && diffMin >= 0);
+    });
+
+    if(CONFIG.SUBWAY.alertAfter && !toastDismissed){
+      const [ah, am] = CONFIG.SUBWAY.alertAfter.split(':').map(Number);
+      const isAfter = now.getHours() > ah || (now.getHours() === ah && now.getMinutes() >= am);
+      if(isAfter){
+        const near = nearestLine(now);
+        let nearLabel = near ? near.last : '';
+        if(near){
+          const [nh, nm] = near.last.split(':').map(Number);
+          if(nh >= 24) nearLabel = `${String(nh - 24).padStart(2,'0')}:${String(nm).padStart(2,'0')} (익일)`;
+        }
+        toastDesc.textContent = near
+          ? `${near.tag} 막차가 ${nearLabel}에 있어요.`
+          : '안내 탭의 막차안내에서 시간표를 확인해보세요.';
+        toastEl.classList.add('show');
+      }
+    }
+  }
+
+  if(CONFIG.SUBWAY.lines.length){
+    CONFIG.SUBWAY.lines.forEach((l, i)=>{
+      const row = document.createElement('div');
+      row.className = 'line-row';
+      row.dataset.dir = i % 2 === 0 ? 'up' : 'down';
+      const [lh, lm] = l.last.split(':').map(Number);
+      const displayTime = lh >= 24
+        ? `${String(lh - 24).padStart(2,'0')}:${String(lm).padStart(2,'0')} (익일)`
+        : l.last;
+      const delay = (i * 0.18).toFixed(2);
+      row.style.setProperty('--delay', `${delay}s`);
+      row.innerHTML = `
+        <div class="line-track"><span class="line-train">🚈</span></div>
+        <div class="line-info">
+          <span class="line-tag">${l.tag}</span>
+          <span class="line-dir">${l.dir}</span>
+          <span class="line-time pending" data-last="${l.last}" data-display="${displayTime}">--:--</span>
+        </div>
+      `;
+      listEl.appendChild(row);
+
+      // 기차가 도착하는 타이밍에 맞춰 막차 시각이 짠 하고 드러나요.
+      const timeEl = row.querySelector('.line-time');
+      setTimeout(()=>{
+        timeEl.textContent = displayTime;
+        timeEl.classList.remove('pending');
+        timeEl.classList.add('pop');
+        setTimeout(()=> timeEl.classList.remove('pop'), 460);
+      }, delay * 1000 + 1000);
+
+      // 다시 탭하면 기차가 한 번 더 지나가요.
+      row.addEventListener('click', ()=>{
+        hapticTick();
+        const train = row.querySelector('.line-train');
+        train.style.animation = 'none';
+        void train.offsetWidth;
+        train.style.animation = '';
+        setTimeout(()=>{
+          timeEl.classList.remove('pop'); void timeEl.offsetWidth; timeEl.classList.add('pop');
+          setTimeout(()=> timeEl.classList.remove('pop'), 460);
+        }, 1000);
+      });
+    });
+  } else {
+    listEl.innerHTML = `<p class="empty-note">막차 시간표가 아직 입력되지 않았어요.<br>CONFIG.SUBWAY 값을 채워주세요.</p>`;
+  }
+  noteEl.textContent = CONFIG.SUBWAY.station ? `${CONFIG.SUBWAY.station} 기준 안내입니다.` : '최인접 역 기준 정확한 막차 시각을 CONFIG에 입력해주세요.';
+
+  document.getElementById('toast-close').addEventListener('click', ()=>{
+    toastDismissed = true;
+    toastEl.classList.remove('show');
+  });
+  document.getElementById('toast-action').addEventListener('click', ()=>{
+    toastEl.classList.remove('show');
+    toastDismissed = true;
+    navigate('guide', 'lastrain');
+    setTimeout(()=> document.getElementById('subway-list').scrollIntoView({behavior:'smooth', block:'center'}), 60);
+  });
+
+  tick();
+  setInterval(tick, 1000);
+})();
+
+/* ================================================================
+   7. 응원 버튼 — 탭할 때마다 컨페티 + 응원 문구 + 카운트 + 가벼운 진동으로
+      눈에 띄는 리액션을 주는 참여형 인터랙션이에요.
+   ================================================================ */
+(function initCheerFab(){
+  const btn = document.getElementById('cheer-fab');
+  const badge = document.getElementById('cheer-badge');
+  const phraseEl = document.getElementById('cheer-phrase');
+  if(!btn) return;
+
+  const CHEER_KEY = 'cheer_count';
+  let count = LOCAL[CHEER_KEY] || 0;
+
+  function renderBadge(){
+    if(count > 0){
+      badge.textContent = count > 99 ? '99+' : String(count);
+      badge.classList.add('show');
+    }
+  }
+  renderBadge();
+
+  const PHRASES = ['가자 읏맨!','파이팅!','오늘 이긴다!','읏맨 화이팅!','다 덤벼!','불꽃 응원 중🔥'];
+  const COLORS = ['#FF571F','#FF7A4E','#FFD339','#161C26','#ffffff'];
+  let phraseTimer = null;
+
+  function burstConfetti(x, y){
+    for(let i = 0; i < 14; i++){
+      const p = document.createElement('span');
+      p.className = 'cheer-particle';
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 46 + Math.random() * 64;
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist - 24;
+      const size = 4 + Math.random() * 5;
+      p.style.setProperty('--dx', dx + 'px');
+      p.style.setProperty('--dy', dy + 'px');
+      p.style.setProperty('--rot', (Math.random() * 360) + 'deg');
+      p.style.width = size + 'px';
+      p.style.height = size + 'px';
+      p.style.left = x + 'px';
+      p.style.top = y + 'px';
+      p.style.background = COLORS[Math.floor(Math.random() * COLORS.length)];
+      document.body.appendChild(p);
+      setTimeout(()=> p.remove(), 900);
+    }
+  }
+
+  btn.addEventListener('click', ()=>{
+    count++;
+    postData(CHEER_KEY, count).catch(()=>{});
+    renderBadge();
+
+    btn.classList.remove('tapped'); void btn.offsetWidth; btn.classList.add('tapped');
+    if(navigator.vibrate) navigator.vibrate(25);
+
+    const rect = btn.getBoundingClientRect();
+    burstConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2);
+
+    phraseEl.textContent = PHRASES[Math.floor(Math.random() * PHRASES.length)];
+    phraseEl.classList.add('show');
+    clearTimeout(phraseTimer);
+    phraseTimer = setTimeout(()=> phraseEl.classList.remove('show'), 1100);
+  });
+})();
+
+/* ================================================================
+   8. 오늘의 직관 미션 — 출석체크(티켓/경기 사진 인증) + 5개 참여 항목을
+      완료 체크리스트로 보여주고, 다 채우면 컨페티와 함께 축하해줘요.
+   ================================================================ */
+(function initMissions(){
+  const cardEl = document.getElementById('mission-card');
+  const listEl = document.getElementById('mission-list');
+  const subEl = document.getElementById('mission-sub');
+  const ringFg = document.getElementById('mission-ring-fg');
+  const ringLabel = document.getElementById('mission-ring-label');
+  const photoInput = document.getElementById('checkin-photo-input');
+  if(!listEl) return;
+
+  const MISSIONS = [
+    { id:'checkin',    icon:'🎫', label:'출석체크' },
+    { id:'directions', icon:'📍', label:'오시는길 확인' },
+    { id:'seats',      icon:'💺', label:'자리안내 확인' },
+    { id:'predict',    icon:'🔮', label:'예측투표' },
+    { id:'survey',     icon:'📝', label:'설문조사' },
+    { id:'mvp',        icon:'🏆', label:'MVP투표' },
+  ];
+  const JUMP = { directions:['guide','route'], seats:['guide','seat'], predict:['pick','predict'], survey:['survey'], mvp:['pick','mvp'] };
+  const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
+  const CIRC = 2 * Math.PI * 17;
+  ringFg.style.strokeDasharray = `${CIRC}`;
+
+  function isDone(id){
+    switch(id){
+      case 'checkin':    return !!(LOCAL.checkin && LOCAL.checkin.done);
+      case 'directions': return !!LOCAL.visited_directions;
+      case 'seats':      return !!LOCAL.visited_seats;
+      case 'predict':    return !!LOCAL.predictions;
+      case 'survey':     return !!LOCAL.survey;
+      case 'mvp':        return !!LOCAL.mvp_voted;
+      default:           return false;
+    }
+  }
+
+  function burstConfettiAt(x, y){
+    const colors = ['#FF571F','#FF7A4E','#FFD339','#161C26','#ffffff'];
+    for(let i = 0; i < 22; i++){
+      const p = document.createElement('span');
+      p.style.cssText = 'position:fixed; z-index:60; border-radius:2px; pointer-events:none;';
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 60 + Math.random() * 120;
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist - 40;
+      const size = 5 + Math.random() * 6;
+      p.style.width = size + 'px'; p.style.height = size + 'px';
+      p.style.left = x + 'px'; p.style.top = y + 'px';
+      p.style.background = colors[Math.floor(Math.random() * colors.length)];
+      p.style.setProperty('--dx', dx + 'px');
+      p.style.setProperty('--dy', dy + 'px');
+      p.style.setProperty('--rot', (Math.random() * 360) + 'deg');
+      p.style.animation = 'cheerFly 1s var(--ease-out) forwards';
+      document.body.appendChild(p);
+      setTimeout(()=> p.remove(), 1050);
+    }
+  }
+
+  function celebrateComplete(){
+    if(navigator.vibrate) navigator.vibrate([30,40,30]);
+    const rect = cardEl.getBoundingClientRect();
+    burstConfettiAt(rect.left + rect.width / 2, rect.top + 30);
+    const banner = document.createElement('div');
+    banner.className = 'mission-complete-banner';
+    banner.textContent = '🎉 오늘 직관 미션 완료! 끝까지 함께해주셔서 감사해요';
+    cardEl.appendChild(banner);
+    requestAnimationFrame(()=> banner.classList.add('show'));
+    setTimeout(()=>{ banner.classList.remove('show'); setTimeout(()=> banner.remove(), 350); }, 3600);
+  }
+
+  function render(){
+    const doneList = MISSIONS.map(m=> isDone(m.id));
+    const doneCount = doneList.filter(Boolean).length;
+
+    listEl.innerHTML = MISSIONS.map((m, i)=> `
+      <li class="mission-item ${doneList[i] ? 'done' : ''}" data-mission="${m.id}">
+        ${doneList[i] ? `<span class="mission-item__check">${CHECK_SVG}</span>` : ''}
+        <span class="mission-item__icon">${m.icon}</span>
+        <span class="mission-item__label">${m.label}</span>
+      </li>
+    `).join('');
+
+    subEl.textContent = `${doneCount}/${MISSIONS.length} 완료`;
+    ringFg.style.strokeDashoffset = `${CIRC * (1 - doneCount / MISSIONS.length)}`;
+    ringLabel.textContent = `${Math.round((doneCount / MISSIONS.length) * 100)}%`;
+
+    if(doneCount === MISSIONS.length && !LOCAL.mission_celebrated){
+      LOCAL.mission_celebrated = true; saveLocal(LOCAL);
+      celebrateComplete();
+    }
+  }
+
+  listEl.addEventListener('click', (e)=>{
+    const item = e.target.closest('.mission-item');
+    if(!item || item.classList.contains('done')) return;
+    const id = item.dataset.mission;
+    if(id === 'checkin'){ photoInput.click(); return; }
+    if(JUMP[id]){ hapticTick(); navigate(...JUMP[id]); }
+  });
+
+  photoInput.addEventListener('change', ()=>{
+    const file = photoInput.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const maxW = 480;
+        const scale = Math.min(1, maxW / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+        LOCAL.checkin = { done:true, ts: Date.now(), photo: dataUrl };
+        postData('checkin', LOCAL.checkin).catch(()=>{});
+        if(navigator.vibrate) navigator.vibrate(25);
+        render();
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+    photoInput.value = '';
+  });
+
+  // 안내 탭의 '오시는길'·'자리안내' 화면을 실제로 열어봤을 때 미션 완료로 처리해요.
+  function markVisits(){
+    if(!document.getElementById('view-guide').classList.contains('active')) return render();
+    const g = SEGS.guide.current;
+    if(g === 'route' && !LOCAL.visited_directions){ LOCAL.visited_directions = true; saveLocal(LOCAL); }
+    if(g === 'seat' && !LOCAL.visited_seats){ LOCAL.visited_seats = true; saveLocal(LOCAL); }
+    render();
+  }
+  document.addEventListener('wm:nav', markVisits);
+  document.addEventListener('wm:seg', markVisits);
+  window.__missionState = ()=> {
+    const done = MISSIONS.filter(m=> isDone(m.id)).length;
+    return { done, total: MISSIONS.length };
+  };
+
+  // 예측/설문/MVP는 다른 화면에서 완료되므로 짧은 주기로 상태를 다시 확인해요.
+  setInterval(render, 1200);
+
+  render();
+})();// 룰렛 이미지 (Figma 배구 경품 룰렛 이벤트) — images/roulette 폴더
+const ROULETTE_ASSETS = {
+  "disc": "images/roulette/disc.svg",
+  "bg": "images/roulette/bg.webp",
+  "pointer": "images/roulette/pointer.webp",
+  "mascot": "images/roulette/mascot.webp",
+  "winbox": "images/roulette/winbox.webp",
+  "losebox": "images/roulette/losebox.webp",
+  "item_signball": "images/roulette/item-signball.webp",
+  "item_soju": "images/roulette/item-soju.webp",
+  "item_doll": "images/roulette/item-doll.webp",
+  "item_miss": "images/roulette/item-miss.webp",
+  "item_fan": "images/roulette/item-fan.webp",
+  "item_ticket": "images/roulette/item-ticket.webp",
+  "item_photo": "images/roulette/item-photo.webp"
+};
+
+/* ================================================================
+   9. 홈 — 행운의 룰렛 (Figma 디자인 · 경기당 기본 횟수 + 미션 완료 보너스)
+   ================================================================ */
+(function initRoulette(){
+  const R = CONFIG.ROULETTE;
+  const prizes = R.PRIZES;
+  const A = ROULETTE_ASSETS;
+  const wheelEl = document.getElementById('roulette-wheel');
+  const wrap = document.getElementById('rl-wrap');
+  const spinBtn = document.getElementById('roulette-spin');
+  const chanceEl = document.getElementById('roulette-chance');
+  const subEl = document.getElementById('roulette-sub');
+  const lastBtn = document.getElementById('rl-last');
+  const stage = document.querySelector('.rl-stage');
+  const state = Object.assign({ used:0, rot:0, wins:[] }, LOCAL.roulette || {});
+  let spinning = false;
+
+  // 고정 이미지 (Figma 에셋)
+  document.getElementById('rl-pointer').src = A.pointer;
+  document.getElementById('rl-mascot').src = A.mascot;
+  stage.style.setProperty('--rl-bg', `url("${A.bg}")`);
+
+  // 휠 — 디스크 + 칸마다 경품 이미지 (칸 중심 = 12시 기준 시계방향 SEG/2, SEG*1.5 …)
+  const N = prizes.length, SEG = 360 / N, ITEM_R = 25.56; // 반지름: 360 프레임에서 92px
+  const center = i => i * SEG + SEG / 2;
+  wheelEl.innerHTML = `<img class="rl-wheel__disc" src="${A.disc}" alt="">` + prizes.map((p, i)=>{
+    const a = center(i) * Math.PI / 180;
+    const left = 50 + ITEM_R * Math.sin(a), top = 50 - ITEM_R * Math.cos(a);
+    return `<span class="rl-item" style="left:${left.toFixed(3)}%; top:${top.toFixed(3)}%"><img src="${A['item_' + p.img] || ''}" alt=""></span>`;
+  }).join('');
+  wheelEl.setAttribute('role', 'img');
+  wheelEl.setAttribute('aria-label', '룰렛 경품: ' + prizes.map(p=> p.miss ? '꽝' : p.title.replace('\n', ' ')).join(', '));
+  wheelEl.style.transition = 'none';
+  wheelEl.style.transform = `rotate(${state.rot}deg)`;
+
+  function chances(){
+    const m = window.__missionState ? window.__missionState() : { done:0, total:1 };
+    const bonus = m.done >= m.total ? R.MISSION_BONUS : 0;
+    return { left: Math.max(0, R.BASE_SPINS + bonus - state.used), bonusEarned: bonus > 0, m };
+  }
+  function voucherExpiry(ts){
+    if(R.VOUCHER_HOURS) return ts + R.VOUCHER_HOURS * 3600000;
+    const d = new Date(ts); d.setDate(d.getDate() + 1); d.setHours(23, 59, 59, 999); return d.getTime();
+  }
+  function lastValidWin(){
+    for(let i = state.wins.length - 1; i >= 0; i--){
+      const w = state.wins[i];
+      if(!w.miss && Date.now() < voucherExpiry(w.ts)) return w;
+    }
+    return null;
+  }
+  function renderChances(){
+    const c = chances();
+    chanceEl.innerHTML = c.left > 0 ? `남은 기회 <b>${c.left}회</b>` : '오늘 기회를 모두 사용했어요';
+    spinBtn.disabled = spinning || c.left === 0;
+    subEl.textContent = c.bonusEarned
+      ? '미션 보너스 기회까지 모두 받았어요.'
+      : `직관 미션 ${c.m.total - c.m.done}개를 더 채우면 1회 더 돌릴 수 있어요.`;
+    lastBtn.hidden = spinning || !lastValidWin();
+  }
+
+  function pickIndex(){
+    const total = prizes.reduce((s, p)=> s + (p.weight || 1), 0);
+    let r = Math.random() * total;
+    for(let i = 0; i < prizes.length; i++){ r -= (prizes[i].weight || 1); if(r < 0) return i; }
+    return prizes.length - 1;
+  }
+  function makeCode(){
+    // 교환권번호 — P + 발급 월일 + 4자리 (서버 연동 시 서버에서 발급한 번호로 바꿔주세요)
+    const d = new Date();
+    const md = String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+    return 'P' + md + String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+  }
+
+  /* ---- 결과 화면 ---- */
+  const winEl = document.getElementById('rl-win');
+  const loseEl = document.getElementById('rl-lose');
+  document.getElementById('rlw-box').src = A.winbox;
+  document.getElementById('rll-img').src = A.losebox;
+  document.getElementById('rlw-notice').innerHTML = (R.WIN_NOTICES || []).map(n=> `<li>${n}</li>`).join('');
+  let shownWin = null;
+
+  function openWin(w){
+    const p = prizes.find(x=> x.id === w.id) || {};
+    shownWin = w;
+    document.getElementById('rlw-code').textContent = w.code;
+    document.getElementById('rlw-title').innerHTML = (p.title || '').split('\n').join('<br>');
+    document.getElementById('rlw-desc').textContent = p.desc || '';
+    const item = document.getElementById('rlw-item');
+    item.src = A['item_' + p.img] || '';
+    item.style.animation = 'none'; void item.offsetWidth; item.style.animation = '';
+    winEl.classList.add('show');
+    document.documentElement.style.overflow = 'hidden';
+    winEl.querySelector('.rl-win__body').scrollTop = 0;
+    document.getElementById('rlw-close').focus({ preventScroll:true });
+  }
+  function openLose(){
+    loseEl.classList.add('show');
+    document.documentElement.style.overflow = 'hidden';
+    const img = document.getElementById('rll-img');
+    img.style.animation = 'none'; void img.offsetWidth; img.style.animation = '';
+    document.getElementById('rll-close').focus({ preventScroll:true });
+  }
+  function closeResults(){
+    winEl.classList.remove('show'); loseEl.classList.remove('show');
+    document.documentElement.style.overflow = '';
+  }
+  document.getElementById('rlw-close').addEventListener('click', closeResults);
+  document.getElementById('rll-close').addEventListener('click', closeResults);
+  loseEl.addEventListener('click', e=>{ if(e.target === loseEl) closeResults(); });
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && (winEl.classList.contains('show') || loseEl.classList.contains('show'))) closeResults(); });
+  lastBtn.addEventListener('click', ()=>{ const w = lastValidWin(); if(w){ hapticTick(); openWin(w); } });
+
+  /* ---- 교환권 이미지 저장 (캔버스로 그려서 PNG로 저장/공유) ---- */
+  const loadImg = src => new Promise(res=>{ const i = new Image(); i.onload = ()=> res(i); i.onerror = ()=> res(null); i.src = src; });
+  async function saveVoucher(){
+    if(!shownWin) return;
+    const p = prizes.find(x=> x.id === shownWin.id) || {};
+    const S = 2, W = 360, H = 560;
+    const cv = document.createElement('canvas'); cv.width = W * S; cv.height = H * S;
+    const g = cv.getContext('2d'); g.scale(S, S);
+    const grad = g.createLinearGradient(0, 0, 0, H); grad.addColorStop(0, '#2E1507'); grad.addColorStop(1, '#1E1510');
+    g.fillStyle = grad; g.fillRect(0, 0, W, H);
+    const F = w => `${w} {s}px Pretendard, sans-serif`;
+    if(document.fonts && document.fonts.load) await Promise.all([500,600,700].map(w=> document.fonts.load(`${w} 16px Pretendard`))).catch(()=>{});
+    const font = (w, s)=> F(w).replace('{s}', s);
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff';
+    g.font = font(600, 16); g.fillText('교환권', W / 2, 30);
+    // 교환권번호 칩
+    g.font = font(500, 14); const l1 = g.measureText('교환권번호').width;
+    g.font = font(600, 18); const l2 = g.measureText(shownWin.code).width;
+    const cw = l1 + l2 + 4 + 16, cx = (W - cw) / 2, cy = 72;
+    g.fillStyle = 'rgba(255,255,255,.2)'; g.beginPath(); g.roundRect(cx, cy, cw, 30, 8); g.fill();
+    g.fillStyle = '#fff'; g.textAlign = 'left';
+    g.font = font(500, 14); g.fillText('교환권번호', cx + 8, cy + 15);
+    g.font = font(600, 18); g.fillText(shownWin.code, cx + 8 + l1 + 4, cy + 15);
+    // 경품명
+    g.textAlign = 'center'; g.font = font(700, 32);
+    const lines = (p.title || '').split('\n');
+    lines.forEach((ln, i)=> g.fillText(ln, W / 2, 138 + i * 40));
+    let y = 138 + (lines.length - 1) * 40 + 34;
+    if(p.desc){ g.font = font(500, 16); g.fillText(p.desc, W / 2, y); y += 18; }
+    const [box, item] = await Promise.all([loadImg(A.winbox), loadImg(A['item_' + p.img])]);
+    const bx = 24, by = y, bw = 312, bh = 238;
+    if(box) g.drawImage(box, bx, by, bw, bh);
+    if(item) g.drawImage(item, bx + 96, by + 59, 120, 120);
+    g.font = font(500, 12); g.fillStyle = 'rgba(255,255,255,.65)';
+    const exp = new Date(voucherExpiry(shownWin.ts));
+    g.fillText(`발급 ${new Date(shownWin.ts).toLocaleString('ko-KR')}`, W / 2, by + bh + 22);
+    g.fillText(`유효 ${exp.toLocaleString('ko-KR')}까지 · OK저축은행 읏맨`, W / 2, by + bh + 42);
+
+    const blob = await new Promise(r=> cv.toBlob(r, 'image/png'));
+    const fname = `읏맨_교환권_${shownWin.code}.png`;
+    try{
+      const file = new File([blob], fname, { type:'image/png' });
+      if(navigator.canShare && navigator.canShare({ files:[file] })){ await navigator.share({ files:[file], title:'읏맨 교환권' }); return; }
+    }catch(e){ if(e && e.name === 'AbortError') return; }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = fname;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=> URL.revokeObjectURL(a.href), 4000);
+  }
+  document.getElementById('rlw-save').addEventListener('click', ()=>{ hapticTick(); saveVoucher(); });
+
+  /* ---- 돌리기 ---- */
+  spinBtn.addEventListener('click', ()=>{
+    if(spinning || chances().left === 0) return;
+    spinning = true; renderChances();
+    wrap.classList.add('rl-wrap-spin');
+    if(navigator.vibrate) navigator.vibrate(15);
+
+    const idx = pickIndex();
+    const jitter = (Math.random() - 0.5) * SEG * 0.6;
+    const current = ((state.rot % 360) + 360) % 360;
+    const targetMod = ((360 - center(idx) - jitter) % 360 + 360) % 360;
+    const finalRot = state.rot + 360 * 6 + ((targetMod - current + 360) % 360);
+
+    wheelEl.style.transition = '';
+    requestAnimationFrame(()=>{ wheelEl.style.transform = `rotate(${finalRot}deg)`; });
+
+    const dur = matchMedia('(prefers-reduced-motion: reduce)').matches ? 50 : 4900;
+    setTimeout(()=>{
+      spinning = false; wrap.classList.remove('rl-wrap-spin');
+      const prize = prizes[idx];
+      const win = { id:prize.id, miss:!!prize.miss, code: prize.miss ? '' : makeCode(), ts:Date.now() };
+      state.used += 1; state.rot = finalRot; state.wins.push(win);
+      LOCAL.roulette = state; saveLocal(LOCAL);
+      postData('roulette', state).catch(()=>{});
+      if(navigator.vibrate) navigator.vibrate(win.miss ? 20 : [30, 40, 30]);
+      renderChances();
+      setTimeout(()=> win.miss ? openLose() : openWin(win), 350);
+    }, dur);
+  });
+
+  renderChances();
+  setInterval(()=>{ if(!spinning) renderChances(); }, 1500);
+})();
+
+/* ================================================================
+   10. 홈 — 굿즈샵 링크 카드
+   ================================================================ */
+(function initGoods(){
+  const G = CONFIG.GOODS || {};
+  const link = document.getElementById('goods-link');
+  document.getElementById('goods-title').textContent = G.title || '굿즈샵';
+  document.getElementById('goods-desc').textContent = G.desc || '';
+  if(G.url){ link.href = G.url; }
+  else {
+    link.classList.add('disabled'); link.removeAttribute('href'); link.setAttribute('aria-disabled', 'true');
+    document.getElementById('goods-cta').firstChild.textContent = '링크 준비 중 ';
+  }
+  const figs = document.getElementById('goods-figs');
+  [PLAYERS[9], PLAYERS[6]].filter(Boolean).forEach(p=>{
+    const src = figureSrc(p);
+    if(src){ const img = document.createElement('img'); img.src = src; img.alt = ''; figs.appendChild(img); }
+  });
+})();
+
+/* ================================================================
+   11. 기록 — 우리 선수 · 리그 순위 · 경기 결과
+   ================================================================ */
+const STATS = { teams: CONFIG.TEAMS, results: CONFIG.RESULTS, sample: true };
+(function initStats(){
+  const grid = document.getElementById('squad-grid');
+  const chips = document.getElementById('pos-chips');
+  const noteEl = document.getElementById('stats-note');
+  let posFilter = 'all';
+
+  function renderChips(){
+    const keys = ['all', ...Object.keys(POS).filter(k=> PLAYERS.some(p=> p.pos === k))];
+    chips.innerHTML = keys.map(k=> `<button class="chip${k === posFilter ? ' active' : ''}" data-pos="${k}">${k === 'all' ? '전체' : POS[k].chip}</button>`).join('');
+    chips.querySelectorAll('.chip').forEach(c=> c.addEventListener('click', ()=>{
+      if(c.dataset.pos === posFilter) return;
+      hapticTick(); posFilter = c.dataset.pos; renderChips(); renderSquad();
+    }));
+  }
+  function visiblePlayers(){ return posFilter === 'all' ? PLAYERS : PLAYERS.filter(p=> p.pos === posFilter); }
+  function renderSquad(){
+    grid.innerHTML = visiblePlayers().map(p=> `
+      <button class="squad-tile${p.pos === 'L' ? ' libero' : ''}" data-num="${p.num}" aria-label="${playerName(p)} 능력치 카드 열기">
+        <span class="squad-tile__ovr"><b>${playerOvr(p)}</b><small>${p.pos}</small></span>
+        <span class="squad-tile__fig">${figureSrc(p) ? `<img src="${figureSrc(p)}" alt="" loading="lazy">` : ''}</span>
+        <span class="squad-tile__name">${playerName(p)}<span>#${p.num} · ${POS[p.pos] ? POS[p.pos].chip : p.pos}</span></span>
+      </button>`).join('');
+    grid.querySelectorAll('.squad-tile').forEach(t=> t.addEventListener('click', ()=>{
+      hapticTick(); window.__openPlayerCard(+t.dataset.num, visiblePlayers());
+    }));
+  }
+
+  const teamName = id => (STATS.teams.find(t=> t.id === id) || { name:id }).name;
+  function renderStandings(){
+    const table = document.getElementById('stand-table');
+    const teams = [...STATS.teams].sort((a, b)=> b.pts - a.pts || b.setRatio - a.setRatio);
+    const avg = k => teams.reduce((s, t)=> s + t[k], 0) / teams.length;
+    const RANGE = { atk:[44, 58], blk:[1.6, 2.8], ace:[0.8, 1.6], rcv:[28, 44] };
+    const LABEL = { atk:['공격성공률','%'], blk:['세트당 블로킹',''], ace:['세트당 서브',''], rcv:['리시브효율','%'] };
+    const bar = (t, k)=>{
+      const [lo, hi] = RANGE[k]; const pos = v => Math.max(4, Math.min(100, (v - lo) / (hi - lo) * 100));
+      return `<div class="team-stat">
+        <div class="team-stat__l">${LABEL[k][0]}<b>${t[k]}${LABEL[k][1]}</b></div>
+        <div class="team-stat__bar"><div class="team-stat__fill" style="width:${pos(t[k])}%"></div><div class="team-stat__avg" style="left:${pos(avg(k))}%"></div></div>
+      </div>`;
+    };
+    table.innerHTML = `<thead><tr><th>순위</th><th>팀</th><th>경기</th><th>승점</th><th>승-패</th><th>세트득실</th></tr></thead><tbody>` +
+      teams.map((t, i)=> `
+        <tr class="row${t.us ? ' us' : ''}" data-id="${t.id}">
+          <td class="rank">${i + 1}</td><td class="team">${t.name}</td><td>${t.g}</td>
+          <td class="pts">${t.pts}</td><td>${t.w}-${t.l}</td><td>${t.setRatio.toFixed(2)}</td>
+        </tr>
+        <tr class="detail" data-for="${t.id}" hidden><td colspan="6"><div class="team-detail">
+          ${['atk','blk','ace','rcv'].map(k=> bar(t, k)).join('')}
+          <p class="team-detail__note">검은 눈금은 리그 평균이에요.</p>
+        </div></td></tr>`).join('') + `</tbody>`;
+    table.querySelectorAll('tr.row').forEach(row=> row.addEventListener('click', ()=>{
+      hapticTick();
+      const d = table.querySelector(`tr.detail[data-for="${row.dataset.id}"]`);
+      const willOpen = d.hidden;
+      table.querySelectorAll('tr.detail').forEach(x=> x.hidden = true);
+      d.hidden = !willOpen;
+    }));
+  }
+
+  let resultFilter = 'all';
+  function renderResults(){
+    const us = (STATS.teams.find(t=> t.us) || {}).id;
+    const items = STATS.results.filter(r=> resultFilter === 'all' || r.home === us || r.away === us);
+    document.getElementById('results-list').innerHTML = items.length ? items.map(r=>{
+      let hs = 0, as = 0;
+      r.sets.forEach(s=>{ const [a, b] = s.split('-').map(Number); a > b ? hs++ : as++; });
+      const hw = hs > as;
+      return `<div class="card result-card">
+        <p class="result-card__meta">${[r.round, r.date].filter(Boolean).join(' ')}</p>
+        <div class="result-card__row">
+          <span class="result-card__team${hw ? ' win' : ''}${r.home === us ? ' us' : ''}">${teamName(r.home)}</span>
+          <span class="result-card__score">${hs}<span>:</span>${as}</span>
+          <span class="result-card__team right${!hw ? ' win' : ''}${r.away === us ? ' us' : ''}">${teamName(r.away)}</span>
+        </div>
+        <div class="result-card__sets">${r.sets.map(s=> `<span>${s.replace('-', ' : ')}</span>`).join('')}</div>
+      </div>`;
+    }).join('') : `<p class="empty-note">표시할 경기가 없어요.</p>`;
+  }
+  document.querySelectorAll('#result-chips .chip').forEach(c=> c.addEventListener('click', ()=>{
+    if(c.dataset.filter === resultFilter) return;
+    hapticTick(); resultFilter = c.dataset.filter;
+    document.querySelectorAll('#result-chips .chip').forEach(x=> x.classList.toggle('active', x === c));
+    renderResults();
+  }));
+
+  function renderAll(){
+    renderChips(); renderSquad(); renderStandings(); renderResults();
+    noteEl.textContent = STATS.sample
+      ? '지금 보이는 순위·기록은 화면 확인용 샘플이에요. 기록 API를 연결하면 실제 시즌 기록으로 바뀌어요.'
+      : '기록은 KOVO 공식 기록 기준이에요.';
+  }
+  renderAll();
+
+  // API 모드: { players:[{num, season, ability}], teams:[...], results:[...] } 형태로 받아 덮어써요.
+  if(CONFIG.DATA_MODE === 'api' && CONFIG.API_BASE){
+    fetch(`${CONFIG.API_BASE}/stats`).then(r=> r.json()).then(d=>{
+      if(d.players) d.players.forEach(x=>{ const p = playerByNum(x.num); if(p) Object.assign(p, x); });
+      if(d.teams) STATS.teams = d.teams;
+      if(d.results) STATS.results = d.results;
+      STATS.sample = false; renderAll();
+    }).catch(()=>{});
+  }
+})();
+
+/* ================================================================
+   12. 선수 능력치 카드 — 3D 아크릴 피규어(드래그 회전) + 육각형 레이더
+       model(.glb) 값이 있으면 <model-viewer>로 실제 3D 모델을 띄워요.
+   ================================================================ */
+(function initPlayerCard(){
+  const modal = document.getElementById('pcard-modal');
+  const card = document.getElementById('pcard');
+  const stage = document.getElementById('pc-stage');
+  const shine = document.getElementById('pc-shine');
+  const hint = document.getElementById('pc-hint');
+  let list = PLAYERS, idx = 0;
+  let ry = -18, rx = 0, vel = 0, dragging = false, lastX = 0, lastY = 0, raf = null, rot = null;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const AB_KEYS = ['atk','srv','blk','dig','rcv','set'];
+  const AB_LABELS = { atk:'공격', srv:'서브', blk:'블로킹', dig:'디그', rcv:'리시브', set:'세트' };
+
+  function radarSvg(ab){
+    const cx = 150, cy = 140, R = 92;
+    const pt = (i, r)=>{ const a = (-90 + i * 60) * Math.PI / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
+    const ring = f => AB_KEYS.map((_, i)=> pt(i, R * f).join(',')).join(' ');
+    let s = `<svg viewBox="0 0 300 280" role="img" aria-label="능력치 ${AB_KEYS.map(k=> AB_LABELS[k] + ' ' + (ab[k] || 0)).join(', ')}">`;
+    [0.25, 0.5, 0.75, 1].forEach(f=> s += `<polygon class="radar-grid" points="${ring(f)}"/>`);
+    AB_KEYS.forEach((_, i)=>{ const [x, y] = pt(i, R); s += `<line class="radar-axis" x1="${cx}" y1="${cy}" x2="${x}" y2="${y}"/>`; });
+    const pts = AB_KEYS.map((k, i)=> pt(i, R * Math.max(0.04, (ab[k] || 0) / 100)));
+    s += `<polygon class="radar-poly" points="${pts.map(p=> p.join(',')).join(' ')}"/>`;
+    pts.forEach(([x, y])=> s += `<circle class="radar-dot" cx="${x}" cy="${y}" r="3.2"/>`);
+    AB_KEYS.forEach((k, i)=>{
+      const [x, y] = pt(i, R + 26);
+      const anchor = Math.abs(x - cx) < 4 ? 'middle' : (x > cx ? 'start' : 'end');
+      const dy = i === 0 ? -6 : (i === 3 ? 14 : 4);
+      s += `<text text-anchor="${anchor}" x="${x}" y="${y + dy}"><tspan class="radar-label">${AB_LABELS[k]} </tspan><tspan class="radar-val">${ab[k] ?? '-'}</tspan></text>`;
+    });
+    return s + `</svg>`;
+  }
+
+  function seasonHtml(p){
+    const s = p.season || {};
+    const f = (v, d, unit)=> v === null || v === undefined ? '-' : (d ? Number(v).toFixed(d) : v) + (unit || '');
+    const items = [
+      ['득점', f(s.pts)], ['공격성공률', f(s.atk, 1, '%')], ['리시브효율', f(s.rcv, 1, '%')],
+      ['세트당 블로킹', f(s.blk, 2)], ['세트당 서브', f(s.ace, 2)], ['세트당 디그', f(s.dig, 2)],
+    ];
+    document.getElementById('pc-season-title').textContent = s.g ? `시즌 기록 · ${s.g}경기 출전` : '시즌 기록';
+    return items.map(([l, v])=> `<div class="pc-season__item"><div class="pc-season__v">${v}</div><div class="pc-season__l">${l}</div></div>`).join('');
+  }
+
+  let mvLoaded = false;
+  function buildStage(p){
+    stage.innerHTML = '';
+    rot = null;
+    if(p.model){
+      if(!mvLoaded){
+        const sc = document.createElement('script'); sc.type = 'module';
+        sc.src = 'https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js';
+        document.head.appendChild(sc); mvLoaded = true;
+      }
+      stage.innerHTML = `<model-viewer src="${p.model}" alt="${playerName(p)} 3D 모델" camera-controls auto-rotate auto-rotate-delay="0" rotation-per-second="24deg" shadow-intensity="1" exposure="1.05" interaction-prompt="none" disable-zoom></model-viewer>`;
+      hint.textContent = '손가락으로 돌려보세요';
+      return;
+    }
+    const src = figureSrc(p) || p.photo;
+    if(!src){ hint.textContent = ''; return; }
+    // 같은 이미지를 얇게 겹쳐 쌓아(translateZ) 두께가 있는 아크릴 스탠디처럼 보이게 해요.
+    const LAYERS = reduce ? 1 : 9, DEPTH = 7;
+    let layers = '';
+    for(let i = 0; i < LAYERS; i++){
+      const z = LAYERS === 1 ? 0 : (-DEPTH / 2 + DEPTH * i / (LAYERS - 1));
+      const edge = i !== 0 && i !== LAYERS - 1;
+      layers += `<img src="${src}" alt="" class="${i === LAYERS - 1 ? 'front' : ''}" style="--z:${z.toFixed(2)}px;${edge ? '--f:brightness(.55) saturate(1.3);' : ''}">`;
+    }
+    stage.innerHTML = `<div class="fig3d"><div class="fig3d__base"></div><div class="fig3d__rot">${layers}</div></div>`;
+    rot = stage.querySelector('.fig3d');
+    hint.textContent = '좌우로 드래그해서 돌려보세요';
+  }
+
+  function render(){
+    const p = list[idx];
+    const ovr = playerOvr(p);
+    card.classList.toggle('libero', p.pos === 'L');
+    card.classList.toggle('gold', p.pos !== 'L' && ovr >= 80);
+    document.getElementById('pc-ovr').textContent = ovr;
+    document.getElementById('pc-pos').textContent = p.pos;
+    document.getElementById('pc-tier').textContent = ovr >= 80 ? '에이스' : '';
+    document.getElementById('pc-name').textContent = playerName(p);
+    document.getElementById('pc-meta').textContent = `#${p.num} · ${POS[p.pos] ? POS[p.pos].ko : p.pos}`;
+    document.getElementById('pc-count').textContent = `${idx + 1} / ${list.length}`;
+    document.getElementById('pc-radar').innerHTML = radarSvg(p.ability || {});
+    document.getElementById('pc-season').innerHTML = seasonHtml(p);
+    document.getElementById('pc-mvp').style.display = LOCAL.mvp_voted ? 'none' : '';
+    buildStage(p);
+    ry = -18; vel = 0; rx = 0;
+    card.classList.remove('reveal'); void card.offsetWidth; card.classList.add('reveal');
+    if(navigator.vibrate) navigator.vibrate(12);
+  }
+
+  function loop(){
+    if(!dragging){
+      vel *= 0.94;
+      ry += vel + (reduce ? 0 : (Math.abs(vel) < 0.5 ? 0.32 : 0));
+      rx *= 0.9;
+    }
+    if(rot){
+      rot.style.setProperty('--ry', ry.toFixed(2) + 'deg');
+      rot.style.setProperty('--rx', rx.toFixed(2) + 'deg');
+      rot.querySelector('.fig3d__rot').style.transform = `rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg)`;
+    }
+    shine.style.setProperty('--shine', (Math.sin(ry * Math.PI / 180) * 70).toFixed(1) + '%');
+    raf = requestAnimationFrame(loop);
+  }
+
+  stage.addEventListener('pointerdown', e=>{
+    if(!rot) return;
+    dragging = true; lastX = e.clientX; lastY = e.clientY; vel = 0;
+    stage.setPointerCapture(e.pointerId);
+  });
+  stage.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    const dx = e.clientX - lastX, dy = e.clientY - lastY;
+    lastX = e.clientX; lastY = e.clientY;
+    ry += dx * 0.6; vel = dx * 0.6;
+    rx = Math.max(-14, Math.min(14, rx - dy * 0.25));
+  });
+  const endDrag = ()=>{ dragging = false; };
+  stage.addEventListener('pointerup', endDrag);
+  stage.addEventListener('pointercancel', endDrag);
+
+  function open(num, sourceList){
+    list = (sourceList && sourceList.length) ? sourceList : PLAYERS;
+    idx = Math.max(0, list.findIndex(p=> p.num === num));
+    render();
+    modal.classList.add('show');
+    document.documentElement.style.overflow = 'hidden';
+    if(!raf) raf = requestAnimationFrame(loop);
+    document.getElementById('pc-close').focus({ preventScroll:true });
+  }
+  function close(){
+    modal.classList.remove('show');
+    document.documentElement.style.overflow = '';
+    if(raf){ cancelAnimationFrame(raf); raf = null; }
+    setTimeout(()=>{ if(!modal.classList.contains('show')) stage.innerHTML = ''; }, 400);
+  }
+  const step = d =>{ hapticTick(); idx = (idx + d + list.length) % list.length; render(); };
+
+  document.getElementById('pc-close').addEventListener('click', close);
+  document.getElementById('pc-prev').addEventListener('click', ()=> step(-1));
+  document.getElementById('pc-next').addEventListener('click', ()=> step(1));
+  document.addEventListener('keydown', e=>{
+    if(!modal.classList.contains('show')) return;
+    if(e.key === 'Escape') close();
+    if(e.key === 'ArrowLeft') step(-1);
+    if(e.key === 'ArrowRight') step(1);
+  });
+  document.getElementById('pc-mvp').addEventListener('click', ()=>{
+    const num = list[idx].num;
+    close();
+    navigate('pick', 'mvp');
+    if(window.__mvpPreselect) window.__mvpPreselect(num);
+  });
+
+  window.__openPlayerCard = open;
+})();
+
+</script>
+</body>
+</html>
