@@ -4144,7 +4144,7 @@ const ROULETTE_ASSETS = {
    ================================================================ */
 const STATS = { teams: CONFIG.TEAMS, results: CONFIG.RESULTS, sample: true, seasonLabel: '' };
 // KOVO 시즌 코드 → '2025-26' (001 = 2004-05)
-function seasonLabel(code){ const n = parseInt(code, 10); if(!n) return ''; const y = 2003 + n; return `${y}-${String(y + 1).slice(2)}`; }
+function seasonLabel(code){ const n = parseInt(code, 10); if(!n || n >= 100) return ''; const y = 2003 + n; return `${y}-${String(y + 1).slice(2)}`; }
 (function initStats(){
   const grid = document.getElementById('squad-grid');
   const chips = document.getElementById('pos-chips');
