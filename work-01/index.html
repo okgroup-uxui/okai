@@ -4175,11 +4175,13 @@ function seasonLabel(code){ const n = parseInt(code, 10); if(!n || n >= 100) ret
   const teamName = id => (STATS.teams.find(t=> t.id === id) || { name:id }).name;
   function renderStandings(){
     const table = document.getElementById('stand-table');
-    const teams = [...STATS.teams].sort((a, b)=> b.pts - a.pts || b.setRatio - a.setRatio);
-    const avg = k => teams.reduce((s, t)=> s + t[k], 0) / teams.length;
+    // 기록 API가 준 순위(rank)가 있으면 그대로 — KOVO 규칙: 승점 → 승수 → 세트득실률 → 점수득실률
+    const teams = [...STATS.teams].sort((a, b)=> (a.rank && b.rank) ? a.rank - b.rank : (b.pts - a.pts || b.w - a.w || b.setRatio - a.setRatio));
+    const avg = k => { const v = teams.map(t=> t[k]).filter(x=> x != null); return v.length ? v.reduce((s, x)=> s + x, 0) / v.length : 0; };
     const RANGE = { atk:[44, 58], blk:[1.6, 2.8], ace:[0.8, 1.6], rcv:[28, 44] };
     const LABEL = { atk:['공격성공률','%'], blk:['세트당 블로킹',''], ace:['세트당 서브',''], rcv:['리시브효율','%'] };
     const bar = (t, k)=>{
+      if(t[k] == null) return '';
       const [lo, hi] = RANGE[k]; const pos = v => Math.max(4, Math.min(100, (v - lo) / (hi - lo) * 100));
       return `<div class="team-stat">
         <div class="team-stat__l">${LABEL[k][0]}<b>${t[k]}${LABEL[k][1]}</b></div>
@@ -4190,7 +4192,7 @@ function seasonLabel(code){ const n = parseInt(code, 10); if(!n || n >= 100) ret
       teams.map((t, i)=> `
         <tr class="row${t.us ? ' us' : ''}" data-id="${t.id}">
           <td class="rank">${i + 1}</td><td class="team">${t.name}</td><td>${t.g}</td>
-          <td class="pts">${t.pts}</td><td>${t.w}-${t.l}</td><td>${t.setRatio.toFixed(2)}</td>
+          <td class="pts">${t.pts}</td><td>${t.w}-${t.l}</td><td>${Number(t.setRatio || 0).toFixed(2)}</td>
         </tr>
         <tr class="detail" data-for="${t.id}" hidden><td colspan="6"><div class="team-detail">
           ${['atk','blk','ace','rcv'].map(k=> bar(t, k)).join('')}
@@ -4265,9 +4267,7 @@ function seasonLabel(code){ const n = parseInt(code, 10); if(!n || n >= 100) ret
           Object.assign(p, { season:{ g:0 }, ability:{}, noRecord:true, prevTeam:'' });
         }
       });
-      // 명단에 없는 우리 팀 선수는 사진 없이 추가 (등번호 아바타로 표시)
-      ours.filter(o=> !used.has(o)).forEach(o=> PLAYERS.push({ num:o.num, name:o.name, pos:o.pos, photo:'', card:'', season:o.season, ability:o.ability }));
-      PLAYERS.sort((a, b)=> a.num - b.num);
+      // 명단(CONFIG.PLAYERS)에 없는 선수는 떠난 선수라 보여주지 않아요. 선수 목록은 명단 기준이에요.
       STATS.sample = false;
       STATS.seasonLabel = seasonLabel(d.season);
       renderAll();
