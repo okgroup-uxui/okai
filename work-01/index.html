@@ -1253,6 +1253,525 @@
   .face{box-shadow:0 0 0 1.5px #fff, 0 2px 6px rgba(22,28,38,.1);}
   .face--num{font-size:14px; line-height:20px}
   .pick-player.selected .face{box-shadow:0 0 0 2px var(--brand);}
+
+  /* ============================================================
+     CLEAN v2 — OK저축은행 Library 기준 정리 레이어
+     · 화면 바탕 흰색, 묶음 영역은 Ink/100(#F7F7F9) 면
+     · 탭: Line(최상단) / Solid(하위·2개) / Round(필터) — Library "Tab" 가이드
+     · 하단 바: Library "DockBar" 아이콘(ON #161C26 / OFF #C8CBD5)
+     · 오렌지(Point/Normal #FF571F)는 CTA·선택 상태에만
+     ============================================================ */
+  :root{
+    --bg:#FFFFFF;
+    --surface:#F7F7F9;      /* Ink/100 */
+    --fill-1:#F1F3F5;       /* Ink/200 */
+    --line-1:#E9EBF0;       /* Ink/250 */
+    --ink-400:#B2B7C0;      /* Ink/400 */
+    --dock-off:#C8CBD5;     /* DockBar ON=False */
+    --point-tint:#FFF1EB;
+    --radius-card:20px;
+    --radius-item:12px;
+    --glass:#fff; --glass-strong:#fff; --glass-border-strong:transparent; --glass-shadow:none;
+  }
+  body{background:var(--bg);}
+  .bg-orbs{display:none;}
+  @media (min-width:640px){ body{background:var(--fill-1);} #app{background:#fff; box-shadow:0 20px 60px rgba(22,28,38,.10);} }
+
+  /* 장식 애니메이션 정리 — 사용자 동작에 반응하는 것만 남김 */
+  .view.active,.seg-panel.active,.seatmode-panel.active,.survey-q.active{animation:cleanFade .2s ease-out;}
+  @keyframes cleanFade{from{opacity:0} to{opacity:1}}
+  .step-card,.predict-card,.player-row{opacity:1; animation:none;}
+  .matchbar__badge,.countdown-banner .val,.alert-banner.show{animation:none;}
+
+  /* 상단 */
+  .brand-header{padding:calc(16px + var(--court-h)) 20px 0; text-align:left;}
+  .brand-header img{height:24px;}
+  .matchbar{
+    position:static; margin:12px 16px 0; padding:14px 16px; border-radius:16px;
+    background:var(--surface); border:0; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none;
+  }
+  .matchbar__badge{display:none;}
+
+  /* 페이지 제목 */
+  .view{padding:28px 16px 120px;}
+  h1.pagehead{font-size:24px; font-weight:700; line-height:32px; letter-spacing:-0.02em;}
+  p.pagesub{font-size:14px; line-height:22px; margin:0 0 20px; color:var(--ink-dim);}
+
+  /* 카드 — Ink/100 면, 테두리·그림자 없음 */
+  .card,.step-card{
+    background:var(--surface); border:0; box-shadow:none; border-radius:var(--radius-card);
+    backdrop-filter:none; -webkit-backdrop-filter:none; padding:20px;
+  }
+  .card::before{display:none;}
+  .card + .card{margin-top:12px;}
+
+  /* ---------- Tab / Line — 화면 최상단 탭 (2~4개, 높이 48, 좌우 16) ---------- */
+  .seg:not(.seg--sub){
+    background:#fff; padding:0; border-radius:0; margin:0 -16px 24px;
+  }
+  .seg:not(.seg--sub) .seg__thumb{
+    top:auto; bottom:0; left:0; height:2px; width:calc(100% / var(--n)); border-radius:0;
+    background:var(--ink); box-shadow:none;
+  }
+  .seg:not(.seg--sub) .seg__btn{
+    height:48px; padding:12px 16px; border-radius:0;
+    border-bottom:1px solid rgba(22,28,38,.25);
+    font-size:18px; font-weight:500; line-height:26px; color:var(--ink-dim);
+    overflow:hidden; text-overflow:ellipsis;
+  }
+  .seg:not(.seg--sub) .seg__btn span{opacity:1;}
+  .seg:not(.seg--sub) .seg__btn:not(.active){color:rgba(84,89,100,.8);}
+  .seg:not(.seg--sub) .seg__btn.active{color:var(--ink);}
+  .seg:not(.seg--sub) .seg__btn:active{transform:none;}
+
+  /* ---------- Tab / Solid — 하위 탭·2개 (트랙 #F1F3F5, 패딩 6, 높이 52) ---------- */
+  .seg--sub,.seatmode-toggle{
+    position:relative; display:flex; gap:0; padding:6px; border-radius:16px; border:0;
+    background:var(--fill-1); margin:0 0 20px;
+  }
+  .seg--sub .seg__thumb,.seatmode-thumb{
+    top:6px; bottom:6px; left:6px; height:auto; width:calc((100% - 12px) / 2); border-radius:12px;
+    background:#fff; box-shadow:0 2px 1px rgba(0,0,0,.04);
+  }
+  .seg--sub .seg__btn,.seatmode-btn{
+    padding:8px; border-radius:12px; font-size:16px; line-height:24px;
+    font-weight:400; color:var(--ink-dim);
+  }
+  .seg--sub .seg__btn.active,.seatmode-btn.active{font-weight:500; color:var(--ink);}
+  .seg--sub{margin-top:20px;}
+  .seatmode-toggle{gap:6px;}
+  .seatmode-thumb{width:calc(50% - 9px);}
+  .card .seatmode-toggle{background:#EBEDF1;}
+
+  /* ---------- Tab / Round — 필터 (높이 32, 좌우 12, 간격 8, 왼쪽 정렬·스와이프) ---------- */
+  .chip-row{gap:8px;}
+  .chip,.level-tab{
+    flex:0 0 auto; height:32px; padding:5px 12px; border-radius:50px; box-shadow:none;
+    background:var(--surface); color:var(--ink-dim); font-size:14px; font-weight:500; line-height:22px;
+  }
+  .chip.active,.level-tab.active{background:var(--brand); color:#fff; font-weight:600; box-shadow:none;}
+  .level-tabs{background:none; padding:0; gap:8px; margin:16px 0 12px; overflow-x:auto; scrollbar-width:none;}
+  .card .level-tab:not(.active){background:#fff;}
+
+  /* 버튼 */
+  .btn{box-shadow:none;}
+  .btn:active{box-shadow:none;}
+  .btn.ghost{background:var(--fill-1); color:var(--ink);}
+  .card .btn.ghost{background:#fff;}
+
+  /* 섹션 소제목 — 숫자 배지 제거 */
+  .section-label{font-size:16px; font-weight:600; color:var(--ink); margin:32px 0 12px; line-height:24px;}
+  .section-label .num{display:none;}
+
+  /* 동선 카드 */
+  .step-card{margin-bottom:12px;}
+  .step-card__head{align-items:flex-start; gap:10px;}
+  .step__num{display:block; flex-shrink:0; background:none; border:0; width:auto; height:auto; color:var(--brand-dark); font-size:14px; line-height:22px; backdrop-filter:none;}
+  .step__desc{font-size:14px; line-height:22px;}
+  .photo-box{background:#fff; border:0;}
+  .photo-box.placeholder{border:0;}
+  .venue-map.photo-box{box-shadow:none; border-radius:var(--radius-card); background:var(--surface);}
+
+  /* 선택지 — 카드 안은 흰 면, 바탕 위는 Ink/100 면 */
+  .opt,.pick-player,.zone-btn{background:var(--surface); box-shadow:none; border-radius:var(--radius-item);}
+  .card .opt,.card .pick-player,.card .zone-btn{background:#fff;}
+  .opt.selected,.pick-player.selected,.zone-btn.active,
+  .card .opt.selected,.card .pick-player.selected,.card .zone-btn.active{
+    background:var(--point-tint); box-shadow:none; outline:1.5px solid var(--brand); outline-offset:-1.5px; transform:none;
+  }
+  .player-num,.player-vote-btn{background:var(--fill-1); box-shadow:none;}
+  .player-vote-btn.voted{background:var(--brand); box-shadow:none;}
+  .face{box-shadow:none; background:#FFE9DF;}
+  .pick-player.selected .face{box-shadow:0 0 0 2px var(--brand);}
+  .countdown-banner{background:var(--surface); border:0;}
+  .glass-input,.glass-select{background:#fff; border:1px solid var(--line-1);}
+  .photo-drop{background:#fff; border:1.5px dashed #D5D9E0;}
+  .zone-detail.show{background:var(--point-tint); border:0;}
+
+  /* 진행 바 */
+  .progress-track{background:var(--fill-1); border:0; height:4px;}
+  .progress-fill,.bar-fill,.team-stat__fill{background:var(--brand);}
+
+  /* 홈 — 미션 카드 (Library Solid 아이콘) */
+  .mission-card{background:var(--surface); box-shadow:none; padding:20px; margin-bottom:16px;}
+  .mission-card__title{color:var(--ink); font-size:16px; line-height:24px;}
+  .mission-card__sub{color:var(--ink-faint);}
+  .mission-ring__bg{stroke:var(--line-1);}
+  .mission-ring__fg{stroke:var(--brand);}
+  .mission-ring__label{color:var(--ink);}
+  .mission-item{background:#fff; padding:14px 4px 12px; border-radius:var(--radius-item); gap:6px;}
+  .mission-item__icon{display:block; width:32px; height:32px; opacity:1;}
+  .mission-item__icon svg{display:block; width:32px; height:32px;}
+  .mission-item__label{color:var(--ink-dim); font-weight:500;}
+  .mission-item.done{background:#fff; outline:1.5px solid var(--brand); outline-offset:-1.5px;}
+  .mission-item.done .mission-item__label{color:var(--ink); font-weight:600;}
+  .mission-item__check{top:6px; right:6px; width:16px; height:16px; background:var(--brand); color:#fff; box-shadow:none;}
+  .mission-complete-banner{background:#fff;}
+
+  /* 홈 — 굿즈 카드 */
+  .goods-card{background:var(--surface); color:var(--ink); box-shadow:none; min-height:112px;}
+  .goods-card::before{display:none;}
+  .goods-card__desc{color:var(--ink-dim);}
+  .goods-card__cta{color:var(--brand-dark);}
+  .goods-card.disabled .goods-card__cta{color:var(--ink-faint);}
+  .goods-card__figs img{filter:none;}
+
+  /* 기록 — 선수 타일 */
+  .squad-tile,.squad-tile.libero{background:var(--surface); box-shadow:none;}
+  .squad-tile__ovr b{color:var(--brand-dark);}
+  .squad-tile__ovr small{color:var(--ink-faint); opacity:1;}
+  .squad-tile.libero .squad-tile__ovr b{color:var(--ink);}
+  .squad-tile__fig img{filter:none;}
+  .squad-tile__name{background:linear-gradient(to top, var(--surface) 55%, rgba(247,247,249,0)); color:var(--ink);}
+  .squad-tile__name span{color:var(--ink-faint); opacity:1;}
+  .stand-table tr.us td{background:var(--point-tint);}
+  .result-card__sets span{background:#fff;}
+
+  /* 설문 완료 — Library Result/Positive */
+  .survey-done .result-ic{display:block; width:56px; height:56px; margin:0 auto 16px;}
+  .survey-done .result-ic svg{width:56px; height:56px; stroke:none; margin:0; animation:checkPop .4s var(--ease-out);}
+
+  /* ---------- 하단 바 — Library DockBar ---------- */
+  .tabbar{
+    left:50%; bottom:0; width:100%; max-width:520px; border-radius:0; padding:8px 8px calc(6px + var(--court-b)); gap:0;
+    background:#fff; border:0; border-top:1px solid var(--line-1); box-shadow:none;
+    backdrop-filter:none; -webkit-backdrop-filter:none;
+  }
+  @media (min-width:640px){ .tabbar{max-width:480px; bottom:28px; border-radius:0 0 32px 32px;} }
+  .tab-pill{display:none;}
+  .tabbar__btn{gap:2px; padding:4px 2px; color:var(--dock-off);}
+  .tabbar__btn:active{transform:none;}
+  .tabbar__btn svg{width:24px; height:24px; stroke:none; fill:currentColor; transform:none;}
+  .tabbar__btn span{color:var(--ink-400); font-weight:500;}
+  .tabbar__btn.active{color:var(--ink);}
+  .tabbar__btn.active svg{stroke:none; transform:none;}
+  .tabbar__btn.active span{color:var(--ink); font-weight:600;}
+
+  /* 응원 버튼 */
+  .cheer-fab{width:52px; height:52px; bottom:calc(84px + var(--court-b)); background:var(--brand); box-shadow:0 4px 12px rgba(255,87,31,.30);}
+  .cheer-fab__ring,.cheer-fab__emoji{display:none;}
+  .cheer-fab__label{font-size:14px; line-height:20px; margin:0;}
+  .cheer-phrase{bottom:calc(146px + var(--court-b));}
+  .toast{bottom:calc(80px + var(--court-b)); backdrop-filter:none; -webkit-backdrop-filter:none; background:#FFF8DE; box-shadow:none;}
+  .mvp-confirm{bottom:calc(84px + var(--court-b));}
+
+  .splash{background:#fff;}
+
+  /* ============================================================
+     CLEAN v3 — 아이콘 · 지도 버튼 · 룰렛
+     ============================================================ */
+  /* 공용 인라인 아이콘 */
+  .tab-ic{display:inline-flex; width:20px; height:20px; flex-shrink:0;}
+  .tab-ic svg{width:20px; height:20px; display:block;}
+  .seg--sub .seg__btn,.seatmode-btn{display:flex; align-items:center; justify-content:center; gap:6px;}
+  .ic-tile{display:flex; align-items:center; justify-content:center; width:48px; height:48px; border-radius:14px; background:#fff; flex-shrink:0;}
+  .ic-tile svg{width:32px; height:32px; display:block;}
+
+  /* 응원 버튼 — 확성기 아이콘 */
+  .cheer-fab{width:58px; height:58px; gap:0;}
+  .cheer-fab__icon{display:block; width:24px; height:24px;}
+  .cheer-fab__icon svg{width:24px; height:24px; display:block;}
+  .cheer-fab__label{font-size:12px; line-height:16px; font-weight:600;}
+
+  /* 장소 카드 */
+  .place-card__head{display:flex; align-items:center; gap:12px;}
+  .place-card__name{font-size:18px; line-height:26px;}
+  .map-links{margin-top:16px;}
+
+  /* 지도 버튼 — 서비스 브랜드 색 */
+  .map-btn{display:flex; align-items:center; justify-content:center; gap:6px; height:48px; border-radius:12px; font-size:15px; font-weight:600;}
+  .map-btn--kakao{background:#FEE500; color:rgba(0,0,0,.85);}
+  .map-btn--kakao:active{background:#F2DA00;}
+  .map-btn--naver{background:#03C75A; color:#fff;}
+  .map-btn--naver:active{background:#02B350;}
+  .map-btn__logo{position:relative; display:inline-flex; width:20px; height:20px; flex-shrink:0;}
+  .map-btn__logo svg{width:20px; height:20px;}
+  .map-btn__logo img{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; border-radius:5px;}
+
+  /* 동선 카드 — 아이콘 타일 + 순서 번호 */
+  .step-card__head{align-items:center; gap:14px;}
+  .step__ic{position:relative; display:flex; align-items:center; justify-content:center; width:48px; height:48px; border-radius:14px; background:#fff; flex-shrink:0;}
+  .step__ic svg{width:32px; height:32px; display:block;}
+  .step__no{position:absolute; top:-6px; left:-6px; min-width:20px; height:20px; padding:0 5px; border-radius:10px; background:var(--ink); color:#fff; font-size:12px; font-weight:600; line-height:20px; text-align:center;}
+  .step__title{font-size:16px; line-height:24px;}
+  .step-card .photo-box{margin-top:4px;}
+
+  /* 교통 · 시계 · 배너 */
+  .transit-block__title{display:flex; align-items:center; gap:8px; font-size:16px; line-height:24px; color:var(--ink); margin-bottom:12px;}
+  .transit-block__title .tab-ic,.transit-block__title .tab-ic svg{width:24px; height:24px;}
+  .line-train{font-size:0; width:18px; height:18px; filter:none;}
+  .line-train svg{width:18px; height:18px; display:block;}
+  .clock-card__ic{display:block; width:36px; height:36px; margin:0 auto 8px;}
+  .clock-card__ic svg{width:36px; height:36px;}
+  .countdown-banner .lbl{display:flex; align-items:center; gap:8px; font-size:14px; line-height:22px; color:var(--ink);}
+  .raffle-title{display:flex; align-items:center; gap:8px;}
+  .raffle-title .tab-ic,.raffle-title .tab-ic svg{width:24px; height:24px;}
+  .goods-card__ic{display:block; width:32px; height:32px; margin-bottom:8px;}
+  .goods-card__ic svg{width:32px; height:32px;}
+
+  /* ---------- 룰렛 — 밝은 카드형 ---------- */
+  .rl-stage{
+    margin:0 0 16px; padding:28px 16px 24px; border-radius:var(--radius-card);
+    background:var(--point-tint);
+  }
+  .rl-stage::before{display:none;}
+  @media (min-width:640px){ .rl-stage{ margin:0 0 16px; } }
+  .rl-title{gap:0;}
+  .rl-title__l1{font-size:16px; font-weight:500; line-height:24px; color:var(--ink-dim);}
+  .rl-title__l2{font-size:20px; font-weight:600; line-height:28px; color:var(--ink);}
+  .rl-title__l3{margin-top:4px; font-size:28px; font-weight:700; line-height:36px; color:var(--brand); text-shadow:none;}
+  .rl-wheel-wrap{width:min(312px, 100%); margin:20px auto 20px;}
+  .rl-pointer{filter:drop-shadow(0 2px 3px rgba(22,28,38,.25));}
+  .rl-cta{width:100%; max-width:312px; box-shadow:none;}
+  .rl-cta[disabled]{background:#E9EBF0; color:var(--ink-400);}
+  .rl-chance{margin:14px 0 2px; color:var(--ink);}
+  .rl-chance b{color:var(--brand-dark);}
+  .rl-sub{color:var(--ink-dim);}
+  .rl-last{color:var(--ink-dim);}
+
+  /* 당첨 교환권 — 흰 화면 */
+  .rl-win{background:#fff; color:var(--ink);}
+  .rl-win__bar{border-bottom:1px solid var(--line-1);}
+  .rl-win__close{background:none;}
+  .rl-win__close svg{stroke:var(--ink);}
+  .rl-win__chip{background:var(--surface); border-radius:8px; padding:4px 10px;}
+  .rl-win__chip span{color:var(--ink-dim);}
+  .rl-win__chip b{color:var(--ink);}
+  .rl-win__title{font-size:28px; line-height:36px; color:var(--ink);}
+  .rl-win__desc{color:var(--ink-dim);}
+  .rl-notice{margin-top:16px; padding:16px; border-radius:16px; background:var(--surface);}
+  .rl-notice li{color:var(--ink-dim); font-size:13px; line-height:20px; padding-left:14px;}
+  .rl-notice li::before{left:4px; top:8px; background:var(--ink-400);}
+  .rl-notice em{color:var(--brand-dark);}
+
+  /* 꽝 — 흰 팝업 */
+  .rl-lose{background:rgba(22,28,38,.55);}
+  .rl-lose__con{background:#fff; border-radius:24px; padding:28px 24px 20px; color:var(--ink); width:312px;}
+  .rl-lose__img{width:180px; margin:0 auto;}
+  .rl-lose__title{font-size:24px; line-height:32px; margin:8px 0 6px;}
+  .rl-lose__desc{font-size:16px; line-height:24px; color:var(--ink-dim);}
+  .rl-lose__close{display:block; width:100%; height:52px; margin-top:20px; border-radius:14px; background:var(--fill-1); color:var(--ink); font-size:16px;}
+
+  /* ============================================================
+     PC — 휴대폰 프레임 안에서만 스크롤, 하단 바는 프레임 바닥에 고정
+     ============================================================ */
+  @media (min-width:640px){
+    html,body{height:100%; overflow:hidden;}
+    #app{
+      height:calc(100vh - 56px); min-height:0; margin:28px auto;
+      overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain;
+      scrollbar-width:none;
+    }
+    #app::-webkit-scrollbar{display:none;}
+    .view{padding-bottom:32px;}
+    .tabbar{
+      position:sticky; left:auto; bottom:0; transform:none;
+      width:100%; max-width:none; margin-top:auto;
+      border-radius:0 0 32px 32px; padding-bottom:12px;
+    }
+    .cheer-fab{bottom:calc(28px + 84px);}
+    .cheer-phrase{bottom:calc(28px + 146px);}
+    .toast{bottom:calc(28px + 80px);}
+    .mvp-confirm{bottom:96px;}
+  }
+
+  /* ============================================================
+     v4 — 리퀴드 글래스 · 뉴모피즘(볼록) · 마이크로 인터랙션
+     원칙: 유리는 '내용이 아래로 지나가는 곳'에만, 볼록 그림자는 '누를 수 있는 것'에만,
+           움직임은 '사용자가 무언가 했을 때'에만. 눌린(inset) 그림자는 쓰지 않음.
+     ============================================================ */
+  :root{
+    --raise:5px 5px 12px rgba(22,28,38,.07), -4px -4px 10px rgba(255,255,255,.95);
+    --raise-sm:3px 3px 8px rgba(22,28,38,.06), -3px -3px 8px rgba(255,255,255,.9);
+    --raise-press:1px 1px 3px rgba(22,28,38,.06), -1px -1px 3px rgba(255,255,255,.9);
+    --spring:cubic-bezier(.34,1.56,.64,1);
+  }
+
+  /* --- 리퀴드 글래스: 하단 바 · 상단 매치바 · 응원 말풍선 --- */
+  .tabbar{
+    background:rgba(255,255,255,.72);
+    backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%);
+    border-top:1px solid rgba(255,255,255,.6);
+    box-shadow:0 -1px 0 rgba(22,28,38,.06), 0 -8px 24px rgba(22,28,38,.04);
+  }
+  .matchbar{
+    position:sticky; top:calc(8px + var(--court-h)); z-index:20;
+    background:rgba(247,247,249,.78);
+    backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%);
+    border:1px solid rgba(255,255,255,.7);
+  }
+  .cheer-phrase{
+    background:rgba(22,28,38,.78);
+    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  }
+  @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+    .tabbar{background:#fff;} .matchbar{background:var(--surface);}
+  }
+
+  /* --- 뉴모피즘(볼록): Ink/100 카드 위의 흰 타일 --- */
+  .card .opt,.card .pick-player,.card .zone-btn,.mission-item,.step__ic,.ic-tile,.card .btn.ghost{
+    box-shadow:var(--raise-sm);
+  }
+  .card .opt:active,.card .pick-player:active,.card .zone-btn:active,.mission-item:active,.card .btn.ghost:active{
+    box-shadow:var(--raise-press);
+  }
+  .card .opt.selected,.card .pick-player.selected,.card .zone-btn.active,.mission-item.done{
+    box-shadow:0 6px 14px rgba(255,87,31,.16);
+  }
+  .seg--sub .seg__thumb,.seatmode-thumb{box-shadow:var(--raise-sm);}
+
+  /* --- 마이크로 인터랙션 --- */
+  /* 누름 피드백 */
+  .btn,.map-btn,.opt,.pick-player,.zone-btn,.mission-item,.chip,.level-tab,.squad-tile,.goods-card,.seg__btn,.seatmode-btn{
+    transition:transform .22s var(--spring), box-shadow .22s ease, background-color .2s ease, color .2s ease;
+  }
+  .btn:active,.map-btn:active{transform:scale(.97);}
+  .opt:active,.pick-player:active,.zone-btn:active,.mission-item:active,.squad-tile:active,.goods-card:active{transform:scale(.95);}
+  .chip:active,.level-tab:active{transform:scale(.92);}
+  .seg--sub .seg__btn:active,.seatmode-btn:active{transform:scale(.96);}
+
+  /* 선택될 때 살짝 튀어오름 */
+  .opt.selected,.pick-player.selected,.zone-btn.active{animation:selPop .32s var(--spring);}
+  @keyframes selPop{0%{transform:scale(.96)} 60%{transform:scale(1.03)} 100%{transform:scale(1)}}
+  .opt .check{transition:border-color .2s, background .2s, transform .3s var(--spring);}
+
+  /* 탭 표시줄 스프링 이동 */
+  .seg__thumb,.seatmode-thumb{transition:transform .45s var(--spring);}
+
+  /* 하단 바 — 아이콘이 켜질 때 톡 */
+  .tabbar__btn:active{transform:scale(.9);}
+  .tabbar__btn{transition:transform .2s var(--spring), color .2s ease;}
+  .tabbar__btn.active svg{animation:dockPop .45s var(--spring);}
+  @keyframes dockPop{0%{transform:scale(.7) translateY(2px)} 60%{transform:scale(1.12) translateY(-2px)} 100%{transform:none}}
+
+  /* 미션 완료 체크 · 링 */
+  .mission-item__check{animation:checkIn .4s var(--spring);}
+  @keyframes checkIn{from{transform:scale(0)} to{transform:scale(1)}}
+
+  /* 화면 전환 — 살짝 떠오르며 */
+  .view.active{animation:viewRise .35s cubic-bezier(.16,1,.3,1);}
+  @keyframes viewRise{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+
+  /* 응원 버튼 — 은은한 링 하나만 */
+  .cheer-fab__ring{display:block; animation:cheerPulse 3.2s cubic-bezier(.16,1,.3,1) infinite;}
+  .cheer-fab__ring--2{display:none;}
+  .cheer-fab:active{transform:scale(.88);}
+
+  /* 지도 버튼 — 누를 때 로고가 살짝 */
+  .map-btn:active .map-btn__logo{transform:translateY(-1px) scale(1.08);}
+  .map-btn__logo{transition:transform .2s var(--spring);}
+
+  @media (prefers-reduced-motion: reduce){
+    .view.active,.opt.selected,.pick-player.selected,.zone-btn.active,.tabbar__btn.active svg,.mission-item__check,.cheer-fab__ring{animation:none !important;}
+    .btn,.map-btn,.opt,.pick-player,.zone-btn,.mission-item,.chip,.level-tab,.squad-tile,.goods-card,.seg__thumb,.seatmode-thumb,.tabbar__btn{transition:none !important;}
+  }
+
+  /* 응원 — 노랑 팝콘 · 꾹 누르기 */
+  .cheer-particle{border-radius:50%;}
+  .cheer-fab{-webkit-touch-callout:none; -webkit-user-select:none; user-select:none; touch-action:manipulation;}
+  .cheer-fab.charging{transform:scale(1.14); transition:transform .6s cubic-bezier(.2,.8,.2,1), box-shadow .6s ease;
+    box-shadow:0 0 0 8px rgba(255,211,57,.35), 0 6px 18px rgba(255,87,31,.35);}
+  .cheer-fab.mega{animation:cheerMega .6s var(--spring);}
+  @keyframes cheerMega{0%{transform:scale(1.14)} 35%{transform:scale(1.3) rotate(-8deg)} 65%{transform:scale(.94) rotate(5deg)} 100%{transform:scale(1)}}
+  .cheer-phrase.big{
+    font-size:16px; line-height:24px; padding:10px 18px; font-weight:700;
+    background:var(--brand); color:#fff; box-shadow:0 8px 20px rgba(255,87,31,.35);
+    backdrop-filter:none; -webkit-backdrop-filter:none;
+  }
+  .cheer-phrase.big.show{animation:phraseBig .5s var(--spring);}
+  @keyframes phraseBig{0%{transform:translateY(8px) scale(.7)} 60%{transform:translateY(-2px) scale(1.08)} 100%{transform:none}}
+  @media (prefers-reduced-motion: reduce){ .cheer-fab.charging{transform:none;} .cheer-fab.mega,.cheer-phrase.big.show{animation:none;} }
+
+  /* ============================================================
+     v5 — 선수 프로필 FUT 카드 (실제 선수 누끼)
+     티어: base(읏맨 오렌지) · gold(OVR 80+) · libero(리베로 하늘색 유니폼)
+     ============================================================ */
+  :root{
+    --tier-base:linear-gradient(160deg,#FFB49A 0%,#FF7A4E 26%,#FF571F 55%,#B33A0E 100%);
+    --tier-gold:linear-gradient(160deg,#FFF2C2 0%,#FFD95A 24%,#E9B527 55%,#9C6A05 100%);
+    --tier-libero:linear-gradient(160deg,#D8ECFF 0%,#8CC4F5 28%,#4A97E3 58%,#1F4F96 100%);
+  }
+
+  /* ---- 기록 탭 선수 타일 = 미니 카드 ---- */
+  .squad-grid{gap:10px;}
+  .squad-tile,.squad-tile.libero{
+    position:relative; aspect-ratio:3/4.1; border-radius:16px; overflow:hidden;
+    background:var(--tier-base); box-shadow:0 6px 14px rgba(255,87,31,.18);
+  }
+  .squad-tile.tier-gold{background:var(--tier-gold); box-shadow:0 6px 14px rgba(201,150,20,.22);}
+  .squad-tile.tier-libero{background:var(--tier-libero); box-shadow:0 6px 14px rgba(59,111,224,.2);}
+  .squad-tile::before{content:''; position:absolute; inset:0; z-index:0;
+    background:radial-gradient(80% 50% at 60% 28%, rgba(255,255,255,.35), transparent 70%),
+               repeating-linear-gradient(135deg, rgba(255,255,255,.06) 0 2px, transparent 2px 9px);}
+  .squad-tile__fig{position:absolute; left:auto; right:-6%; top:6%; width:92%; transform:none; z-index:1;
+    -webkit-mask-image:linear-gradient(to bottom,#000 62%,transparent 92%); mask-image:linear-gradient(to bottom,#000 62%,transparent 92%);}
+  .squad-tile__fig img{width:100%; height:auto; display:block; filter:none;}
+  .squad-tile__ovr{position:absolute; left:9px; top:8px; z-index:2; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.25);}
+  .squad-tile__ovr b,.squad-tile.libero .squad-tile__ovr b{color:#fff; font-size:22px; font-weight:700; line-height:26px;}
+  .squad-tile__ovr small{color:rgba(255,255,255,.92); font-size:12px; font-weight:700;}
+  .squad-tile.tier-gold .squad-tile__ovr,.squad-tile.tier-gold .squad-tile__ovr b,.squad-tile.tier-gold .squad-tile__ovr small{color:#4A3200; text-shadow:none;}
+  .squad-tile__name{
+    z-index:2; padding:22px 6px 8px; color:#fff; font-weight:700; font-size:13px;
+    background:linear-gradient(to top, rgba(22,28,38,.72) 40%, rgba(22,28,38,0));
+  }
+  .squad-tile__name span{color:rgba(255,255,255,.8); font-weight:500;}
+
+  /* ---- 카드 모달 ---- */
+  .pcard-modal{background:radial-gradient(120% 60% at 50% 10%, #4A2414 0%, #1E1A22 50%, #12161E 85%);}
+  .pcard-modal[data-tier="gold"]{background:radial-gradient(120% 60% at 50% 10%, #4D3A0C 0%, #1F1B14 50%, #12161E 85%);}
+  .pcard-modal[data-tier="libero"]{background:radial-gradient(120% 60% at 50% 10%, #13345E 0%, #141C2A 50%, #10141C 85%);}
+  .pcard{width:min(300px, 80vw); aspect-ratio:3/4.35; touch-action:none; cursor:grab; transform-style:preserve-3d; will-change:transform;}
+  .pcard:active{cursor:grabbing;}
+  .pcard__bg{background:radial-gradient(90% 55% at 55% 28%, rgba(255,255,255,.32), transparent 70%), var(--tier-base);}
+  .pcard.gold .pcard__bg{background:radial-gradient(90% 55% at 55% 28%, rgba(255,255,255,.4), transparent 70%), var(--tier-gold);}
+  .pcard.libero .pcard__bg{background:radial-gradient(90% 55% at 55% 28%, rgba(255,255,255,.32), transparent 70%), var(--tier-libero);}
+  .pcard__bg::after{border-color:rgba(255,255,255,.6);}
+
+  /* 사진 */
+  .pcard__stage{left:18%; right:2%; top:7%; bottom:auto; height:58%; perspective:none; cursor:inherit; touch-action:none; z-index:3; overflow:hidden;}
+  .pcard__photo{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 0;
+    -webkit-mask-image:linear-gradient(to bottom,#000 70%,transparent 100%); mask-image:linear-gradient(to bottom,#000 70%,transparent 100%);
+    filter:drop-shadow(0 6px 10px rgba(60,20,0,.25)); user-select:none; -webkit-user-drag:none; pointer-events:none;}
+
+  /* 좌상단 OVR · 포지션 · 등번호 */
+  .pcard__top{left:10%; top:11%; text-shadow:0 2px 6px rgba(80,30,0,.3);}
+  .pcard__ovr{font-size:44px; line-height:44px; font-weight:800; letter-spacing:-0.04em;}
+  .pcard__pos{font-size:16px; font-weight:700; margin-top:4px;}
+  .pcard__pos::after{content:''; display:block; width:28px; height:1.5px; margin:8px auto 0; background:currentColor; opacity:.6;}
+  .pcard__tier{margin-top:8px;}
+  .pcard__num{position:absolute; left:10%; top:41%; z-index:4; width:34px; text-align:center; color:#fff; font-size:15px; font-weight:800; opacity:.9;}
+  .pcard__num::before{content:'#';}
+  .pcard.gold .pcard__top,.pcard.gold .pcard__num,.pcard.gold .pcard__plate,.pcard.gold .pcard__stats{color:#3E2A00; text-shadow:none;}
+
+  /* 이름 · 하단 능력치 */
+  .pcard__plate{left:8%; right:8%; top:62%; bottom:auto;}
+  .pcard__name{font-size:22px; font-weight:800; line-height:28px; letter-spacing:-0.02em;}
+  .pcard__meta{font-size:11px; font-weight:600; margin-top:0; opacity:.85;}
+  .pcard__plate::after{content:''; display:block; height:1px; margin:8px 6% 0; background:currentColor; opacity:.35;}
+  .pcard__stats{position:absolute; left:14%; right:14%; top:76%; z-index:4; display:flex; justify-content:center; gap:10px; color:#fff;}
+  .pcard__stats ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px;}
+  .pcard__stats li{display:flex; align-items:baseline; gap:6px; white-space:nowrap;}
+  .pcard__stats b{display:inline-block; min-width:24px; text-align:right; font-size:17px; line-height:21px; font-weight:800; font-variant-numeric:tabular-nums;}
+  .pcard__stats span{font-size:12px; line-height:16px; font-weight:600; opacity:.9;}
+  .pcard__stats i{width:1px; align-self:stretch; background:currentColor; opacity:.35;}
+
+  /* 홀로 광택 — 기울인 방향으로 빛이 이동 */
+  .pcard__shine{
+    background:
+      radial-gradient(40% 30% at var(--mx,50%) var(--my,40%), rgba(255,255,255,.45), transparent 70%),
+      linear-gradient(110deg, transparent 30%, rgba(255,255,255,.28) 46%, rgba(255,240,200,.18) 52%, transparent 66%);
+    background-size:100% 100%, 220% 100%;
+    background-position:0 0, var(--shine,0%) 0;
+    mix-blend-mode:soft-light;
+  }
+  .pcard-hint{margin-top:16px;}
+
+  .pcard__shine{transform:none;}
+  .pcard__photo,.squad-tile__fig{
+    -webkit-mask-image:linear-gradient(to bottom,#000 68%,transparent 98%),linear-gradient(to right,transparent 0,#000 6%,#000 92%,transparent 100%);
+    mask-image:linear-gradient(to bottom,#000 68%,transparent 98%),linear-gradient(to right,transparent 0,#000 6%,#000 92%,transparent 100%);
+    -webkit-mask-composite:source-in; mask-composite:intersect;
+  }
 </style>
 </head>
 <body>
@@ -1294,7 +1813,7 @@
           <span id="mb-venue">부산 강서실내체육관</span>·<span id="mb-date">경기 정보 입력 필요</span>
         </div>
       </div>
-      <div class="matchbar__badge" id="mb-badge">🏐 직관 가이드</div>
+      <div class="matchbar__badge" id="mb-badge">직관 가이드</div>
     </div>
   </div>
 
@@ -1306,7 +1825,7 @@
     <div class="mission-card" id="mission-card">
       <div class="mission-card__head">
         <div>
-          <p class="mission-card__title">🏐 오늘의 직관 미션</p>
+          <p class="mission-card__title">오늘의 직관 미션</p>
           <p class="mission-card__sub" id="mission-sub">0/6 완료</p>
         </div>
         <div class="mission-ring">
@@ -1341,6 +1860,7 @@
 
     <a class="goods-card" id="goods-link" target="_blank" rel="noopener">
       <div class="goods-card__text">
+        <span class="goods-card__ic" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><g><g><g><mask id="gsm_shop" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><rect width="32" height="32" fill="#C8CBD5"/></mask><g mask="url(#gsm_shop)"><g><path fill-rule="evenodd" clip-rule="evenodd" d="M11.6358 8.38743H20.361C19.8489 6.45724 18.0897 5.03478 15.9984 5.03478C13.907 5.03478 12.1479 6.45724 11.6358 8.38743ZM8.34476 8.40835C8.89582 4.67568 12.1126 1.81104 15.9984 1.81104C19.8875 1.81104 23.1064 4.68054 23.6534 8.41783C25.6589 8.65406 27.2772 10.2417 27.5123 12.2924L28.9707 25.0132C29.2705 27.6288 27.2252 29.922 24.5924 29.922H7.31762C4.6849 29.922 2.63953 27.6288 2.93939 25.0132L4.39774 12.2924C4.63628 10.2117 6.29869 8.60778 8.34476 8.40835Z" fill="#FF571F"/></g><g><path d="M10.7971 16.3218L13.0232 23.0001L15.8058 16.3218L18.5884 23.0001L20.8145 16.3218" stroke="white" stroke-width="2.048" stroke-linecap="round" stroke-linejoin="round"/><path d="M19.9241 19.1045H22.1502" stroke="white" stroke-width="2.048" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.3501 19.1045H11.5762" stroke="white" stroke-width="2.048" stroke-linecap="round" stroke-linejoin="round"/></g></g></g></g></g></svg></span>
         <p class="goods-card__title" id="goods-title">읏맨 공식 굿즈샵</p>
         <p class="goods-card__desc" id="goods-desc">유니폼과 응원 도구를 온라인에서 만나보세요.</p>
         <span class="goods-card__cta" id="goods-cta">굿즈샵 가기
@@ -1367,25 +1887,30 @@
       <!-- 오시는길 -->
       <div class="seg-panel active" data-key="route">
         <div class="card place-card">
-          <p class="place-card__name" id="place-name">부산 강서실내체육관</p>
-          <p class="place-card__addr" id="place-addr"></p>
+          <div class="place-card__head">
+            <span class="ic-tile" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><g><g><g clip-path="url(#pvc_venue)"><mask id="pvm_venue" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><rect width="32" height="32" fill="#D9D9D9"/></mask><g mask="url(#pvm_venue)"><g><rect x="13.8572" y="13.5234" width="4.28571" height="13.9286" fill="#B2B7C0"/><rect x="5.28564" y="13.5234" width="4.28571" height="13.9286" fill="#B2B7C0"/><rect x="22.4285" y="13.5234" width="4.28571" height="13.9286" fill="#B2B7C0"/><rect x="2.07153" y="25.3096" width="27.8571" height="5.35714" rx="2" fill="#C8CBD5"/><path d="M13.7038 2.27629C15.0821 1.31001 16.9179 1.31001 18.2962 2.27629L28.9132 9.71954C30.9405 11.1409 29.9349 14.3272 27.4589 14.3272H4.54102C2.06508 14.3272 1.05942 11.1409 3.08677 9.71954L13.7038 2.27629Z" fill="#3D89FB"/></g></g></g></g></g><defs><clipPath id="pvc_venue"><rect width="32" height="32" fill="white"/></clipPath></defs></svg></span>
+            <div>
+              <p class="place-card__name" id="place-name">부산 강서실내체육관</p>
+              <p class="place-card__addr" id="place-addr"></p>
+            </div>
+          </div>
           <div class="map-links">
-            <a class="btn ghost small" id="map-kakao" target="_blank" rel="noopener">카카오맵 길찾기</a>
-            <a class="btn ghost small" id="map-naver" target="_blank" rel="noopener">네이버 지도</a>
+            <a class="btn small map-btn map-btn--kakao" id="map-kakao" target="_blank" rel="noopener"><span class="map-btn__logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path fill="currentColor" fill-rule="evenodd" d="M12 1.5C7.3 1.5 3.5 5.2 3.5 9.9c0 5.6 6.4 11.2 7.6 12.2.5.4 1.3.4 1.8 0 1.2-1 7.6-6.6 7.6-12.2 0-4.7-3.8-8.4-8.5-8.4Zm0 5.25a3.25 3.25 0 1 0 0 6.5 3.25 3.25 0 0 0 0-6.5Z"/></svg><img src="images/brand/kakaomap.png" alt="" onerror="this.remove()"></span>카카오맵 길찾기</a>
+            <a class="btn small map-btn map-btn--naver" id="map-naver" target="_blank" rel="noopener"><span class="map-btn__logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path fill="currentColor" fill-rule="evenodd" d="M12 1.5C7.3 1.5 3.5 5.2 3.5 9.9c0 5.6 6.4 11.2 7.6 12.2.5.4 1.3.4 1.8 0 1.2-1 7.6-6.6 7.6-12.2 0-4.7-3.8-8.4-8.5-8.4Zm0 5.25a3.25 3.25 0 1 0 0 6.5 3.25 3.25 0 0 0 0-6.5Z"/></svg><img src="images/brand/navermap.png" alt="" onerror="this.remove()"></span>네이버 지도</a>
           </div>
         </div>
 
         <div class="seg seg--sub" data-seg="transport" data-target="transport-panels" role="tablist">
           <div class="seg__thumb"></div>
-          <button class="seg__btn active" data-key="car" role="tab">🚗 자차</button>
-          <button class="seg__btn" data-key="transit" role="tab">🚇 대중교통</button>
+          <button class="seg__btn active" data-key="car" role="tab"><span class="tab-ic" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><g><g><g clip-path="url(#tcc_car)"><mask id="tcm_car" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><rect width="32" height="32" fill="#D9D9D9"/></mask><g mask="url(#tcm_car)"><g><path d="M4.04346 24.6519C4.04346 23.4513 5.01675 22.478 6.21737 22.478H7.30433C8.50495 22.478 9.47824 23.4513 9.47824 24.6519V26.8259C9.47824 28.0265 8.50495 28.9998 7.30433 28.9998H6.21737C5.01675 28.9998 4.04346 28.0265 4.04346 26.8259V24.6519Z" fill="#6C7080"/><path d="M22.5217 24.6519C22.5217 23.4513 23.495 22.478 24.6956 22.478H25.7826C26.9832 22.478 27.9565 23.4513 27.9565 24.6519V26.8259C27.9565 28.0265 26.9832 28.9998 25.7826 28.9998H24.6956C23.495 28.9998 22.5217 28.0265 22.5217 26.8259V24.6519Z" fill="#6C7080"/><path d="M6.81746 6.67755C7.09937 5.12703 8.4498 4 10.0257 4H21.9741C23.5501 4 24.9005 5.12703 25.1824 6.67755L26.8695 15.9565H5.13037L6.81746 6.67755Z" fill="#009795"/><path d="M1.86963 18.1305C1.86963 15.7293 3.81622 13.7827 6.21745 13.7827H25.7827C28.1839 13.7827 30.1305 15.7293 30.1305 18.1305V25.7392H1.86963V18.1305Z" fill="#00B8B6"/><rect x="6.21729" y="18.1304" width="19.5652" height="2.17391" rx="1.08696" fill="white"/></g></g></g></g></g><defs><clipPath id="tcc_car"><rect width="32" height="32" fill="white"/></clipPath></defs></svg></span>자차</button>
+          <button class="seg__btn" data-key="transit" role="tab"><span class="tab-ic" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><rect x="5" y="2" width="22" height="24" rx="7" fill="#3D89FB"/><rect x="9" y="7" width="14" height="8" rx="2.5" fill="#DCE9FF"/><circle cx="10.5" cy="20" r="1.8" fill="#fff"/><circle cx="21.5" cy="20" r="1.8" fill="#fff"/><path d="M10 26.5 7 30M22 26.5l3 3.5" stroke="#6C7080" stroke-width="2.4" stroke-linecap="round"/></svg></span>대중교통</button>
         </div>
 
         <div id="transport-panels">
           <div class="seg-panel active" data-key="car">
-            <div class="section-label"><span class="num">1</span>주차장 → 좌석 동선</div>
+            <div class="section-label">주차장에서 좌석까지</div>
             <div id="step-list"><!-- JS로 채움 --></div>
-            <div class="section-label"><span class="num">2</span>경기장 배치도</div>
+            <div class="section-label">경기장 배치도</div>
             <div class="venue-map photo-box" id="venue-map"><!-- JS로 채움 --></div>
           </div>
           <div class="seg-panel" data-key="transit">
@@ -1400,8 +1925,8 @@
         <div class="card">
           <div class="seatmode-toggle">
             <div class="seatmode-thumb" id="seatmode-thumb"></div>
-            <button class="seatmode-btn active" data-mode="manual">선택</button>
-            <button class="seatmode-btn" data-mode="photo">티켓 촬영</button>
+            <button class="seatmode-btn active" data-mode="manual"><span class="tab-ic" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><rect x="7" y="3" width="18" height="15" rx="5" fill="#FF9876"/><rect x="4" y="15" width="24" height="8" rx="4" fill="#FF571F"/><rect x="8" y="21" width="3" height="8" rx="1.5" fill="#545964"/><rect x="21" y="21" width="3" height="8" rx="1.5" fill="#545964"/></svg></span>구역 선택</button>
+            <button class="seatmode-btn" data-mode="photo"><span class="tab-ic" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><g><g><g clip-path="url(#tmc_camera)"><mask id="tmm_camera" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><rect width="32" height="32" fill="#D9D9D9"/></mask><g mask="url(#tmm_camera)"><g><path fill-rule="evenodd" clip-rule="evenodd" d="M21.874 8H25C27.2091 8 29 9.79086 29 12V23C29 25.2091 27.2091 27 25 27H7C4.79086 27 3 25.2091 3 23V12C3 9.79086 4.79086 8 7 8H10.126C10.5701 6.27477 12.1362 5 14 5H18C19.8638 5 21.4299 6.27477 21.874 8Z" fill="#B2B7C0"/><circle cx="16" cy="17.5" r="4.5" fill="white"/></g></g></g></g></g><defs><clipPath id="tmc_camera"><rect width="32" height="32" fill="white"/></clipPath></defs></svg></span>티켓 촬영</button>
           </div>
 
           <div class="seatmode-panel active" id="seatmode-manual">
@@ -1438,6 +1963,7 @@
       <div class="seg-panel" data-key="lastrain">
         <p class="pagesub" style="margin-bottom:14px;">경기가 길어지면 화면에 알림이 떠요. 언제든 여기서 시간표를 확인할 수 있어요.</p>
         <div class="card clock-card">
+          <span class="clock-card__ic" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" fill="#E9EBF0"/><path d="M16 8.5V16l5 3" stroke="#4D5764" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="16" r="2" fill="#FF571F"/></svg></span>
           <div class="now" id="clock-now">--:--</div>
           <div class="lbl">현재 시각</div>
         </div>
@@ -1456,14 +1982,14 @@
 
     <div class="seg" data-seg="pick" data-target="pick-panels" role="tablist">
       <div class="seg__thumb"></div>
-      <button class="seg__btn active" data-key="predict" role="tab">🔮 경기 예측</button>
-      <button class="seg__btn" data-key="mvp" role="tab">🏆 MVP 투표</button>
+      <button class="seg__btn active" data-key="predict" role="tab">경기 예측</button>
+      <button class="seg__btn" data-key="mvp" role="tab">MVP 투표</button>
     </div>
 
     <div id="pick-panels">
       <div class="seg-panel active" data-key="predict">
         <div class="countdown-banner">
-          <span class="lbl">예측 마감까지</span>
+          <span class="lbl"><span class="tab-ic" aria-hidden="true"><svg data-k="cd" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" fill="#E9EBF0"/><path d="M16 8.5V16l5 3" stroke="#4D5764" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="16" r="2" fill="#FF571F"/></svg></span>예측 마감까지</span>
           <span class="val" id="predict-countdown">--:--:--</span>
         </div>
         <div id="predict-list"><!-- JS로 채움 --></div>
@@ -1515,7 +2041,7 @@
 
   <!-- ============ 설문조사 (기존과 동일) ============ -->
   <div class="view" id="view-survey">
-    <h1 class="pagehead">📝 관람 설문</h1>
+    <h1 class="pagehead">관람 설문</h1>
     <p class="pagesub">오늘 직관은 어떠셨나요? 1분이면 충분해요.</p>
 
     <div class="progress-track"><div class="progress-fill" id="survey-progress"></div></div>
@@ -1526,23 +2052,23 @@
   <nav class="tabbar" aria-label="하단 메뉴">
     <div class="tab-pill" id="tab-pill"></div>
     <button class="tabbar__btn" data-view="guide">
-      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.33-7-11a7 7 0 0 1 14 0c0 5.67-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 1.5C7.3 1.5 3.5 5.2 3.5 9.9c0 5.6 6.4 11.2 7.6 12.2.5.4 1.3.4 1.8 0 1.2-1 7.6-6.6 7.6-12.2 0-4.7-3.8-8.4-8.5-8.4Zm0 5.25a3.25 3.25 0 1 0 0 6.5 3.25 3.25 0 0 0 0-6.5Z"/></svg>
       <span>안내</span>
     </button>
     <button class="tabbar__btn" data-view="pick">
-      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="0.8" fill="currentColor"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.43999 3.07802C4.78408 2.41565 5.46838 2 6.2148 2H12H17.7852C18.5316 2 19.2159 2.41565 19.56 3.07802L23.3055 10.288C23.7167 11.0796 23.5539 12.0478 22.9066 12.6615L13.3759 21.6958C12.6044 22.4271 11.3956 22.4271 10.6241 21.6958L1.09344 12.6615C0.446051 12.0478 0.283326 11.0796 0.694542 10.288L4.43999 3.07802Z"/><path fill-rule="evenodd" clip-rule="evenodd" d="M9.7337 15.0831C9.37498 14.876 9.25207 14.4173 9.45918 14.0586L13.1592 7.65003C13.3663 7.29131 13.825 7.1684 14.1837 7.37551C14.5424 7.58262 14.6653 8.04131 14.4582 8.40003L10.7582 14.8086C10.5511 15.1673 10.0924 15.2902 9.7337 15.0831ZM9.13253 8.42784C9.7304 8.77301 9.93524 9.5375 9.59006 10.1354C9.24489 10.7332 8.4804 10.9381 7.88253 10.5929C7.28467 10.2477 7.07982 9.48323 7.425 8.88537C7.77018 8.2875 8.53467 8.08266 9.13253 8.42784ZM16.5901 13.1354C16.9352 12.5375 16.7304 11.773 16.1325 11.4278C15.5347 11.0827 14.7702 11.2875 14.425 11.8854C14.0798 12.4832 14.2847 13.2477 14.8825 13.5929C15.4804 13.9381 16.2449 13.7332 16.5901 13.1354Z" fill="#fff"/></svg>
       <span>이벤트</span>
     </button>
     <button class="tabbar__btn active" data-view="home">
-      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5H15v-5.5H9v5.5H5.5A1.5 1.5 0 0 1 4 19v-8.5Z"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M3.44312 6.257C2.20603 7.1345 1.47095 8.55715 1.47095 10.0739V18.3207C1.47095 20.9052 3.56606 23.0003 6.15052 23.0003H9V19C9 17.8954 9.89543 17 11 17H13C14.1046 17 15 17.8954 15 19V23.0003H17.8494C20.4339 23.0003 22.529 20.9052 22.529 18.3207V10.0739C22.529 8.55715 21.7939 7.1345 20.5568 6.257L14.7074 2.10783C13.0857 0.957546 10.9142 0.957547 9.29258 2.10783L3.44312 6.257Z"/></svg>
       <span>홈</span>
     </button>
     <button class="tabbar__btn" data-view="players">
-      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M10 20V5M15 20v-7M20 20V9"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M15.884 12.9999C15.4593 14.7216 13.9046 15.9984 12.0517 15.9984C9.87179 15.9984 8.10464 14.2313 8.10464 12.0514C8.10464 10.2357 9.33065 8.70631 11 8.24598V4.49983V1.04911C10.9512 1.04848 11.049 1.04911 11 1.04911C5.38961 1.57874 1 6.30258 1 12.0515C1 18.1552 5.94802 23.1033 12.0517 23.1033C17.8359 23.1033 22.5823 18.6596 23.0633 12.9999H19.5H15.884Z"/><path fill-rule="evenodd" clip-rule="evenodd" d="M12.9998 8.21789C14.3843 8.55877 15.4813 9.63023 15.8586 11H19.4998H23.0557C22.5558 5.70033 18.3136 1.48976 12.9998 1.03906L12.9998 4.50005L12.9998 8.21789Z"/></svg>
       <span>기록</span>
     </button>
     <button class="tabbar__btn" data-view="survey">
-      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4"/><path d="M9.5 12.5h5M9.5 16h5"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 1.5h8.1c.66 0 1.3.26 1.77.73l4.4 4.4c.47.47.73 1.1.73 1.77V19.5a3 3 0 0 1-3 3h-12a3 3 0 0 1-3-3v-15a3 3 0 0 1 3-3Z"/><rect x="7.5" y="11" width="9" height="2" rx="1" fill="#fff"/><rect x="7.5" y="15.5" width="6" height="2" rx="1" fill="#fff"/></svg>
       <span>설문</span>
     </button>
   </nav>
@@ -1552,7 +2078,7 @@
   <button class="cheer-fab" id="cheer-fab" aria-label="응원하기">
     <span class="cheer-fab__ring"></span>
     <span class="cheer-fab__ring cheer-fab__ring--2"></span>
-    <span class="cheer-fab__emoji">📣</span>
+    <span class="cheer-fab__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path fill="#fff" d="M18.6 4.1c.65-.45 1.4.02 1.4.8v14.2c0 .78-.75 1.25-1.4.8L13 16H7.5A3.5 3.5 0 0 1 4 12.5v-1A3.5 3.5 0 0 1 7.5 8H13l5.6-3.9Z"/><path fill="#fff" fill-opacity=".8" d="M7.6 16.6h3.3l1 3.3a1.3 1.3 0 0 1-1.25 1.7H9.7a1.3 1.3 0 0 1-1.25-.95L7.6 16.6Z"/></svg></span>
     <span class="cheer-fab__label">응원</span>
     <span class="cheer-fab__badge" id="cheer-badge"></span>
   </button>
@@ -1636,9 +2162,11 @@
         <p class="pcard__name" id="pc-name">선수</p>
         <p class="pcard__meta" id="pc-meta"></p>
       </div>
+      <div class="pcard__stats" id="pc-stats"></div>
+      <span class="pcard__num" id="pc-num"></span>
       <div class="pcard__shine" id="pc-shine"></div>
     </div>
-    <p class="pcard-hint" id="pc-hint">좌우로 드래그해서 돌려보세요</p>
+    <p class="pcard-hint" id="pc-hint">카드를 끌어서 기울여 보세요</p>
 
     <div class="pc-panel">
       <p class="pc-panel__title">능력치</p>
@@ -1686,6 +2214,13 @@
 </div>
 
 <script>
+/* 아이콘 — OK저축은행 Library Solid(car·ticket·gift·venue·shop·camera) + 같은 톤 보조 아이콘(seat·subway·bus·clock) */
+const UI_ICON = {
+  subway:`<svg viewBox="0 0 32 32" fill="none"><rect x="5" y="2" width="22" height="24" rx="7" fill="#3D89FB"/><rect x="9" y="7" width="14" height="8" rx="2.5" fill="#DCE9FF"/><circle cx="10.5" cy="20" r="1.8" fill="#fff"/><circle cx="21.5" cy="20" r="1.8" fill="#fff"/><path d="M10 26.5 7 30M22 26.5l3 3.5" stroke="#6C7080" stroke-width="2.4" stroke-linecap="round"/></svg>`,
+  bus:`<svg viewBox="0 0 32 32" fill="none"><rect x="8" y="23" width="4" height="6" rx="1.6" fill="#6C7080"/><rect x="20" y="23" width="4" height="6" rx="1.6" fill="#6C7080"/><rect x="4" y="3" width="24" height="22" rx="6" fill="#53B368"/><rect x="7.5" y="7" width="17" height="8" rx="2" fill="#E3F4E6"/><circle cx="10" cy="20" r="1.8" fill="#fff"/><circle cx="22" cy="20" r="1.8" fill="#fff"/></svg>`,
+  gift:`<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><g><g><g><path d="M14.2236 7.64792C15.2792 7.23481 16.4516 7.23481 17.5072 7.64792L25.1536 10.6405C26.8804 11.3163 28.0167 12.9812 28.0166 14.8355L28.0166 23.1211C28.0166 24.9754 26.8804 26.6403 25.1536 27.3161L18.3281 29.9874C16.7447 30.6071 14.986 30.6071 13.4026 29.9874L6.57717 27.3161C4.85038 26.6403 3.71411 24.9754 3.71412 23.1211L3.71414 14.8355C3.71414 12.9812 4.85041 11.3163 6.5772 10.6405L14.2236 7.64792Z" fill="url(#paint0_linear_0_1)"/><g><path d="M18.699 9.96539C18.8882 10.0361 19.0886 10.0723 19.2905 10.0723H28.0429C28.9758 10.0723 29.7322 10.8287 29.7322 11.7617V12.9189C29.7322 13.6237 29.2946 14.2545 28.6344 14.5013L18.3923 18.3302C16.8184 18.9186 14.9135 18.9186 13.3396 18.3302L3.09846 14.5013C2.4383 14.2545 2.00073 13.6238 2.00073 12.919V11.7617C2.00073 10.8287 2.75707 10.0723 3.69006 10.0723H12.4414C12.6434 10.0723 12.8437 10.0361 13.0329 9.96539L15.2744 9.12746C15.6559 8.98486 16.076 8.98486 16.4575 9.12746L18.699 9.96539Z" fill="#CB9FEC"/><path d="M15.5499 5.3553C15.7467 5.28174 15.9848 5.28174 16.1815 5.3553L28.6777 10.0276C29.1335 10.198 29.1335 10.6451 28.6777 10.8155L18.392 14.6612C16.818 15.2497 14.9134 15.2497 13.3394 14.6612L3.05372 10.8155C2.59794 10.6451 2.59795 10.198 3.05372 10.0276L15.5499 5.3553Z" fill="#E1BCFC"/></g><g><mask id="ugm_gift" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="5" y="6" width="22" height="25"><path d="M15.8657 6.81006L26.467 10.9591L26.467 26.8026L15.8657 30.9516L5.2644 26.8026L5.26443 10.9591L15.8657 6.81006Z" fill="#98BCFF"/></mask><g mask="url(#ugm_gift)"><path d="M8.77224 12.5051L7.99983 11.4925L7.99983 11.4925L8.77224 12.5051ZM8.09965 13.3197L6.49113 13.3197L6.49113 13.3197L8.09965 13.3197ZM8.77224 12.5051L9.54466 13.5177L22.7377 8.33413L21.9653 7.32153L21.1929 6.30893L7.99983 11.4925L8.77224 12.5051ZM8.09965 13.3197L6.49113 13.3197L6.49113 32.8372H8.09965H9.70817L9.70817 13.3197L8.09965 13.3197ZM8.77224 12.5051L7.99983 11.4925C7.06957 11.858 6.49113 12.5585 6.49113 13.3197L8.09965 13.3197L9.70817 13.3197C9.70817 13.4021 9.64548 13.4781 9.54466 13.5177L8.77224 12.5051Z" fill="#FF686B"/><path d="M22.9597 12.5046L23.7321 11.492L23.7321 11.492L22.9597 12.5046ZM23.6323 13.3192L25.2408 13.3192L25.2408 13.3192L23.6323 13.3192ZM22.9597 12.5046L22.1873 13.5172L8.99419 8.33364L9.76661 7.32104L10.539 6.30844L23.7321 11.492L22.9597 12.5046ZM23.6323 13.3192L25.2408 13.3192L25.2408 32.7852H23.6323H22.0238L22.0238 13.3192L23.6323 13.3192ZM22.9597 12.5046L23.7321 11.492C24.6624 11.8575 25.2408 12.558 25.2408 13.3192L23.6323 13.3192L22.0238 13.3192C22.0238 13.4017 22.0865 13.4776 22.1873 13.5172L22.9597 12.5046Z" fill="#FF686B"/></g></g><g><path d="M11.5353 9.90039C9.27483 9.90039 7.06677 8.42927 7.2173 6.17385C7.2618 5.50718 7.41473 4.86454 7.75118 4.35768C8.98484 2.49916 12.3246 1.73791 14.3163 5.20022C16.3079 8.66253 15.6592 9.90039 15.6592 9.90039L11.5353 9.90039Z" fill="#FF686B"/><path d="M20.2641 9.90039C22.5245 9.90039 24.7325 8.42933 24.582 6.17395C24.5375 5.50725 24.3846 4.86456 24.0481 4.35768C22.8143 2.49916 19.4743 1.73791 17.4825 5.20022C15.4907 8.66253 16.1394 9.90039 16.1394 9.90039L20.2641 9.90039Z" fill="#FF686B"/><rect x="11.3179" y="6.84766" width="9.16306" height="1.14538" rx="0.572691" fill="#E81F00"/><path d="M14.4556 6.41478C14.528 5.68137 15.1416 5.12047 15.8786 5.11403C16.6229 5.10752 17.2499 5.66836 17.3261 6.40876L17.5537 8.61923C17.6482 9.53709 16.9281 10.3352 16.0053 10.3352H15.7864C14.8663 10.3352 14.147 9.54138 14.2374 8.62572L14.4556 6.41478Z" fill="#FFC1C2"/></g></g></g></g><defs><linearGradient x1="15.9488" y1="7.00537" x2="16.1148" y2="30.949" gradientUnits="userSpaceOnUse"><stop stop-color="#F3E9FA"/><stop offset="0.769231" stop-color="#E9C9FF"/></linearGradient></defs></svg>`
+};
+const STEP_ICONS = [`<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><g><g><g clip-path="url(#s1c_car)"><mask id="s1m_car" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><rect width="32" height="32" fill="#D9D9D9"/></mask><g mask="url(#s1m_car)"><g><path d="M4.04346 24.6519C4.04346 23.4513 5.01675 22.478 6.21737 22.478H7.30433C8.50495 22.478 9.47824 23.4513 9.47824 24.6519V26.8259C9.47824 28.0265 8.50495 28.9998 7.30433 28.9998H6.21737C5.01675 28.9998 4.04346 28.0265 4.04346 26.8259V24.6519Z" fill="#6C7080"/><path d="M22.5217 24.6519C22.5217 23.4513 23.495 22.478 24.6956 22.478H25.7826C26.9832 22.478 27.9565 23.4513 27.9565 24.6519V26.8259C27.9565 28.0265 26.9832 28.9998 25.7826 28.9998H24.6956C23.495 28.9998 22.5217 28.0265 22.5217 26.8259V24.6519Z" fill="#6C7080"/><path d="M6.81746 6.67755C7.09937 5.12703 8.4498 4 10.0257 4H21.9741C23.5501 4 24.9005 5.12703 25.1824 6.67755L26.8695 15.9565H5.13037L6.81746 6.67755Z" fill="#009795"/><path d="M1.86963 18.1305C1.86963 15.7293 3.81622 13.7827 6.21745 13.7827H25.7827C28.1839 13.7827 30.1305 15.7293 30.1305 18.1305V25.7392H1.86963V18.1305Z" fill="#00B8B6"/><rect x="6.21729" y="18.1304" width="19.5652" height="2.17391" rx="1.08696" fill="white"/></g></g></g></g></g><defs><clipPath id="s1c_car"><rect width="32" height="32" fill="white"/></clipPath></defs></svg>`, `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><g><g><g><path d="M29.5999 4.7998C30.4834 4.7998 31.2002 5.51594 31.2004 6.39941V12.1491C31.2004 12.5268 30.8359 12.7998 30.4583 12.7998C28.8205 12.8001 27.4924 14.2328 27.4924 16C27.4924 17.7672 28.8205 19.1999 30.4583 19.2002C30.8359 19.2002 31.2004 19.4723 31.2004 19.85V25.5996C31.2004 26.4833 30.4835 27.2002 29.5999 27.2002H2.39966C1.51618 27.2 0.800049 26.4831 0.800049 25.5996V19.85C0.800049 19.4724 1.16455 19.2002 1.54224 19.2002C3.18007 19.2 4.50806 17.7672 4.50806 16C4.50806 14.2328 3.18007 12.8 1.54224 12.7998C1.1646 12.7998 0.800049 12.5268 0.800049 12.1491V6.39941C0.800259 5.51607 1.51631 4.80002 2.39966 4.7998H29.5999Z" fill="#FFCF33"/><path d="M29.5996 4.7998C30.4831 4.7998 31.1999 5.51603 31.2002 6.39941V12.1494C31.2001 12.527 30.8356 12.7998 30.458 12.7998C28.8204 12.8002 27.4923 14.233 27.4922 16C27.4922 17.7671 28.8203 19.1998 30.458 19.2002C30.8357 19.2002 31.2002 19.4729 31.2002 19.8506V25.5996C31.2002 26.4833 30.4833 27.2002 29.5996 27.2002H23.0439V4.7998H29.5996Z" fill="#FFB431"/><g><path d="M23.0439 8L23.0439 10.4" stroke="white" stroke-width="1.87353" stroke-linecap="round"/><path d="M23.0437 14.7998L23.0437 17.1998" stroke="white" stroke-width="1.87353" stroke-linecap="round"/><path d="M23.0437 21.6001L23.0437 24.0001" stroke="white" stroke-width="1.87353" stroke-linecap="round"/></g></g></g></g></svg>`, `<svg viewBox="0 0 32 32" fill="none"><rect x="7" y="3" width="18" height="15" rx="5" fill="#FF9876"/><rect x="4" y="15" width="24" height="8" rx="4" fill="#FF571F"/><rect x="8" y="21" width="3" height="8" rx="1.5" fill="#545964"/><rect x="21" y="21" width="3" height="8" rx="1.5" fill="#545964"/></svg>`];
 /* ================================================================
    0. 스플래시 — 선수 캐릭터가 팝콘처럼 튀어오르는 인트로 화면
    ================================================================ */
@@ -1900,6 +2435,8 @@ const GATE_COORDS = {
 const CONFIG = {
   DATA_MODE: 'local', // 'local' = 기기 내 데모 저장 · 'api' = 아래 API_BASE 연동
   API_BASE: '', // 예: 'https://wm-api.yourname.workers.dev'
+  // 기록 API(okman-stats Worker) 주소 — DATA_MODE와 따로 동작해요. 비워두면 샘플 기록을 보여줘요.
+  STATS_API: '', // 예: 'https://okman-stats.<계정>.workers.dev'
 
   MATCH: {
     home: 'OK저축은행 읏맨',
@@ -1987,31 +2524,32 @@ const CONFIG = {
      선수 명단 — 예측(첫 블로킹) · MVP · 기록 탭 · 능력치 카드가 모두 이 목록을 써요.
        name    : 비워두면 "1번 선수"처럼 표시돼요.
        photo   : 얼굴 사진 URL(정사각형 권장). 비워두면 캐릭터 일러스트 얼굴이 자동으로 들어가요.
+       card    : 능력치 카드·선수 타일에 쓰는 상반신 누끼(4:5, 투명 배경) — images/players/card-번호.webp
        figure  : 스플래시 캐릭터 순서(0=감독). 능력치 카드의 3D 피규어로도 쓰여요.
        face    : 캐릭터 얼굴 크롭 위치 [가로%, 세로%, 확대%] — 캐릭터를 바꿀 때만 조정하세요.
        model   : .glb 3D 모델 URL. 넣으면 캐릭터 대신 실제 3D 모델이 돌아가요.
        ability : 육각형 능력치(0~100) — atk 공격 · srv 서브 · blk 블로킹 · dig 디그 · rcv 리시브 · set 세트
        season  : 시즌 기록 — g 경기 · pts 득점 · atk 공격성공률% · blk 세트당 블로킹 · ace 세트당 서브 · dig 세트당 디그 · rcv 리시브효율%
-     ⚠ 아래 이름·포지션·능력치·기록은 화면 확인용 샘플이에요. 실제 값으로 바꿔주세요.
+     ⚠ 이름·사진은 실제 선수예요. 능력치(ability)·시즌 기록(season)은 화면 확인용 샘플이니 실제 값으로 바꿔주세요.
      --------------------------------------------------------------- */
   PLAYERS: [
-    { num:1,  name:'', pos:'OH', figure:1,  face:[42,26,118], photo:'', model:'', ability:{atk:84,srv:78,blk:62,dig:72,rcv:77,set:55}, season:{g:24,pts:388,atk:52.4,blk:0.31,ace:0.29,dig:1.85,rcv:36.2} },
-    { num:3,  name:'', pos:'L',  figure:2,  face:[47,26,118], photo:'', model:'', ability:{atk:20,srv:30,blk:15,dig:88,rcv:86,set:64}, season:{g:24,pts:0,atk:null,blk:null,ace:null,dig:2.94,rcv:47.8} },
-    { num:5,  name:'', pos:'L',  figure:3,  face:[56,24,118], photo:'', model:'', ability:{atk:18,srv:28,blk:14,dig:84,rcv:82,set:60}, season:{g:18,pts:0,atk:null,blk:null,ace:null,dig:2.41,rcv:44.1} },
-    { num:6,  name:'', pos:'MB', figure:4,  face:[53,25,112], photo:'', model:'', ability:{atk:80,srv:66,blk:86,dig:48,rcv:30,set:52}, season:{g:24,pts:271,atk:58.9,blk:0.72,ace:0.12,dig:0.41,rcv:null} },
-    { num:7,  name:'', pos:'S',  figure:5,  face:[42,29,118], photo:'', model:'', ability:{atk:52,srv:74,blk:64,dig:72,rcv:48,set:88}, season:{g:24,pts:98,atk:41.0,blk:0.28,ace:0.21,dig:1.52,rcv:null} },
-    { num:8,  name:'', pos:'OH', figure:6,  face:[46,27,118], photo:'', model:'', ability:{atk:79,srv:72,blk:60,dig:74,rcv:80,set:54}, season:{g:23,pts:302,atk:50.1,blk:0.26,ace:0.18,dig:1.98,rcv:39.4} },
-    { num:10, name:'', pos:'OP', figure:7,  face:[44,23,115], photo:'', model:'', ability:{atk:94,srv:88,blk:78,dig:55,rcv:38,set:48}, season:{g:24,pts:612,atk:55.3,blk:0.45,ace:0.44,dig:1.02,rcv:null} },
-    { num:11, name:'', pos:'OH', figure:8,  face:[45,24,115], photo:'', model:'', ability:{atk:76,srv:70,blk:58,dig:70,rcv:74,set:52}, season:{g:20,pts:176,atk:48.7,blk:0.19,ace:0.15,dig:1.61,rcv:33.9} },
-    { num:12, name:'', pos:'MB', figure:9,  face:[58,25,118], photo:'', model:'', ability:{atk:78,srv:62,blk:84,dig:46,rcv:28,set:50}, season:{g:24,pts:244,atk:57.2,blk:0.66,ace:0.09,dig:0.38,rcv:null} },
-    { num:14, name:'', pos:'OH', figure:10, face:[44,26,118], photo:'', model:'', ability:{atk:73,srv:68,blk:56,dig:72,rcv:76,set:50}, season:{g:16,pts:94,atk:46.3,blk:0.14,ace:0.11,dig:1.44,rcv:35.0} },
-    { num:15, name:'', pos:'MB', figure:11, face:[50,28,118], photo:'', model:'', ability:{atk:74,srv:60,blk:80,dig:44,rcv:26,set:48}, season:{g:19,pts:121,atk:54.6,blk:0.58,ace:0.07,dig:0.33,rcv:null} },
-    { num:16, name:'', pos:'S',  figure:12, face:[48,23,115], photo:'', model:'', ability:{atk:48,srv:70,blk:60,dig:70,rcv:44,set:82}, season:{g:14,pts:31,atk:38.5,blk:0.17,ace:0.13,dig:1.20,rcv:null} },
-    { num:17, name:'', pos:'OH', figure:13, face:[52,26,115], photo:'', model:'', ability:{atk:77,srv:74,blk:60,dig:68,rcv:70,set:52}, season:{g:22,pts:210,atk:49.5,blk:0.22,ace:0.24,dig:1.37,rcv:31.8} },
-    { num:19, name:'', pos:'MB', figure:14, face:[47,26,118], photo:'', model:'', ability:{atk:72,srv:64,blk:78,dig:42,rcv:24,set:46}, season:{g:12,pts:58,atk:52.0,blk:0.49,ace:0.10,dig:0.29,rcv:null} },
-    { num:22, name:'', pos:'OP', figure:15, face:[45,24,115], photo:'', model:'', ability:{atk:82,srv:78,blk:70,dig:48,rcv:34,set:44}, season:{g:17,pts:141,atk:50.8,blk:0.33,ace:0.27,dig:0.74,rcv:null} },
-    { num:31, name:'', pos:'OH', figure:16, face:[48,25,115], photo:'', model:'', ability:{atk:70,srv:66,blk:54,dig:66,rcv:70,set:48}, season:{g:9,pts:33,atk:44.2,blk:0.11,ace:0.10,dig:1.12,rcv:30.5} },
-    { num:40, name:'', pos:'OH', figure:17, face:[38,23,115], photo:'', model:'', ability:{atk:75,srv:72,blk:58,dig:72,rcv:72,set:54}, season:{g:21,pts:189,atk:47.9,blk:0.20,ace:0.19,dig:1.58,rcv:34.7} },
+    { num:1 , name:'김정호', pos:'OH', figure:1 , photo:'images/players/face-1.webp', card:'images/players/card-1.webp', model:'', ability:{atk:84,srv:73,blk:56,dig:71,rcv:77,set:52}, season:{g:22,pts:196,atk:46.3,blk:0.23,ace:0.19,dig:1.71,rcv:32.2} },
+    { num:3 , name:'정성현', pos:'L', figure:2 , photo:'images/players/face-3.webp', card:'images/players/card-3.webp', model:'', ability:{atk:19,srv:32,blk:10,dig:91,rcv:90,set:66}, season:{g:15,pts:0,atk:null,blk:null,ace:null,dig:2.36,rcv:50.8} },
+    { num:5 , name:'김도훈', pos:'L', figure:3 , photo:'images/players/face-5.webp', card:'images/players/card-5.webp', model:'', ability:{atk:21,srv:24,blk:10,dig:85,rcv:85,set:66}, season:{g:15,pts:0,atk:null,blk:null,ace:null,dig:2.67,rcv:46.3} },
+    { num:6 , name:'김대환', pos:'S', figure:4 , photo:'images/players/face-6.webp', card:'images/players/card-6.webp', model:'', ability:{atk:47,srv:66,blk:65,dig:67,rcv:49,set:84}, season:{g:17,pts:75,atk:38.3,blk:0.23,ace:0.21,dig:1.32,rcv:null} },
+    { num:7 , name:'신장호', pos:'OP', figure:5 , photo:'images/players/face-7.webp', card:'images/players/card-7.webp', model:'', ability:{atk:83,srv:89,blk:73,dig:51,rcv:37,set:42}, season:{g:18,pts:591,atk:48.8,blk:0.37,ace:0.38,dig:1.05,rcv:null} },
+    { num:8 , name:'차지환', pos:'OH', figure:6 , photo:'images/players/face-8.webp', card:'images/players/card-8.webp', model:'', ability:{atk:85,srv:72,blk:63,dig:74,rcv:78,set:52}, season:{g:15,pts:208,atk:43.4,blk:0.24,ace:0.17,dig:1.75,rcv:30.7} },
+    { num:10, name:'페이즈', pos:'OH', figure:7 , photo:'images/players/face-10.webp', card:'images/players/card-10.webp', model:'', ability:{atk:85,srv:73,blk:57,dig:72,rcv:73,set:48}, season:{g:18,pts:292,atk:47.1,blk:0.22,ace:0.19,dig:1.64,rcv:30.1} },  // ⚠ 포지션 확인 필요
+    { num:11, name:'박원빈', pos:'MB', figure:8 , photo:'images/players/face-11.webp', card:'images/players/card-11.webp', model:'', ability:{atk:84,srv:64,blk:80,dig:43,rcv:28,set:53}, season:{g:18,pts:241,atk:53.4,blk:0.62,ace:0.11,dig:0.46,rcv:null} },
+    { num:12, name:'전광인', pos:'OH', figure:9 , photo:'images/players/face-12.webp', card:'images/players/card-12.webp', model:'', ability:{atk:86,srv:67,blk:65,dig:75,rcv:77,set:50}, season:{g:20,pts:230,atk:46.3,blk:0.24,ace:0.16,dig:1.83,rcv:39.5} },
+    { num:14, name:'송희채', pos:'OH', figure:10, photo:'images/players/face-14.webp', card:'images/players/card-14.webp', model:'', ability:{atk:86,srv:73,blk:57,dig:70,rcv:79,set:55}, season:{g:17,pts:196,atk:53.9,blk:0.23,ace:0.19,dig:1.44,rcv:31.2} },
+    { num:15, name:'노재욱', pos:'S', figure:11, photo:'images/players/face-15.webp', card:'images/players/card-15.webp', model:'', ability:{atk:47,srv:75,blk:56,dig:65,rcv:50,set:90}, season:{g:19,pts:65,atk:42.7,blk:0.24,ace:0.15,dig:1.32,rcv:null} },
+    { num:16, name:'진상헌', pos:'MB', figure:12, photo:'images/players/face-16.webp', card:'images/players/card-16.webp', model:'', ability:{atk:84,srv:65,blk:84,dig:50,rcv:25,set:55}, season:{g:15,pts:184,atk:58.0,blk:0.66,ace:0.09,dig:0.43,rcv:null} },
+    { num:17, name:'박창성', pos:'MB', figure:13, photo:'images/players/face-17.webp', card:'images/players/card-17.webp', model:'', ability:{atk:82,srv:67,blk:80,dig:45,rcv:25,set:47}, season:{g:18,pts:275,atk:55.4,blk:0.56,ace:0.09,dig:0.4,rcv:null} },
+    { num:19, name:'진성태', pos:'MB', figure:14, photo:'images/players/face-19.webp', card:'images/players/card-19.webp', model:'', ability:{atk:77,srv:58,blk:79,dig:43,rcv:26,set:48}, season:{g:16,pts:273,atk:59.1,blk:0.69,ace:0.11,dig:0.42,rcv:null} },
+    { num:22, name:'박인우', pos:'OH', figure:15, photo:'images/players/face-22.webp', card:'images/players/card-22.webp', model:'', ability:{atk:75,srv:71,blk:54,dig:71,rcv:75,set:52}, season:{g:19,pts:239,atk:42.0,blk:0.23,ace:0.16,dig:1.53,rcv:32.1} },  // ⚠ 포지션 확인 필요
+    { num:31, name:'김준호', pos:'OH', figure:16, photo:'images/players/face-31.webp', card:'images/players/card-31.webp', model:'', ability:{atk:80,srv:69,blk:59,dig:67,rcv:73,set:58}, season:{g:20,pts:311,atk:42.1,blk:0.2,ace:0.2,dig:1.71,rcv:32.3} },  // ⚠ 포지션 확인 필요
+    { num:40, name:'러셀', pos:'OP', figure:17, photo:'images/players/face-40.webp', card:'images/players/card-40.webp', model:'', ability:{atk:91,srv:93,blk:80,dig:46,rcv:37,set:42}, season:{g:17,pts:599,atk:47.6,blk:0.42,ace:0.43,dig:1.08,rcv:null} },
   ],
   // MVP 후보 — 등번호 배열. 비워두면(null) 전체 선수가 후보예요. 경기 당일 출전 명단만 넣어도 돼요.
   MVP_CANDIDATES: null,
@@ -2164,7 +2702,7 @@ function renderRaffleBox(container, source){
     return;
   }
   container.innerHTML = `
-    <p class="raffle-title">🎁 경품 추첨에 응모하시겠어요?</p>
+    <p class="raffle-title"><span class="tab-ic" aria-hidden="true">${UI_ICON.gift}</span>경품 추첨에 응모하시겠어요?</p>
     <p class="raffle-desc">당첨자 안내 용도로만 사용하고, 추첨이 끝나면 삭제해요. 이메일 또는 휴대폰번호 중 하나만 남겨주세요.</p>
     <input class="glass-input" type="text" id="raffle-contact-${source}" placeholder="이메일 또는 휴대폰번호" style="margin-bottom:10px;">
     <label class="raffle-consent">
@@ -2214,9 +2752,12 @@ const PLAYERS = CONFIG.PLAYERS;
 
 const FIGURE_URLS = SPLASH_CHARACTERS; // images/players/*.webp
 function figureSrc(p){ return Number.isInteger(p.figure) && FIGURE_URLS[p.figure] ? FIGURE_URLS[p.figure] : ''; }
+function cardSrc(p){ return p.card || figureSrc(p) || p.photo || ''; }
+function playerTier(p){ const o = playerOvr(p); return p.pos === 'L' ? 'libero' : (o >= 80 ? 'gold' : 'base'); }
 function playerName(p){ return p.name || `${p.num}번 선수`; }
 function playerByNum(num){ return PLAYERS.find(p=> String(p.num) === String(num)); }
 function playerOvr(p){
+  if(p.noRecord) return '-';
   const w = OVR_WEIGHTS[p.pos] || OVR_WEIGHTS.OH; const a = p.ability || {};
   return Math.round(Object.keys(w).reduce((s, k)=> s + (a[k] || 0) * w[k], 0));
 }
@@ -2281,6 +2822,7 @@ function navigate(view, sub){
   moveTabPill(idx);
   if(sub && VIEW_SEG[view]) SEGS[VIEW_SEG[view]].set(sub, true);
   window.scrollTo({ top:0 });
+  const appEl = document.getElementById('app'); if(appEl) appEl.scrollTop = 0;
   document.dispatchEvent(new CustomEvent('wm:nav', { detail:{ view, sub: VIEW_SEG[view] ? SEGS[VIEW_SEG[view]].current : null } }));
 }
 tabButtons.forEach(btn=>{
@@ -2325,7 +2867,7 @@ function photoBoxHtml(url, alt, placeholderText){
     el.className = 'step-card';
     el.innerHTML = `
       <div class="step-card__head">
-        <div class="step__num">${i+1}</div>
+        <div class="step__ic" aria-hidden="true">${STEP_ICONS[i] || STEP_ICONS[STEP_ICONS.length-1]}<span class="step__no">${i+1}</span></div>
         <div>
           <p class="step__title">${s.title}</p>
           <p class="step__desc">${s.desc}</p>
@@ -2379,8 +2921,8 @@ function photoBoxHtml(url, alt, placeholderText){
     : `<p class="empty-note" style="padding:8px 0 0; text-align:left;">버스 노선 안내를 준비하고 있어요. 지도 앱 길찾기를 이용해주세요.</p>`;
 
   list.innerHTML = `
-    <div class="card transit-block"><p class="transit-block__title">지하철</p>${subwayRows}</div>
-    <div class="card transit-block"><p class="transit-block__title">버스</p>${busRows}</div>`;
+    <div class="card transit-block"><p class="transit-block__title"><span class="tab-ic" aria-hidden="true">${UI_ICON.subway}</span>지하철</p>${subwayRows}</div>
+    <div class="card transit-block"><p class="transit-block__title"><span class="tab-ic" aria-hidden="true">${UI_ICON.bus}</span>버스</p>${busRows}</div>`;
 
   document.getElementById('transit-to-lastrain').addEventListener('click', ()=>{
     hapticTick(); SEGS.guide.set('lastrain');
@@ -2857,8 +3399,8 @@ function photoBoxHtml(url, alt, placeholderText){
   function renderDone(){
     progress.style.width = '100%';
     body.innerHTML = `<div class="survey-done">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M20 6 9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <h3>🎉 설문에 참여해주셔서 감사해요</h3>
+      <span class="result-ic"><svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg"><g><g><g><circle cx="28" cy="28" r="28" fill="#FF571F"/><path d="M16 28.5L25 37L40 22" stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></g></g></g></svg></span>
+      <h3>설문에 참여해주셔서 감사해요</h3>
       <p>다음 경기에서 더 나은 직관 경험으로 찾아올게요.</p>
     </div>
     <div class="card raffle-card" id="survey-raffle"></div>`;
@@ -3035,7 +3577,7 @@ function photoBoxHtml(url, alt, placeholderText){
       const delay = (i * 0.18).toFixed(2);
       row.style.setProperty('--delay', `${delay}s`);
       row.innerHTML = `
-        <div class="line-track"><span class="line-train">🚈</span></div>
+        <div class="line-track"><span class="line-train">${UI_ICON.subway}</span></div>
         <div class="line-info">
           <span class="line-tag">${l.tag}</span>
           <span class="line-dir">${l.dir}</span>
@@ -3107,48 +3649,104 @@ function photoBoxHtml(url, alt, placeholderText){
   }
   renderBadge();
 
-  const PHRASES = ['가자 읏맨!','파이팅!','오늘 이긴다!','읏맨 화이팅!','다 덤벼!','불꽃 응원 중🔥'];
-  const COLORS = ['#FF571F','#FF7A4E','#FFD339','#161C26','#ffffff'];
-  let phraseTimer = null;
+  const PHRASES = ['가자 읏맨!','파이팅!','오늘 이긴다!','읏맨 화이팅!','다 덤벼!','불꽃 응원 중!'];
+  // 꾹 눌렀을 때 나오는 특별 멘트 (15자 이하)
+  const BIG_PHRASES = ['우리가 읏맨이다!','끝까지 간다 읏맨!','부산의 자존심 읏맨!','오늘 승리는 읏맨 거!','읏맨 사랑해!'];
+  // 팝콘 — 노랑 계열 (Library Yellow 톤)
+  const COLORS = ['#FFD339','#FFC815','#FFB431','#FFE066','#F5B800'];
+  const HOLD_MS = 600;
+  const HINT_KEY = 'cheer_hold_hint';
+  let phraseTimer = null, holdTimer = null, holdFired = false;
 
-  function burstConfetti(x, y){
-    for(let i = 0; i < 14; i++){
+  function burstConfetti(x, y, opt = {}){
+    const n = opt.count || 14, base = opt.dist || 46, spread = opt.spread || 64;
+    const smin = opt.sizeMin || 5, sr = opt.sizeRange || 5;
+    for(let i = 0; i < n; i++){
       const p = document.createElement('span');
       p.className = 'cheer-particle';
       const angle = Math.random() * Math.PI * 2;
-      const dist = 46 + Math.random() * 64;
+      const dist = base + Math.random() * spread;
       const dx = Math.cos(angle) * dist;
       const dy = Math.sin(angle) * dist - 24;
-      const size = 4 + Math.random() * 5;
+      const size = smin + Math.random() * sr;
       p.style.setProperty('--dx', dx + 'px');
       p.style.setProperty('--dy', dy + 'px');
       p.style.setProperty('--rot', (Math.random() * 360) + 'deg');
       p.style.width = size + 'px';
-      p.style.height = size + 'px';
+      p.style.height = (size * (0.8 + Math.random() * 0.4)) + 'px';
       p.style.left = x + 'px';
       p.style.top = y + 'px';
       p.style.background = COLORS[Math.floor(Math.random() * COLORS.length)];
       document.body.appendChild(p);
-      setTimeout(()=> p.remove(), 900);
+      setTimeout(()=> p.remove(), 1000);
     }
   }
 
-  btn.addEventListener('click', ()=>{
+  function showPhrase(text, big, ms){
+    phraseEl.textContent = text;
+    phraseEl.classList.toggle('big', !!big);
+    phraseEl.classList.remove('show'); void phraseEl.offsetWidth;
+    phraseEl.classList.add('show');
+    clearTimeout(phraseTimer);
+    phraseTimer = setTimeout(()=> phraseEl.classList.remove('show'), ms);
+  }
+
+  function addCount(){
     count++;
     postData(CHEER_KEY, count).catch(()=>{});
     renderBadge();
+  }
 
+  function center(){
+    const r = btn.getBoundingClientRect();
+    return [r.left + r.width / 2, r.top + r.height / 2];
+  }
+
+  // 짧게 탭 — 기본 응원
+  function cheer(){
+    addCount();
     btn.classList.remove('tapped'); void btn.offsetWidth; btn.classList.add('tapped');
     if(navigator.vibrate) navigator.vibrate(25);
+    const [x, y] = center();
+    burstConfetti(x, y);
+    // 세 번째 탭에 한 번만 '꾹 누르기' 안내
+    if(count >= 3 && !LOCAL[HINT_KEY]){
+      LOCAL[HINT_KEY] = true; saveLocal(LOCAL);
+      showPhrase('꾹 누르면 더 크게!', false, 1600);
+    } else {
+      showPhrase(PHRASES[Math.floor(Math.random() * PHRASES.length)], false, 1100);
+    }
+  }
 
-    const rect = btn.getBoundingClientRect();
-    burstConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2);
+  // 꾹 누르기 — 특별 응원
+  function megaCheer(){
+    addCount();
+    btn.classList.remove('charging', 'tapped'); void btn.offsetWidth; btn.classList.add('mega');
+    setTimeout(()=> btn.classList.remove('mega'), 700);
+    if(navigator.vibrate) navigator.vibrate([30, 40, 60]);
+    const [x, y] = center();
+    burstConfetti(x, y, { count:30, dist:70, spread:110, sizeMin:7, sizeRange:6 });
+    setTimeout(()=> burstConfetti(x, y, { count:18, dist:40, spread:80, sizeMin:5, sizeRange:5 }), 160);
+    showPhrase(BIG_PHRASES[Math.floor(Math.random() * BIG_PHRASES.length)], true, 1900);
+  }
 
-    phraseEl.textContent = PHRASES[Math.floor(Math.random() * PHRASES.length)];
-    phraseEl.classList.add('show');
-    clearTimeout(phraseTimer);
-    phraseTimer = setTimeout(()=> phraseEl.classList.remove('show'), 1100);
+  function cancelHold(){
+    clearTimeout(holdTimer);
+    btn.classList.remove('charging');
+  }
+  btn.addEventListener('pointerdown', (e)=>{
+    if(e.button !== undefined && e.button !== 0) return;
+    holdFired = false;
+    btn.classList.add('charging');
+    holdTimer = setTimeout(()=>{ holdFired = true; megaCheer(); }, HOLD_MS);
   });
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=> btn.addEventListener(ev, cancelHold));
+  btn.addEventListener('contextmenu', e=> e.preventDefault());
+  btn.addEventListener('click', (e)=>{
+    if(holdFired){ holdFired = false; e.preventDefault(); return; }
+    cheer();
+  });
+  // 키보드: Enter/Space는 기본 응원 (click으로 처리됨)
 })();
 
 /* ================================================================
@@ -3164,13 +3762,22 @@ function photoBoxHtml(url, alt, placeholderText){
   const photoInput = document.getElementById('checkin-photo-input');
   if(!listEl) return;
 
-  const MISSIONS = [
-    { id:'checkin',    icon:'🎫', label:'출석체크' },
-    { id:'directions', icon:'📍', label:'오시는길 확인' },
-    { id:'seats',      icon:'💺', label:'자리안내 확인' },
-    { id:'predict',    icon:'🔮', label:'예측투표' },
-    { id:'survey',     icon:'📝', label:'설문조사' },
-    { id:'mvp',        icon:'🏆', label:'MVP투표' },
+  /* OK저축은행 Library — Solid 아이콘 */
+  const MISSION_ICON = {
+    checkin:`<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><g><g><g clip-path="url(#ci_checkin_cal)"><mask id="mi_checkin_cal" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><rect width="32" height="32" fill="#D9D9D9"/></mask><g mask="url(#mi_checkin_cal)"><g><rect y="3" width="32" height="28" rx="7" fill="#E9EBF0"/><rect x="5.09106" width="2.42424" height="5" rx="1.21212" fill="#FF571F"/><rect x="9.93945" width="2.42424" height="5" rx="1.21212" fill="#FF571F"/><rect x="14.7878" width="2.42424" height="5" rx="1.21212" fill="#FF571F"/><rect x="19.6362" width="2.42424" height="5" rx="1.21212" fill="#FF571F"/><rect x="24.4849" width="2.42424" height="5" rx="1.21212" fill="#FF571F"/><path fill-rule="evenodd" clip-rule="evenodd" d="M21.5261 13.3161C22.0849 13.7982 22.1604 14.6581 21.6947 15.2366L15.8411 22.5093C15.6004 22.8083 15.2478 22.9866 14.8721 22.9993C14.4963 23.0119 14.1333 22.8577 13.8744 22.5756L10.3622 18.7478C9.8612 18.2018 9.88258 17.3387 10.4099 16.82C10.9373 16.3013 11.771 16.3234 12.2719 16.8694L14.7649 19.5863L19.6711 13.4907C20.1368 12.9121 20.9673 12.834 21.5261 13.3161Z" fill="#4D5764"/></g></g></g></g></g><defs><clipPath id="ci_checkin_cal"><rect width="32" height="32" fill="white"/></clipPath></defs></svg>`,
+    directions:`<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><g><g><g clip-path="url(#ci_directions_car)"><mask id="mi_directions_car" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><rect width="32" height="32" fill="#D9D9D9"/></mask><g mask="url(#mi_directions_car)"><g><path d="M4.04346 24.6519C4.04346 23.4513 5.01675 22.478 6.21737 22.478H7.30433C8.50495 22.478 9.47824 23.4513 9.47824 24.6519V26.8259C9.47824 28.0265 8.50495 28.9998 7.30433 28.9998H6.21737C5.01675 28.9998 4.04346 28.0265 4.04346 26.8259V24.6519Z" fill="#6C7080"/><path d="M22.5217 24.6519C22.5217 23.4513 23.495 22.478 24.6956 22.478H25.7826C26.9832 22.478 27.9565 23.4513 27.9565 24.6519V26.8259C27.9565 28.0265 26.9832 28.9998 25.7826 28.9998H24.6956C23.495 28.9998 22.5217 28.0265 22.5217 26.8259V24.6519Z" fill="#6C7080"/><path d="M6.81746 6.67755C7.09937 5.12703 8.4498 4 10.0257 4H21.9741C23.5501 4 24.9005 5.12703 25.1824 6.67755L26.8695 15.9565H5.13037L6.81746 6.67755Z" fill="#009795"/><path d="M1.86963 18.1305C1.86963 15.7293 3.81622 13.7827 6.21745 13.7827H25.7827C28.1839 13.7827 30.1305 15.7293 30.1305 18.1305V25.7392H1.86963V18.1305Z" fill="#00B8B6"/><rect x="6.21729" y="18.1304" width="19.5652" height="2.17391" rx="1.08696" fill="white"/></g></g></g></g></g><defs><clipPath id="ci_directions_car"><rect width="32" height="32" fill="white"/></clipPath></defs></svg>`,
+    seats:`<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><g><g><g><path d="M29.5999 4.7998C30.4834 4.7998 31.2002 5.51594 31.2004 6.39941V12.1491C31.2004 12.5268 30.8359 12.7998 30.4583 12.7998C28.8205 12.8001 27.4924 14.2328 27.4924 16C27.4924 17.7672 28.8205 19.1999 30.4583 19.2002C30.8359 19.2002 31.2004 19.4723 31.2004 19.85V25.5996C31.2004 26.4833 30.4835 27.2002 29.5999 27.2002H2.39966C1.51618 27.2 0.800049 26.4831 0.800049 25.5996V19.85C0.800049 19.4724 1.16455 19.2002 1.54224 19.2002C3.18007 19.2 4.50806 17.7672 4.50806 16C4.50806 14.2328 3.18007 12.8 1.54224 12.7998C1.1646 12.7998 0.800049 12.5268 0.800049 12.1491V6.39941C0.800259 5.51607 1.51631 4.80002 2.39966 4.7998H29.5999Z" fill="#FFCF33"/><path d="M29.5996 4.7998C30.4831 4.7998 31.1999 5.51603 31.2002 6.39941V12.1494C31.2001 12.527 30.8356 12.7998 30.458 12.7998C28.8204 12.8002 27.4923 14.233 27.4922 16C27.4922 17.7671 28.8203 19.1998 30.458 19.2002C30.8357 19.2002 31.2002 19.4729 31.2002 19.8506V25.5996C31.2002 26.4833 30.4833 27.2002 29.5996 27.2002H23.0439V4.7998H29.5996Z" fill="#FFB431"/><g><path d="M23.0439 8L23.0439 10.4" stroke="white" stroke-width="1.87353" stroke-linecap="round"/><path d="M23.0437 14.7998L23.0437 17.1998" stroke="white" stroke-width="1.87353" stroke-linecap="round"/><path d="M23.0437 21.6001L23.0437 24.0001" stroke="white" stroke-width="1.87353" stroke-linecap="round"/></g></g></g></g></svg>`,
+    predict:`<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><g><g><g><rect x="2" y="15.5557" width="8.2963" height="12.4444" rx="2.59259" fill="#FFB5A0"/><rect x="11.8518" y="9.3335" width="8.2963" height="18.6667" rx="2.59259" fill="#FF7A4E"/><path d="M21.7036 6.59259C21.7036 5.16074 22.8644 4 24.2962 4H27.4073C28.8392 4 29.9999 5.16074 29.9999 6.59259V25.4074C29.9999 26.8392 28.8392 28 27.4073 28H24.2962C22.8644 28 21.7036 26.8392 21.7036 25.4074L21.7036 6.59259Z" fill="#FF571F"/></g></g></g></svg>`,
+    survey:`<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><g><g clip-path="url(#ci_survey_pencil)"><g><rect x="21.0725" y="4.3833" width="9.28941" height="22.6429" transform="rotate(45 21.0725 4.3833)" fill="#8FC069"/><rect x="21.0725" y="4.3833" width="2.90294" height="22.6429" transform="rotate(45 21.0725 4.3833)" fill="#53B368"/><rect x="25.5884" y="8.90039" width="2.90294" height="22.6429" transform="rotate(45 25.5884 8.90039)" fill="#53B368"/><path d="M21.0725 4.3833L27.6411 10.9519L29.2658 9.3272C30.1824 8.41063 30.1824 6.92458 29.2658 6.00801L26.0164 2.75859C25.0998 1.84202 23.6138 1.84202 22.6972 2.75859L21.0725 4.3833Z" fill="#FF571F"/><path d="M4.99453 28.985C3.79702 29.3495 2.67761 28.2301 3.04207 27.0326L5.06163 20.3969L11.6302 26.9655L4.99453 28.985Z" fill="#FFC5A4"/><path d="M4.99418 28.9871C3.79667 29.3516 2.67726 28.2322 3.04172 27.0347L4.05371 23.7095L8.3193 27.9751L4.99418 28.9871Z" fill="#545964"/></g></g></g><defs><clipPath id="ci_survey_pencil"><rect width="32" height="32" fill="white"/></clipPath></defs></svg>`,
+    mvp:`<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><g><g clip-path="url(#ci_mvp_trophy)"><mask id="mi_mvp_trophy" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><rect width="32" height="32" fill="#D9D9D9"/></mask><g mask="url(#mi_mvp_trophy)"><g><path d="M21.1113 12H22.8281C25.8379 11.9998 28.1143 9.27538 27.5791 6.31348L27.5518 6.16406L22.96 5.99902L22.8545 5.99512L22.75 5.98047L21.5488 5.80957C19.6755 5.54315 18.0003 6.99658 18 8.88867C18 10.5532 19.3073 11.913 20.9512 11.9961L21.1113 12Z" stroke="#FFC815" stroke-width="4"/><path d="M10.8887 12H9.17188C6.16205 11.9998 3.88569 9.27538 4.4209 6.31348L4.44824 6.16406L9.04004 5.99902L9.14551 5.99512L9.25 5.98047L10.4512 5.80957C12.3245 5.54315 13.9997 6.99658 14 8.88867C14 10.5532 12.6927 11.913 11.0488 11.9961L10.8887 12Z" stroke="#FFC815" stroke-width="4"/><rect x="14" y="16" width="4" height="9" fill="#FFC815"/><path d="M6.02264 2.89332C6.04711 1.83022 6.92207 1 7.98546 1H24.0145C25.0779 1 25.9529 1.83022 25.9774 2.89332C26.0371 5.49035 26.027 10.113 25.3209 12.5556C24.5949 15.067 22.202 17.2788 20.44 18.6255C19.1732 19.5938 17.5944 20 16 20C14.4056 20 12.8268 19.5938 11.56 18.6255C9.798 17.2788 7.40514 15.067 6.6791 12.5556C5.97296 10.113 5.96287 5.49035 6.02264 2.89332Z" fill="#FFD92F"/><path d="M9.02366 24.6258C9.20334 23.6825 10.0281 23 10.9883 23H21.0117C21.9719 23 22.7967 23.6825 22.9763 24.6258L23.5478 27.6258C23.7825 28.8582 22.8377 30 21.5831 30H10.4169C9.1623 30 8.21748 28.8582 8.45223 27.6258L9.02366 24.6258Z" fill="#AD7E04"/></g></g></g></g><defs><clipPath id="ci_mvp_trophy"><rect width="32" height="32" fill="white"/></clipPath></defs></svg>`
+  };
+    const MISSIONS = [
+    { id:'checkin',    icon:MISSION_ICON.checkin, label:'출석체크' },
+    { id:'directions', icon:MISSION_ICON.directions, label:'오시는길 확인' },
+    { id:'seats',      icon:MISSION_ICON.seats, label:'자리안내 확인' },
+    { id:'predict',    icon:MISSION_ICON.predict, label:'예측투표' },
+    { id:'survey',     icon:MISSION_ICON.survey, label:'설문조사' },
+    { id:'mvp',        icon:MISSION_ICON.mvp, label:'MVP투표' },
   ];
   const JUMP = { directions:['guide','route'], seats:['guide','seat'], predict:['pick','predict'], survey:['survey'], mvp:['pick','mvp'] };
   const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
@@ -3217,7 +3824,7 @@ function photoBoxHtml(url, alt, placeholderText){
     burstConfettiAt(rect.left + rect.width / 2, rect.top + 30);
     const banner = document.createElement('div');
     banner.className = 'mission-complete-banner';
-    banner.textContent = '🎉 오늘 직관 미션 완료! 끝까지 함께해주셔서 감사해요';
+    banner.textContent = '오늘 직관 미션 완료! 끝까지 함께해주셔서 감사해요';
     cardEl.appendChild(banner);
     requestAnimationFrame(()=> banner.classList.add('show'));
     setTimeout(()=>{ banner.classList.remove('show'); setTimeout(()=> banner.remove(), 350); }, 3600);
@@ -3535,7 +4142,9 @@ const ROULETTE_ASSETS = {
 /* ================================================================
    11. 기록 — 우리 선수 · 리그 순위 · 경기 결과
    ================================================================ */
-const STATS = { teams: CONFIG.TEAMS, results: CONFIG.RESULTS, sample: true };
+const STATS = { teams: CONFIG.TEAMS, results: CONFIG.RESULTS, sample: true, seasonLabel: '' };
+// KOVO 시즌 코드 → '2025-26' (001 = 2004-05)
+function seasonLabel(code){ const n = parseInt(code, 10); if(!n) return ''; const y = 2003 + n; return `${y}-${String(y + 1).slice(2)}`; }
 (function initStats(){
   const grid = document.getElementById('squad-grid');
   const chips = document.getElementById('pos-chips');
@@ -3553,9 +4162,9 @@ const STATS = { teams: CONFIG.TEAMS, results: CONFIG.RESULTS, sample: true };
   function visiblePlayers(){ return posFilter === 'all' ? PLAYERS : PLAYERS.filter(p=> p.pos === posFilter); }
   function renderSquad(){
     grid.innerHTML = visiblePlayers().map(p=> `
-      <button class="squad-tile${p.pos === 'L' ? ' libero' : ''}" data-num="${p.num}" aria-label="${playerName(p)} 능력치 카드 열기">
+      <button class="squad-tile tier-${playerTier(p)}" data-num="${p.num}" aria-label="${playerName(p)} 능력치 카드 열기">
         <span class="squad-tile__ovr"><b>${playerOvr(p)}</b><small>${p.pos}</small></span>
-        <span class="squad-tile__fig">${figureSrc(p) ? `<img src="${figureSrc(p)}" alt="" loading="lazy">` : ''}</span>
+        <span class="squad-tile__fig">${cardSrc(p) ? `<img src="${cardSrc(p)}" alt="" loading="lazy">` : ''}</span>
         <span class="squad-tile__name">${playerName(p)}<span>#${p.num} · ${POS[p.pos] ? POS[p.pos].chip : p.pos}</span></span>
       </button>`).join('');
     grid.querySelectorAll('.squad-tile').forEach(t=> t.addEventListener('click', ()=>{
@@ -3626,18 +4235,43 @@ const STATS = { teams: CONFIG.TEAMS, results: CONFIG.RESULTS, sample: true };
     renderChips(); renderSquad(); renderStandings(); renderResults();
     noteEl.textContent = STATS.sample
       ? '지금 보이는 순위·기록은 화면 확인용 샘플이에요. 기록 API를 연결하면 실제 시즌 기록으로 바뀌어요.'
-      : '기록은 KOVO 공식 기록 기준이에요.';
+      : `${STATS.seasonLabel ? STATS.seasonLabel + ' 시즌 ' : ''}KOVO 공식 기록 기준이에요. 능력치는 리그 선수 대비 백분위예요.`;
   }
   renderAll();
 
-  // API 모드: { players:[{num, season, ability}], teams:[...], results:[...] } 형태로 받아 덮어써요.
-  if(CONFIG.DATA_MODE === 'api' && CONFIG.API_BASE){
-    fetch(`${CONFIG.API_BASE}/stats`).then(r=> r.json()).then(d=>{
-      if(d.players) d.players.forEach(x=>{ const p = playerByNum(x.num); if(p) Object.assign(p, x); });
-      if(d.teams) STATS.teams = d.teams;
+  // 기록 API(okman-stats Worker): { season, players, others, teams, results, updated }
+  //  · players = OK저축은행 선수, others = 다른 팀 선수(이적생의 지난 시즌 기록 찾기용)
+  //  · 사진·카드 이미지는 그대로 두고 이름·포지션·기록·능력치만 덮어써요.
+  const statsBase = CONFIG.STATS_API || (CONFIG.DATA_MODE === 'api' ? CONFIG.API_BASE : '');
+  if(statsBase){
+    noteEl.textContent = '기록을 불러오는 중이에요.';
+    fetch(`${statsBase.replace(/\/$/, '')}/stats`).then(r=> r.ok ? r.json() : Promise.reject(r.status)).then(d=>{
+      if(d.teams && d.teams.length) STATS.teams = d.teams;
       if(d.results) STATS.results = d.results;
-      STATS.sample = false; renderAll();
-    }).catch(()=>{});
+      const ours = d.players || [], others = d.others || [];
+      const teamName = id => (STATS.teams.find(t=> String(t.id) === String(id)) || {}).name || '';
+      const used = new Set();
+      PLAYERS.forEach(p=>{
+        // 1) 우리 팀에서 이름+등번호 → 이름 → 등번호 순으로 찾고  2) 없으면 다른 팀(이적 전 소속)에서 이름으로
+        let x = ours.find(o=> o.name === p.name && String(o.num) === String(p.num))
+             || ours.find(o=> o.name === p.name)
+             || (!p.name && ours.find(o=> String(o.num) === String(p.num)));
+        let from = '';
+        if(!x){ x = others.find(o=> o.name === p.name); if(x) from = teamName(x.team); }
+        if(x){
+          used.add(x);
+          Object.assign(p, { pos:x.pos || p.pos, season:x.season, ability:x.ability, noRecord:false, prevTeam:from });
+        } else {
+          Object.assign(p, { season:{ g:0 }, ability:{}, noRecord:true, prevTeam:'' });
+        }
+      });
+      // 명단에 없는 우리 팀 선수는 사진 없이 추가 (등번호 아바타로 표시)
+      ours.filter(o=> !used.has(o)).forEach(o=> PLAYERS.push({ num:o.num, name:o.name, pos:o.pos, photo:'', card:'', season:o.season, ability:o.ability }));
+      PLAYERS.sort((a, b)=> a.num - b.num);
+      STATS.sample = false;
+      STATS.seasonLabel = seasonLabel(d.season);
+      renderAll();
+    }).catch(()=>{ STATS.sample = true; renderAll(); });
   }
 })();
 
@@ -3652,7 +4286,7 @@ const STATS = { teams: CONFIG.TEAMS, results: CONFIG.RESULTS, sample: true };
   const shine = document.getElementById('pc-shine');
   const hint = document.getElementById('pc-hint');
   let list = PLAYERS, idx = 0;
-  let ry = -18, rx = 0, vel = 0, dragging = false, lastX = 0, lastY = 0, raf = null, rot = null;
+  let ry = 0, rx = 0, vel = 0, dragging = false, lastX = 0, lastY = 0, raf = null, rot = null, t0 = 0;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const AB_KEYS = ['atk','srv','blk','dig','rcv','set'];
@@ -3677,14 +4311,23 @@ const STATS = { teams: CONFIG.TEAMS, results: CONFIG.RESULTS, sample: true };
     return s + `</svg>`;
   }
 
+  // FUT 카드 하단 능력치 — 왼쪽 공격·서브·블로킹 / 오른쪽 디그·리시브·세트
+  function statsHtml(ab){
+    const col = keys => `<ul>${keys.map(k=> `<li><b>${ab[k] ?? '-'}</b><span>${AB_LABELS[k]}</span></li>`).join('')}</ul>`;
+    return col(['atk','srv','blk']) + `<i aria-hidden="true"></i>` + col(['dig','rcv','set']);
+  }
+
   function seasonHtml(p){
     const s = p.season || {};
     const f = (v, d, unit)=> v === null || v === undefined ? '-' : (d ? Number(v).toFixed(d) : v) + (unit || '');
     const items = [
-      ['득점', f(s.pts)], ['공격성공률', f(s.atk, 1, '%')], ['리시브효율', f(s.rcv, 1, '%')],
+      ['득점', f(s.pts)], ['공격성공률', f(s.atk, 1, '%')], p.pos === 'S' ? ['세트당 세트', f(s.set, 2)] : ['리시브효율', f(s.rcv, 1, '%')],
       ['세트당 블로킹', f(s.blk, 2)], ['세트당 서브', f(s.ace, 2)], ['세트당 디그', f(s.dig, 2)],
     ];
-    document.getElementById('pc-season-title').textContent = s.g ? `시즌 기록 · ${s.g}경기 출전` : '시즌 기록';
+    const label = STATS.seasonLabel ? `${STATS.seasonLabel} 시즌` : '시즌 기록';
+    document.getElementById('pc-season-title').textContent =
+      p.noRecord ? `${label} · 출전 기록 없음`
+      : (s.g ? `${label} · ${p.prevTeam ? p.prevTeam + ' 소속 · ' : ''}${s.g}경기 출전` : label);
     return items.map(([l, v])=> `<div class="pc-season__item"><div class="pc-season__v">${v}</div><div class="pc-season__l">${l}</div></div>`).join('');
   }
 
@@ -3702,29 +4345,25 @@ const STATS = { teams: CONFIG.TEAMS, results: CONFIG.RESULTS, sample: true };
       hint.textContent = '손가락으로 돌려보세요';
       return;
     }
-    const src = figureSrc(p) || p.photo;
+    const src = cardSrc(p);
     if(!src){ hint.textContent = ''; return; }
-    // 같은 이미지를 얇게 겹쳐 쌓아(translateZ) 두께가 있는 아크릴 스탠디처럼 보이게 해요.
-    const LAYERS = reduce ? 1 : 9, DEPTH = 7;
-    let layers = '';
-    for(let i = 0; i < LAYERS; i++){
-      const z = LAYERS === 1 ? 0 : (-DEPTH / 2 + DEPTH * i / (LAYERS - 1));
-      const edge = i !== 0 && i !== LAYERS - 1;
-      layers += `<img src="${src}" alt="" class="${i === LAYERS - 1 ? 'front' : ''}" style="--z:${z.toFixed(2)}px;${edge ? '--f:brightness(.55) saturate(1.3);' : ''}">`;
-    }
-    stage.innerHTML = `<div class="fig3d"><div class="fig3d__base"></div><div class="fig3d__rot">${layers}</div></div>`;
-    rot = stage.querySelector('.fig3d');
-    hint.textContent = '좌우로 드래그해서 돌려보세요';
+    stage.innerHTML = `<img class="pcard__photo" src="${src}" alt="" draggable="false">`;
+    rot = card;
+    hint.textContent = '카드를 끌어서 기울여 보세요';
   }
 
   function render(){
     const p = list[idx];
     const ovr = playerOvr(p);
-    card.classList.toggle('libero', p.pos === 'L');
-    card.classList.toggle('gold', p.pos !== 'L' && ovr >= 80);
+    const tier = playerTier(p);
+    card.classList.toggle('libero', tier === 'libero');
+    card.classList.toggle('gold', tier === 'gold');
+    modal.dataset.tier = tier;
     document.getElementById('pc-ovr').textContent = ovr;
     document.getElementById('pc-pos').textContent = p.pos;
-    document.getElementById('pc-tier').textContent = ovr >= 80 ? '에이스' : '';
+    document.getElementById('pc-tier').textContent = ovr >= 85 ? '에이스' : '';
+    document.getElementById('pc-num').textContent = p.num;
+    document.getElementById('pc-stats').innerHTML = statsHtml(p.ability || {});
     document.getElementById('pc-name').textContent = playerName(p);
     document.getElementById('pc-meta').textContent = `#${p.num} · ${POS[p.pos] ? POS[p.pos].ko : p.pos}`;
     document.getElementById('pc-count').textContent = `${idx + 1} / ${list.length}`;
@@ -3732,41 +4371,45 @@ const STATS = { teams: CONFIG.TEAMS, results: CONFIG.RESULTS, sample: true };
     document.getElementById('pc-season').innerHTML = seasonHtml(p);
     document.getElementById('pc-mvp').style.display = LOCAL.mvp_voted ? 'none' : '';
     buildStage(p);
-    ry = -18; vel = 0; rx = 0;
+    ry = 0; vel = 0; rx = 0; t0 = performance.now();
     card.classList.remove('reveal'); void card.offsetWidth; card.classList.add('reveal');
     if(navigator.vibrate) navigator.vibrate(12);
   }
 
-  function loop(){
+  // 카드 기울이기 — 끄는 동안은 손을 따라가고, 놓으면 제자리로 돌아오며 은은하게 흔들려요.
+  function loop(now){
     if(!dragging){
-      vel *= 0.94;
-      ry += vel + (reduce ? 0 : (Math.abs(vel) < 0.5 ? 0.32 : 0));
-      rx *= 0.9;
+      const t = (now - t0) / 1000;
+      const ty = reduce ? 0 : Math.sin(t * 0.9) * 7;
+      const tx = reduce ? 0 : Math.cos(t * 0.7) * 3;
+      ry += (ty - ry) * 0.08;
+      rx += (tx - rx) * 0.08;
     }
-    if(rot){
-      rot.style.setProperty('--ry', ry.toFixed(2) + 'deg');
-      rot.style.setProperty('--rx', rx.toFixed(2) + 'deg');
-      rot.querySelector('.fig3d__rot').style.transform = `rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg)`;
+    if(rot && !card.classList.contains('reveal')){
+      card.style.transform = `perspective(900px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg)`;
     }
-    shine.style.setProperty('--shine', (Math.sin(ry * Math.PI / 180) * 70).toFixed(1) + '%');
+    card.style.setProperty('--mx', (50 + ry * 2.2).toFixed(1) + '%');
+    card.style.setProperty('--my', (50 - rx * 3).toFixed(1) + '%');
+    shine.style.setProperty('--shine', (ry * 4).toFixed(1) + '%');
     raf = requestAnimationFrame(loop);
   }
+  card.addEventListener('animationend', e=>{ if(e.target === card) card.classList.remove('reveal'); });
 
-  stage.addEventListener('pointerdown', e=>{
+  card.addEventListener('pointerdown', e=>{
     if(!rot) return;
-    dragging = true; lastX = e.clientX; lastY = e.clientY; vel = 0;
-    stage.setPointerCapture(e.pointerId);
+    dragging = true; lastX = e.clientX; lastY = e.clientY;
+    card.setPointerCapture(e.pointerId);
   });
-  stage.addEventListener('pointermove', e=>{
+  card.addEventListener('pointermove', e=>{
     if(!dragging) return;
     const dx = e.clientX - lastX, dy = e.clientY - lastY;
     lastX = e.clientX; lastY = e.clientY;
-    ry += dx * 0.6; vel = dx * 0.6;
-    rx = Math.max(-14, Math.min(14, rx - dy * 0.25));
+    ry = Math.max(-28, Math.min(28, ry + dx * 0.35));
+    rx = Math.max(-18, Math.min(18, rx - dy * 0.3));
   });
-  const endDrag = ()=>{ dragging = false; };
-  stage.addEventListener('pointerup', endDrag);
-  stage.addEventListener('pointercancel', endDrag);
+  const endDrag = ()=>{ dragging = false; t0 = performance.now(); };
+  card.addEventListener('pointerup', endDrag);
+  card.addEventListener('pointercancel', endDrag);
 
   function open(num, sourceList){
     list = (sourceList && sourceList.length) ? sourceList : PLAYERS;
@@ -3774,6 +4417,7 @@ const STATS = { teams: CONFIG.TEAMS, results: CONFIG.RESULTS, sample: true };
     render();
     modal.classList.add('show');
     document.documentElement.style.overflow = 'hidden';
+    t0 = performance.now();
     if(!raf) raf = requestAnimationFrame(loop);
     document.getElementById('pc-close').focus({ preventScroll:true });
   }
