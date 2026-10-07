@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>관리자 · 읏맨 직관 가이드</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  :root{
+    --brand:#FF571F; --brand-dark:#E64813; --tint:#FFF1EB;
+    --ink:#161C26; --ink-dim:#545964; --ink-faint:#8C94A2;
+    --bg:#F7F7F9; --fill:#F1F3F5; --line:#E9EBF0; --ok:#137C09; --err:#D92D20; --gold:#E9C46A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:Pretendard, -apple-system, 'Apple SD Gothic Neo', sans-serif; background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased;}
+  button,input,select,textarea{font:inherit; color:inherit;}
+  button{cursor:pointer; border:0; background:none;}
+  [hidden]{display:none !important;}
+
+  /* 레이아웃 */
+  .topbar{position:sticky; top:0; z-index:10; display:flex; align-items:center; gap:12px; padding:12px 20px; background:#fff; border-bottom:1px solid var(--line);}
+  .topbar h1{font-size:17px; font-weight:800; white-space:nowrap;}
+  .topbar h1 span{color:var(--brand);}
+  .topbar .sp{flex:1;}
+  .topbar select{height:36px; padding:0 10px; border-radius:10px; border:1px solid var(--line); background:#fff; font-size:14px; font-weight:600; max-width:200px;}
+  .auto{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-faint); font-weight:600; white-space:nowrap;}
+  .auto i{width:8px; height:8px; border-radius:50%; background:var(--brand); animation:dot 1.6s infinite;}
+  .auto.off i{background:var(--line); animation:none;}
+  @keyframes dot{0%{box-shadow:0 0 0 0 rgba(255,87,31,.45)} 100%{box-shadow:0 0 0 8px rgba(255,87,31,0)}}
+  .shell{display:grid; grid-template-columns:200px 1fr; max-width:1200px; margin:0 auto;}
+  nav{position:sticky; top:61px; align-self:start; padding:20px 12px; display:flex; flex-direction:column; gap:2px;}
+  nav button{display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:10px; font-size:14px; font-weight:600; color:var(--ink-dim); text-align:left;}
+  nav button.on{background:#fff; color:var(--ink); box-shadow:inset 0 0 0 1px var(--line);}
+  nav button em{font-style:normal; font-size:12px; color:var(--ink-faint); font-variant-numeric:tabular-nums;}
+  nav button.on em{color:var(--brand);}
+  main{padding:20px 20px 80px; min-width:0;}
+  .page-title{font-size:22px; font-weight:800; margin-bottom:4px;}
+  .page-sub{font-size:14px; color:var(--ink-faint); margin-bottom:16px;}
+
+  /* 공통 */
+  .card{padding:20px; border-radius:20px; background:#fff; box-shadow:inset 0 0 0 1px var(--line); margin-bottom:16px;}
+  .card h2{font-size:16px; font-weight:800; display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px;}
+  .card .desc{font-size:13px; line-height:20px; color:var(--ink-faint); margin-bottom:14px;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px;}
+  .kpi{padding:16px 18px; border-radius:18px; background:#fff; box-shadow:inset 0 0 0 1px var(--line);}
+  .kpi span{font-size:13px; font-weight:600; color:var(--ink-faint);}
+  .kpi b{display:block; font-size:28px; line-height:36px; font-weight:800; margin-top:2px; font-variant-numeric:tabular-nums;}
+  .kpi.hot b{color:var(--brand);}
+  .field label{display:block; font-size:12px; font-weight:700; color:var(--ink-dim); margin-bottom:6px;}
+  .field input,.field select,.field textarea{width:100%; height:42px; padding:0 12px; border-radius:11px; border:1px solid var(--line); background:#fff; font-size:14px;}
+  .field textarea{height:70px; padding:10px 12px; resize:vertical;}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--brand); outline-offset:-1px;}
+  .form{display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:14px; border-radius:14px; background:var(--bg); margin-top:12px;}
+  .form .full{grid-column:1 / -1;}
+  .btn{height:42px; padding:0 16px; border-radius:11px; background:var(--brand); color:#fff; font-size:14px; font-weight:700; white-space:nowrap;}
+  .btn:active{transform:scale(.97);}
+  .btn.ghost{background:var(--fill); color:var(--ink);}
+  .btn.dark{background:var(--ink);}
+  .btn.small{height:32px; padding:0 12px; font-size:13px; border-radius:9px;}
+  .btn.danger{background:#FFECEC; color:var(--err);}
+  .btn:disabled{opacity:.4; cursor:default;}
+  .form .btn{grid-column:1 / -1;}
+  .row{display:flex; align-items:center; gap:10px; padding:12px 0; border-top:1px solid var(--line);}
+  .row:first-child{border-top:0;}
+  .row .main{flex:1; min-width:0;}
+  .row .t{font-size:15px; font-weight:700;}
+  .row .m{font-size:12px; color:var(--ink-faint); margin-top:2px;}
+  .chip{display:inline-block; font-size:11px; font-weight:800; padding:2px 7px; border-radius:6px; background:var(--brand); color:#fff; margin-right:6px; vertical-align:1px;}
+  .chip.off{background:var(--fill); color:var(--ink-faint);}
+  .chip.gold{background:#1C1C1C; color:var(--gold);}
+  .chip.ok{background:#E8F7E5; color:var(--ok);}
+  .empty{font-size:13px; color:var(--ink-faint); padding:14px 0;}
+  .toggle{position:relative; width:44px; height:26px; border-radius:13px; background:var(--line); flex-shrink:0; transition:background .2s;}
+  .toggle::after{content:''; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.2); transition:transform .2s;}
+  .toggle.on{background:var(--brand);} .toggle.on::after{transform:translateX(18px);}
+  .code{font-family:ui-monospace, Menlo, monospace; font-weight:800; letter-spacing:.12em; background:#1C1C1C; color:var(--gold); padding:3px 8px; border-radius:6px; white-space:nowrap;}
+  .seg{display:inline-flex; padding:4px; border-radius:12px; background:var(--fill); gap:2px;}
+  .seg button{height:34px; padding:0 14px; border-radius:9px; font-size:14px; font-weight:600; color:var(--ink-dim);}
+  .seg button.on{background:#fff; color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.06);}
+  .seg button.on.live{background:var(--brand); color:#fff;}
+
+  /* 막대 */
+  .q{font-size:14px; font-weight:700; margin:16px 0 8px;}
+  .q:first-child{margin-top:0;}
+  .bar{display:flex; align-items:center; gap:10px; font-size:13px; margin-bottom:6px;}
+  .bar .l{width:130px; color:var(--ink-dim); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .bar .tr{display:block; flex:1; height:12px; border-radius:6px; background:var(--fill); overflow:hidden;}
+  .bar .f{display:block; height:100%; background:var(--brand); border-radius:6px; transition:width .4s;}
+  .bar.top .f{background:var(--brand);} .bar:not(.top) .f{background:#FFB49A;}
+  .bar.answer .l{color:var(--ok); font-weight:800;}
+  .bar .n{width:96px; text-align:right; color:var(--ink-faint); font-variant-numeric:tabular-nums; white-space:nowrap;}
+
+  /* 표 */
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th{text-align:left; font-size:12px; color:var(--ink-faint); font-weight:700; padding:8px 6px; border-bottom:1px solid var(--line); white-space:nowrap;}
+  td{padding:10px 6px; border-bottom:1px solid var(--line); vertical-align:middle;}
+  .scroll{max-height:460px; overflow:auto;}
+  .muted{color:var(--ink-faint);}
+  .winbox{padding:14px; border-radius:14px; background:#1C1C1C; color:#fff; margin-top:12px;}
+  .winbox .row{border-color:rgba(255,255,255,.1);}
+  .winbox .m{color:rgba(255,255,255,.6);}
+
+  /* 로그인 */
+  .gate{max-width:440px; margin:12vh auto; padding:28px; border-radius:24px; background:#fff; box-shadow:inset 0 0 0 1px var(--line);}
+  .gate h2{font-size:22px; font-weight:800; margin-bottom:4px;}
+  .gate p{font-size:14px; color:var(--ink-faint); margin-bottom:20px;}
+  .gate .field{margin-bottom:12px;}
+  .gate .btn{width:100%; margin-top:6px;}
+  .status{font-size:13px; min-height:20px; margin-top:10px;}
+  .status.err{color:var(--err);} .status.ok{color:var(--ok);}
+  .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); padding:12px 18px; border-radius:12px; background:var(--ink); color:#fff; font-size:14px; font-weight:600; opacity:0; transition:.25s; pointer-events:none; z-index:50;}
+  .toast.show{opacity:1; transform:translateX(-50%);}
+  .toast.err{background:var(--err);}
+
+  @media (max-width:880px){
+    .shell{grid-template-columns:1fr;}
+    nav{position:sticky; top:61px; z-index:9; flex-direction:row; overflow-x:auto; padding:8px 12px; background:var(--bg); border-bottom:1px solid var(--line);}
+    nav button{flex-shrink:0;}
+    .kpis{grid-template-columns:1fr 1fr;}
+    .grid2{grid-template-columns:1fr;}
+    .bar .l{width:96px;}
+    .topbar select{max-width:130px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- 로그인 -->
+<div class="gate" id="gate">
+  <h2>관리자</h2>
+  <p>읏맨 직관 가이드 — 경기별 참여 현황과 현장 이벤트를 관리해요.</p>
+  <div class="field"><label for="api">서버 주소 (okman-live Worker)</label><input id="api" placeholder="https://okman-live.○○○.workers.dev"></div>
+  <div class="field"><label for="key">관리자 키</label><input id="key" type="password" placeholder="ADMIN_KEY"></div>
+  <button class="btn" id="login">들어가기</button>
+  <p class="status" id="gate-status"></p>
+</div>
+
+<!-- 본 화면 -->
+<div id="app" hidden>
+  <div class="topbar">
+    <h1>읏맨 직관 가이드 <span>관리자</span></h1>
+    <div class="sp"></div>
+    <select id="match" aria-label="경기 선택"></select>
+    <span class="auto" id="auto"><i></i>5초마다 새로고침</span>
+    <button class="btn small ghost" id="logout">나가기</button>
+  </div>
+  <div class="shell">
+    <nav id="nav"></nav>
+    <main id="main"></main>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================================================================
+   관리자 — okman-live Worker와 연결
+   관람객 화면(index.html)의 LIVE_API와 같은 서버를 쓰고, 경기 ID는 index.html의 MATCH_KEY(기본: 오늘 날짜)와 같아요.
+   ================================================================ */
+const $ = id => document.getElementById(id);
+const esc = v => String(v ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+const fmt = n => Number(n || 0).toLocaleString();
+const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
+const today = () => { const t = new Date(); return new Date(t.getTime() - t.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
+const time = ts => ts ? new Date(ts).toLocaleString('ko-KR', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
+const hm = v => v ? v.replace('T', ' ').slice(5, 16) : '';
+const mask = c => { c = String(c || ''); if(c.includes('@')){ const [a, b] = c.split('@'); return a.slice(0, 2) + '***@' + b; } const d = c.replace(/\D/g, ''); return d.length >= 8 ? `${d.slice(0, 3)}-****-${d.slice(-4)}` : c.replace(/\d/g, '*'); };
+
+let D = null, page = 'dash', timer = null, busy = false;
+const base = () => (localStorage.getItem('adm_api') || '').replace(/\/$/, '');
+const key = () => sessionStorage.getItem('adm_key') || '';
+const mid = () => $('match').value || today();
+
+function toast(msg, err){ const t = $('toast'); t.textContent = msg; t.className = 'toast show' + (err ? ' err' : ''); clearTimeout(t._t); t._t = setTimeout(()=> t.className = 'toast', 2200); }
+
+async function call(method, path, body){
+  const res = await fetch(`${base()}/admin/${path}`, {
+    method, headers:{ 'Content-Type':'application/json', 'X-Admin-Key': key() },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const d = await res.json().catch(() => ({}));
+  if(res.status === 401) throw new Error('관리자 키가 맞지 않아요.');
+  if(!res.ok) throw new Error(d.error || `서버 오류 (${res.status})`);
+  return d;
+}
+const mcall = (method, action, body) => call(method, encodeURIComponent(mid()) + (action ? '/' + action : ''), body);
+
+/* ---------- 로그인 ---------- */
+$('api').value = localStorage.getItem('adm_api') || '';
+$('key').value = key();
+$('login').addEventListener('click', async ()=>{
+  localStorage.setItem('adm_api', $('api').value.trim().replace(/\/$/, ''));
+  sessionStorage.setItem('adm_key', $('key').value.trim());
+  $('gate-status').textContent = '연결하는 중…'; $('gate-status').className = 'status';
+  try{ await start(); }
+  catch(e){ $('gate-status').textContent = e.message === 'Failed to fetch' ? '서버에 연결하지 못했어요. 주소와 ALLOW_ORIGIN 설정을 확인해주세요.' : e.message; $('gate-status').className = 'status err'; }
+});
+$('logout').addEventListener('click', ()=>{ sessionStorage.removeItem('adm_key'); clearInterval(timer); location.reload(); });
+if(base() && key()) start().catch(()=>{});
+
+async function start(){
+  const { matches } = await call('GET', '_/matches');
+  const ids = [...new Set([today(), ...Object.keys(matches || {})])].sort().reverse();
+  const want = new URLSearchParams(location.search).get('match');
+  if(want && !ids.includes(want)) ids.unshift(want);
+  $('match').innerHTML = ids.map(id => `<option value="${id}">${id}${id === today() ? ' (오늘)' : ''}</option>`).join('')
+    + `<option value="__new">+ 다른 경기 ID 입력</option>`;
+  $('match').value = want || today();
+  $('gate').hidden = true; $('app').hidden = false;
+  await load();
+  clearInterval(timer);
+  timer = setInterval(()=>{ if(!document.hidden && !busy && !document.activeElement.matches('input,textarea,select')) load(true); }, 5000);
+}
+$('match').addEventListener('change', ()=>{
+  if($('match').value === '__new'){
+    const v = (prompt('경기 ID를 입력하세요 (index.html의 MATCH_ID, 비워두면 날짜 예: 2026-10-31)') || '').trim();
+    if(v){ const o = document.createElement('option'); o.value = v; o.textContent = v; $('match').insertBefore(o, $('match').firstChild); $('match').value = v; }
+    else $('match').value = today();
+  }
+  load();
+});
+
+async function load(quiet){
+  try{ D = await mcall('GET'); render(); }
+  catch(e){ if(!quiet) toast(e.message, true); }
+}
+
+/* ================================================================
+   집계
+   ================================================================ */
+function stats(){
+  const s = D.subs || {};
+  // 경기 예측
+  const pred = { count:(s.predictions || []).length, questions:[], allCorrect:new Set() };
+  const qmap = new Map();
+  for(const r of s.predictions || []){
+    for(const q of (r.data && r.data.questions) || []) if(!qmap.has(q.id)) qmap.set(q.id, q.q);
+  }
+  for(const [id, q] of qmap){
+    const counts = {};
+    for(const r of s.predictions || []){ const v = ((r.data || {}).text || {})[id]; if(v) counts[v] = (counts[v] || 0) + 1; }
+    pred.questions.push({ id, q, counts });
+  }
+  const answers = (D.settings || {}).answers || {};
+  const answered = Object.keys(answers).filter(k => answers[k]);
+  if(answered.length){
+    for(const r of s.predictions || []){
+      const t = (r.data || {}).text || {};
+      if(answered.every(k => t[k] === answers[k])) pred.allCorrect.add(r.device);
+    }
+  }
+  // MVP
+  const mvp = {};
+  for(const r of s.mvp || []){ const d = r.data || {}; if(d.num == null) continue; const k = String(d.num); mvp[k] = mvp[k] || { num:d.num, name:d.name || '', n:0 }; mvp[k].n++; }
+  const mvpRank = Object.values(mvp).sort((a, b) => b.n - a.n);
+  // 설문
+  const sq = new Map();
+  for(const r of s.survey || []) for(const a of (r.data || {}).answers || []){
+    if(!sq.has(a.q)) sq.set(a.q, {}); const c = sq.get(a.q); if(a.a) c[a.a] = (c[a.a] || 0) + 1;
+  }
+  // 출석
+  const ck = { count:(s.checkin || []).length, gender:{}, age:{}, company:{} };
+  for(const r of s.checkin || []) for(const k of ['gender', 'age', 'company']){ const v = (r.data || {})[k]; if(v) ck[k][v] = (ck[k][v] || 0) + 1; }
+  // 룰렛
+  const rl = { spins:0, wins:[], byTitle:{} };
+  for(const r of s.roulette || []) for(const w of (r.data || {}).wins || []){
+    rl.spins++;
+    if(w.miss) { rl.byTitle['꽝'] = (rl.byTitle['꽝'] || 0) + 1; continue; }
+    rl.byTitle[w.title] = (rl.byTitle[w.title] || 0) + 1;
+    rl.wins.push({ code:w.code, title:w.title, at:w.ts, device:r.device.slice(-4), type:'룰렛' });
+  }
+  // 응모
+  const raffle = (s.raffle_entry || []).map(r => ({ ...(r.data || {}), at:r.at, device:r.device }));
+  return { pred, mvpRank, sq, ck, rl, raffle };
+}
+
+/* ================================================================
+   화면
+   ================================================================ */
+const PAGES = [
+  ['dash', '대시보드'], ['events', '현장 이벤트'], ['cheer', '응원 이벤트'], ['predict', '경기 예측'],
+  ['mvp', 'MVP 투표'], ['survey', '설문'], ['raffle', '경품 응모·추첨'], ['codes', '룰렛·교환 코드'], ['checkin', '출석체크'],
+];
+function render(){
+  // 새로고침해도 입력 중인 값·추첨 결과·코드 확인 결과는 그대로 두기
+  const keep = {}, keepHtml = {};
+  if(render.last === page){
+    document.querySelectorAll('#main input[id], #main select[id], #main textarea[id]').forEach(el=> keep[el.id] = el.value);
+    ['rf-result', 'code-result'].forEach(id=>{ if($(id)) keepHtml[id] = $(id).innerHTML; });
+  }
+  render.last = page;
+  const S = stats();
+  const count = { cheer:fmt(D.total), predict:S.pred.count, mvp:S.mvpRank.reduce((a, b) => a + b.n, 0), survey:(D.subs.survey || []).length,
+                  raffle:S.raffle.length, codes:S.rl.wins.length + (D.winners || []).length, checkin:S.ck.count, events:(D.events || []).filter(e => e.active !== false).length };
+  $('nav').innerHTML = PAGES.map(([k, t]) => `<button class="${k === page ? 'on' : ''}" data-page="${k}">${t}${count[k] != null ? `<em>${count[k]}</em>` : ''}</button>`).join('');
+  $('main').innerHTML = (VIEWS[page] || VIEWS.dash)(S);
+  Object.entries(keep).forEach(([id, v])=>{ const el = $(id); if(el) el.value = v; });
+  Object.entries(keepHtml).forEach(([id, h])=>{ if($(id)) $(id).innerHTML = h; });
+  (AFTER[page] || (()=>{}))(S);
+}
+$('nav').addEventListener('click', e=>{ const b = e.target.closest('[data-page]'); if(!b) return; page = b.dataset.page; render(); scrollTo(0, 0); });
+
+const bars = (counts, opts = {}) => {
+  const entries = (opts.order || Object.keys(counts)).map(k => [k, counts[k] || 0]);
+  if(!opts.order) entries.sort((a, b) => b[1] - a[1]);
+  const total = entries.reduce((a, b) => a + b[1], 0), max = Math.max(1, ...entries.map(e => e[1]));
+  return entries.map(([k, n], i) => `<div class="bar${i === 0 && !opts.order && n ? ' top' : ''}${opts.answer === k ? ' answer' : ''}">
+    <span class="l" title="${esc(k)}">${opts.answer === k ? '✓ ' : ''}${esc(k)}</span>
+    <span class="tr"><span class="f" style="width:${n / max * 100}%"></span></span>
+    <span class="n">${n}명 · ${pct(n, total)}%</span></div>`).join('') || '<p class="empty">아직 응답이 없어요.</p>';
+};
+
+const VIEWS = {
+  /* ---------- 대시보드 ---------- */
+  dash: S => {
+    const st = D.settings || {}, phase = st.phase || 'auto';
+    const top = S.mvpRank[0];
+    return `<p class="page-title">대시보드</p><p class="page-sub">${esc(mid())} 경기 · 참여 현황과 경기 진행을 한 곳에서 관리해요.</p>
+    <div class="kpis">
+      <div class="kpi hot"><span>전체 응원</span><b>${fmt(D.total)}</b></div>
+      <div class="kpi"><span>출석체크</span><b>${fmt(S.ck.count)}</b></div>
+      <div class="kpi"><span>경기 예측</span><b>${fmt(S.pred.count)}</b></div>
+      <div class="kpi"><span>MVP 투표</span><b>${fmt(S.mvpRank.reduce((a, b) => a + b.n, 0))}</b></div>
+      <div class="kpi"><span>설문 응답</span><b>${fmt((D.subs.survey || []).length)}</b></div>
+      <div class="kpi"><span>경품 응모</span><b>${fmt(S.raffle.length)}</b></div>
+      <div class="kpi"><span>룰렛 당첨</span><b>${fmt(S.rl.wins.length)}</b></div>
+      <div class="kpi"><span>응원 당첨</span><b>${fmt((D.winners || []).length)}</b></div>
+    </div>
+    <div class="grid2">
+      <section class="card">
+        <h2>경기 진행</h2>
+        <p class="desc">'경기 시작'을 누르면 관람객 화면의 이벤트 탭이 경기 예측 → MVP 투표로 바로 바뀌어요(20초 안). '자동'은 시작 시각 기준이에요.</p>
+        <div class="seg" id="phase">
+          <button data-v="auto" class="${phase === 'auto' ? 'on' : ''}">자동</button>
+          <button data-v="before" class="${phase === 'before' ? 'on' : ''}">시작 전</button>
+          <button data-v="live" class="${phase === 'live' ? 'on live' : ''}">경기 시작</button>
+        </div>
+        <div class="form" style="grid-template-columns:1fr auto;">
+          <div class="field" style="grid-column:auto;"><label>경기 시작 시각 (자동일 때 기준 · 비우면 일정표 기준)</label><input id="start" type="datetime-local" value="${esc(st.start || '')}"></div>
+          <button class="btn dark" id="save-start" style="grid-column:auto; align-self:end;">저장</button>
+        </div>
+      </section>
+      <section class="card">
+        <h2>MVP 카드</h2>
+        <p class="desc">확정한 선수는 기록 탭에서 검정·금색 MVP 카드로 바뀌어요.</p>
+        ${st.mvp ? `<div class="row"><div class="main"><p class="t"><span class="chip gold">${esc(st.mvp.title || 'MVP')}</span>#${esc(st.mvp.num)} ${esc(st.mvp.name)}</p><p class="m">현재 MVP 카드</p></div><button class="btn small ghost" data-act="mvp-clear">해제</button></div>`
+                 : `<p class="empty">아직 확정한 MVP가 없어요.</p>`}
+        ${top ? `<div class="row"><div class="main"><p class="t">투표 1위 · #${esc(top.num)} ${esc(top.name)}</p><p class="m">${top.n}표</p></div>${st.mvp && String(st.mvp.num) === String(top.num) ? '' : `<button class="btn small" data-act="mvp-set" data-num="${esc(top.num)}" data-name="${esc(top.name)}">MVP로 확정</button>`}</div>` : ''}
+      </section>
+    </div>`;
+  },
+
+  /* ---------- 현장 이벤트 ---------- */
+  events: () => {
+    const evs = D.events || [];
+    return `<p class="page-title">현장 이벤트</p><p class="page-sub">올리면 관람객 화면 홈 맨 위에 보이고, 처음 보는 사람에게는 팝업으로 알려줘요.</p>
+    <section class="card">
+      ${evs.length ? evs.map((e, i) => `<div class="row">
+        <div class="main"><p class="t">${e.limit ? `<span class="chip${e.active === false ? ' off' : ''}">${esc(e.limit)}</span>` : ''}${esc(e.title)}</p>
+        <p class="m">${esc(e.place)}${e.startsAt || e.endsAt ? ` · ${hm(e.startsAt) || '바로'} ~ ${hm(e.endsAt) || '끌 때까지'}` : ''}</p></div>
+        <button class="toggle${e.active === false ? '' : ' on'}" data-act="ev-toggle" data-i="${i}" aria-label="보이기"></button>
+        <button class="btn small ghost" data-act="ev-del" data-i="${i}">삭제</button></div>`).join('') : `<p class="empty">올린 이벤트가 없어요.</p>`}
+      <div class="form">
+        <div class="field"><label>제목</label><input id="ev-title" maxlength="40" placeholder="읏맨 티셔츠 증정"></div>
+        <div class="field"><label>인원·조건</label><input id="ev-limit" maxlength="20" placeholder="선착순 3명"></div>
+        <div class="field full"><label>장소</label><input id="ev-place" maxlength="40" placeholder="1층 OK저축은행 부스"></div>
+        <div class="field full"><label>설명</label><textarea id="ev-desc" maxlength="200" placeholder="경기 시작 전까지 부스에 오셔서 이 화면을 보여주세요."></textarea></div>
+        <div class="field"><label>보이기 시작 (비우면 바로)</label><input id="ev-start" type="datetime-local"></div>
+        <div class="field"><label>보이기 끝 (비우면 끌 때까지)</label><input id="ev-end" type="datetime-local"></div>
+        <button class="btn" data-act="ev-add">이벤트 올리기</button>
+      </div>
+    </section>`;
+  },
+
+  /* ---------- 응원 이벤트 ---------- */
+  cheer: () => {
+    const won = new Map((D.winners || []).map(w => [w.n, w]));
+    const pz = D.prizes || [];
+    const extra = (D.winners || []).filter(w => !pz.some(p => p.n === w.n));
+    return `<p class="page-title">응원 이벤트</p><p class="page-sub">오늘 경기 <b>전체</b> 응원 클릭 중 n번째에 누른 사람이 당첨돼요. 번호는 관람객에게 공개되지 않고, 한 사람은 한 번만 당첨돼요.</p>
+    <div class="kpis" style="grid-template-columns:1fr 1fr;"><div class="kpi hot"><span>지금까지 전체 응원</span><b>${fmt(D.total)}</b></div><div class="kpi"><span>당첨</span><b>${(D.winners || []).length} / ${pz.length + extra.length}</b></div></div>
+    <section class="card">
+      ${(pz.length || extra.length) ? [...pz.map((p, i) => { const w = won.get(p.n); return `<div class="row">
+        <div class="main"><p class="t"><span class="chip ${w ? 'gold' : 'off'}">${fmt(p.n)}번째</span>${esc(p.prize)}</p>
+        <p class="m">${esc(p.place)}${w ? ` · ${time(w.at)} 당첨 · 기기 …${esc(w.device)}` : (D.total >= p.n ? ' · 지나감' : ` · ${fmt(p.n - D.total)}번 남음`)}</p></div>
+        ${w ? `<span class="code">${esc(w.code)}</span>${redeemBtn(w.code)}` : `<button class="btn small ghost" data-act="pz-del" data-i="${i}">삭제</button>`}</div>`; }),
+        ...extra.map(w => `<div class="row"><div class="main"><p class="t"><span class="chip gold">${fmt(w.n)}번째</span>${esc(w.prize)}</p><p class="m">${esc(w.place)} · ${time(w.at)}</p></div><span class="code">${esc(w.code)}</span>${redeemBtn(w.code)}</div>`)].join('')
+        : `<p class="empty">등록한 당첨 번호가 없어요.</p>`}
+      <div class="form">
+        <div class="field"><label>몇 번째</label><input id="pz-n" type="number" min="1" placeholder="1000"></div>
+        <div class="field"><label>선물</label><input id="pz-prize" maxlength="40" placeholder="읏맨 응원 티셔츠"></div>
+        <div class="field full"><label>수령 장소</label><input id="pz-place" maxlength="40" placeholder="1층 OK저축은행 부스"></div>
+        <button class="btn" data-act="pz-add">당첨 번호 추가</button>
+      </div>
+      <div style="margin-top:14px; display:flex; justify-content:flex-end;"><button class="btn small danger" data-act="reset-cheer">응원 수·당첨 초기화 (리허설용)</button></div>
+    </section>`;
+  },
+
+  /* ---------- 경기 예측 ---------- */
+  predict: S => {
+    const ans = (D.settings || {}).answers || {};
+    const answered = Object.keys(ans).filter(k => ans[k]).length;
+    return `<p class="page-title">경기 예측</p><p class="page-sub">참여 ${fmt(S.pred.count)}명 · 정답을 입력하면 맞힌 사람 수와 '전부 맞힌 사람'을 바로 알려줘요. 경품 추첨에서 정답자만 골라 뽑을 수 있어요.</p>
+    ${answered ? `<div class="kpis" style="grid-template-columns:1fr 1fr;"><div class="kpi hot"><span>전부 맞힌 사람</span><b>${fmt(S.pred.allCorrect.size)}</b></div><div class="kpi"><span>정답 입력</span><b>${answered} / ${S.pred.questions.length}</b></div></div>` : ''}
+    ${S.pred.questions.length ? S.pred.questions.map(q => {
+      const right = ans[q.id] ? (q.counts[ans[q.id]] || 0) : null;
+      return `<section class="card"><h2>${esc(q.q)}${right != null ? `<span class="chip ok">정답 ${right}명</span>` : ''}</h2>
+        ${bars(q.counts, { answer:ans[q.id] })}
+        <div class="form" style="grid-template-columns:1fr auto;">
+          <div class="field" style="grid-column:auto;"><label>정답</label><select data-ans="${esc(q.id)}"><option value="">— 아직 —</option>${Object.keys(q.counts).sort().map(v => `<option${ans[q.id] === v ? ' selected' : ''}>${esc(v)}</option>`).join('')}</select></div>
+          <button class="btn dark" data-act="ans-save" style="grid-column:auto; align-self:end;">정답 저장</button>
+        </div></section>`; }).join('')
+    : `<section class="card"><p class="empty">아직 예측에 참여한 사람이 없어요.</p></section>`}`;
+  },
+
+  /* ---------- MVP ---------- */
+  mvp: S => {
+    const total = S.mvpRank.reduce((a, b) => a + b.n, 0), max = Math.max(1, ...S.mvpRank.map(r => r.n));
+    const cur = (D.settings || {}).mvp;
+    return `<p class="page-title">MVP 투표</p><p class="page-sub">총 ${fmt(total)}표 · 확정한 선수는 관람객 화면 기록 탭에서 MVP 카드로 바뀌어요.</p>
+    <section class="card">
+      ${S.mvpRank.length ? S.mvpRank.map((r, i) => `<div class="row">
+        <div class="main"><div class="bar${i === 0 ? ' top' : ''}" style="margin:0;"><span class="l"><b>${i + 1}</b> · #${esc(r.num)} ${esc(r.name)}</span><span class="tr"><span class="f" style="width:${r.n / max * 100}%"></span></span><span class="n">${r.n}표 · ${pct(r.n, total)}%</span></div></div>
+        ${cur && String(cur.num) === String(r.num) ? `<span class="chip gold">MVP</span>` : `<button class="btn small ghost" data-act="mvp-set" data-num="${esc(r.num)}" data-name="${esc(r.name)}">MVP로 확정</button>`}
+      </div>`).join('') : `<p class="empty">아직 투표가 없어요. MVP 투표는 경기가 시작되면 열려요.</p>`}
+      ${cur ? `<div style="margin-top:12px; display:flex; justify-content:flex-end;"><button class="btn small ghost" data-act="mvp-clear">MVP 카드 해제</button></div>` : ''}
+    </section>`;
+  },
+
+  /* ---------- 설문 ---------- */
+  survey: S => `<p class="page-title">설문</p><p class="page-sub">응답 ${fmt((D.subs.survey || []).length)}명</p>
+    ${S.sq.size ? [...S.sq].map(([q, c]) => `<section class="card"><h2>${esc(q)}</h2>${bars(c)}</section>`).join('') : `<section class="card"><p class="empty">아직 설문 응답이 없어요.</p></section>`}`,
+
+  /* ---------- 경품 응모 · 추첨 ---------- */
+  raffle: S => {
+    const saved = D.raffleWinners || [];
+    const src = { predict:'경기 예측', survey:'설문' };
+    return `<p class="page-title">경품 응모 · 추첨</p><p class="page-sub">응모 ${fmt(S.raffle.length)}건 · 같은 연락처는 한 번만 뽑혀요. 추첨이 끝나면 연락처를 삭제해주세요(응모 화면에 그렇게 안내돼 있어요).</p>
+    <section class="card">
+      <h2>추첨하기</h2>
+      <div class="form" style="grid-template-columns:1fr 1fr 1fr auto;">
+        <div class="field" style="grid-column:auto;"><label>응모 경로</label><select id="rf-src"><option value="">전체</option><option value="predict">경기 예측</option><option value="survey">설문</option></select></div>
+        <div class="field" style="grid-column:auto;"><label>대상</label><select id="rf-only"><option value="">응모자 전체</option><option value="correct">예측 전부 맞힌 사람만</option></select></div>
+        <div class="field" style="grid-column:auto;"><label>뽑을 인원</label><input id="rf-n" type="number" min="1" value="3"></div>
+        <button class="btn" data-act="rf-draw" style="grid-column:auto; align-self:end;">추첨</button>
+      </div>
+      <div id="rf-result"></div>
+    </section>
+    <section class="card">
+      <h2>저장한 당첨자 <span class="muted" style="font-size:13px; font-weight:600;">${saved.length}명</span></h2>
+      ${saved.length ? saved.map(w => `<div class="row"><div class="main"><p class="t">${esc(w.contact)}</p><p class="m">${esc(src[w.source] || w.source || '')} · ${time(w.at)} 응모</p></div><button class="btn small ghost" data-copy="${esc(w.contact)}">복사</button></div>`).join('') : `<p class="empty">저장한 당첨자가 없어요.</p>`}
+    </section>
+    <section class="card">
+      <h2>응모 목록 <button class="btn small danger" data-act="rf-clear">응모 연락처 삭제</button></h2>
+      ${S.raffle.length ? `<div class="scroll"><table><thead><tr><th>연락처</th><th>경로</th><th>예측 정답</th><th>응모 시각</th></tr></thead><tbody>
+        ${S.raffle.sort((a, b) => b.at - a.at).map(r => `<tr><td>${esc(mask(r.contact))}</td><td>${esc(src[r.source] || r.source || '')}</td><td>${S.pred.allCorrect.has(r.device) ? '<span class="chip ok">전부 정답</span>' : '<span class="muted">—</span>'}</td><td class="muted">${time(r.at)}</td></tr>`).join('')}
+      </tbody></table></div>` : `<p class="empty">아직 응모가 없어요.</p>`}
+    </section>`;
+  },
+
+  /* ---------- 룰렛 · 교환 코드 ---------- */
+  codes: S => {
+    const all = [...S.rl.wins, ...(D.winners || []).map(w => ({ code:w.code, title:w.prize, at:w.at, device:w.device, type:'응원' }))].sort((a, b) => b.at - a.at);
+    const red = D.redeemed || {};
+    return `<p class="page-title">룰렛 · 교환 코드</p><p class="page-sub">부스에서 관람객이 보여준 교환 코드를 확인하고 '교환 완료'로 처리해요. 한 코드는 한 번만 교환돼요.</p>
+    <section class="card">
+      <h2>교환 코드 확인</h2>
+      <div class="form" style="grid-template-columns:1fr auto; margin-top:0;">
+        <div class="field" style="grid-column:auto;"><label>코드</label><input id="code-q" maxlength="12" placeholder="예: X7QK" style="text-transform:uppercase; font-size:18px; font-weight:800; letter-spacing:.12em;"></div>
+        <button class="btn" data-act="code-find" style="grid-column:auto; align-self:end;">확인</button>
+      </div>
+      <div id="code-result"></div>
+    </section>
+    <div class="grid2">
+      <section class="card"><h2>룰렛 결과 <span class="muted" style="font-size:13px; font-weight:600;">${fmt(S.rl.spins)}회</span></h2>${bars(S.rl.byTitle)}</section>
+      <section class="card"><h2>교환 현황</h2>
+        <div class="kpis" style="grid-template-columns:1fr 1fr; margin:0;"><div class="kpi"><span>발급</span><b>${all.length}</b></div><div class="kpi hot"><span>교환 완료</span><b>${all.filter(w => red[w.code]).length}</b></div></div></section>
+    </div>
+    <section class="card"><h2>발급된 코드</h2>
+      ${all.length ? `<div class="scroll"><table><thead><tr><th>코드</th><th>구분</th><th>경품</th><th>발급</th><th>상태</th></tr></thead><tbody>
+        ${all.map(w => `<tr><td><span class="code">${esc(w.code)}</span></td><td>${w.type}</td><td>${esc(w.title)}</td><td class="muted">${time(w.at)}</td><td>${redeemBtn(w.code)}</td></tr>`).join('')}
+      </tbody></table></div>` : `<p class="empty">아직 발급된 코드가 없어요.</p>`}
+    </section>`;
+  },
+
+  /* ---------- 출석체크 ---------- */
+  checkin: S => `<p class="page-title">출석체크</p><p class="page-sub">${fmt(S.ck.count)}명 · 홈의 '출석체크'에서 고른 답이에요. 한 기기에 한 번만 집계돼요.</p>
+    <div class="grid2">
+      <section class="card"><h2>성별</h2>${bars(S.ck.gender, { order:['남성', '여성', '응답 안 함'] })}</section>
+      <section class="card"><h2>누구와</h2>${bars(S.ck.company, { order:['혼자', '친구', '연인', '가족', '동료', '기타'] })}</section>
+    </div>
+    <section class="card"><h2>나이</h2>${bars(S.ck.age, { order:['10대 이하', '20대', '30대', '40대', '50대', '60대 이상'] })}</section>`,
+};
+
+function redeemBtn(code){
+  const at = (D.redeemed || {})[code];
+  return at ? `<button class="btn small ghost" data-act="redeem" data-code="${esc(code)}" data-v="0" title="${time(at)} 교환">교환 완료 ✓</button>`
+            : `<button class="btn small" data-act="redeem" data-code="${esc(code)}" data-v="1">교환 처리</button>`;
+}
+
+const AFTER = {
+  raffle: S => { window.__raffleS = S; },
+};
+
+/* ================================================================
+   동작
+   ================================================================ */
+async function act(fn, okMsg, keepForm){
+  busy = true;
+  try{ await fn(); if(!keepForm) render.last = null; await load(true); if(okMsg) toast(okMsg); }
+  catch(e){ toast(e.message, true); }
+  finally{ busy = false; }
+}
+const val = id => ($(id) || {}).value || '';
+
+document.addEventListener('click', e=>{
+  const cp = e.target.closest('[data-copy]');
+  if(cp){ navigator.clipboard.writeText(cp.dataset.copy).then(()=> toast('복사했어요')); return; }
+  const b = e.target.closest('[data-act]'); if(!b) return;
+  const i = Number(b.dataset.i);
+  switch(b.dataset.act){
+    case 'ev-add': {
+      const ev = { title:val('ev-title').trim(), limit:val('ev-limit').trim(), place:val('ev-place').trim(), desc:val('ev-desc').trim(),
+                   startsAt:val('ev-start'), endsAt:val('ev-end'), active:true, createdAt:Date.now() };
+      if(!ev.title) return toast('이벤트 제목을 넣어주세요.', true);
+      return act(()=> mcall('PUT', 'events', { events:[...(D.events || []), ev] }), '이벤트를 올렸어요. 관람객 화면엔 20초 안에 보여요.');
+    }
+    case 'ev-toggle': return act(()=> mcall('PUT', 'events', { events:(D.events || []).map((x, j) => j === i ? { ...x, active:x.active === false } : x) }));
+    case 'ev-del': if(!confirm('이 이벤트를 삭제할까요?')) return; return act(()=> mcall('PUT', 'events', { events:(D.events || []).filter((_, j) => j !== i) }), '삭제했어요.');
+    case 'pz-add': {
+      const p = { n:Number(val('pz-n')), prize:val('pz-prize').trim(), place:val('pz-place').trim() };
+      if(!(p.n > 0) || !p.prize) return toast('몇 번째와 선물을 넣어주세요.', true);
+      if((D.prizes || []).some(x => x.n === p.n)) return toast('이미 등록된 번호예요.', true);
+      if(p.n <= (D.total || 0)) return toast(`이미 ${fmt(D.total)}번째까지 눌렸어요. 더 큰 번호를 넣어주세요.`, true);
+      return act(()=> mcall('PUT', 'prizes', { prizes:[...(D.prizes || []), p] }), '당첨 번호를 추가했어요.');
+    }
+    case 'pz-del': return act(()=> mcall('PUT', 'prizes', { prizes:(D.prizes || []).filter((_, j) => j !== i) }));
+    case 'reset-cheer': if(!confirm('이 경기의 응원 수와 응원 당첨 기록을 0으로 되돌릴까요? 리허설 때만 쓰세요.')) return; return act(()=> mcall('POST', 'reset-cheer'), '초기화했어요.');
+    case 'mvp-set': if(!confirm(`#${b.dataset.num} ${b.dataset.name} 선수를 MVP로 확정할까요?`)) return;
+      return act(()=> mcall('PUT', 'settings', { mvp:{ num:Number(b.dataset.num), name:b.dataset.name, title:'MVP' } }), 'MVP를 확정했어요.');
+    case 'mvp-clear': return act(()=> mcall('PUT', 'settings', { mvp:null }), 'MVP 카드를 해제했어요.');
+    case 'save-start': return act(()=> mcall('PUT', 'settings', { start:val('start') }), '시작 시각을 저장했어요.');
+    case 'ans-save': {
+      const answers = {}; document.querySelectorAll('[data-ans]').forEach(s => answers[s.dataset.ans] = s.value);
+      return act(()=> mcall('PUT', 'settings', { answers }), '정답을 저장했어요.');
+    }
+    case 'rf-draw': return drawRaffle();
+    case 'rf-save': {
+      const w = window.__draw || []; if(!w.length) return;
+      return act(()=> mcall('PUT', 'raffle', { winners:[...(D.raffleWinners || []), ...w.map(x => ({ contact:x.contact, source:x.source, at:x.at }))] }), '당첨자를 저장했어요.');
+    }
+    case 'rf-clear': if(!confirm('응모한 연락처를 모두 삭제할까요? 저장한 당첨자 연락처도 일부만 보이게 가려져요. 되돌릴 수 없어요.')) return;
+      return act(()=> mcall('POST', 'raffle-clear'), '응모 연락처를 삭제했어요.');
+    case 'redeem': return act(()=> mcall('PUT', 'redeem', { code:b.dataset.code, redeemed:b.dataset.v === '1' }), b.dataset.v === '1' ? '교환 완료로 처리했어요.' : '교환 처리를 취소했어요.', true).then(()=>{ if($('code-result') && $('code-result').innerHTML) findCode(); });
+    case 'code-find': return findCode();
+  }
+});
+document.addEventListener('click', e=>{
+  const s = e.target.closest('#phase [data-v]'); if(!s) return;
+  const v = s.dataset.v;
+  if(v === 'live' && !confirm('경기 시작으로 바꿀까요? 관람객 화면의 경기 예측이 마감되고 MVP 투표가 열려요.')) return;
+  act(()=> mcall('PUT', 'settings', { phase:v }), { auto:'자동으로 바꿨어요.', before:'시작 전으로 바꿨어요.', live:'경기 시작! MVP 투표가 열렸어요.' }[v]);
+});
+document.addEventListener('keydown', e=>{ if(e.key === 'Enter' && e.target.id === 'code-q') findCode(); });
+
+function drawRaffle(){
+  const S = window.__raffleS || stats();
+  const srcF = val('rf-src'), only = val('rf-only'), n = Math.max(1, Number(val('rf-n')) || 1);
+  const already = new Set((D.raffleWinners || []).map(w => w.contact));
+  const seen = new Set();
+  const pool = S.raffle.filter(r => (!srcF || r.source === srcF) && (!only || S.pred.allCorrect.has(r.device)) && !already.has(r.contact))
+                       .filter(r => !seen.has(r.contact) && seen.add(r.contact));
+  const pick = [];
+  const arr = pool.slice();
+  const rnd = new Uint32Array(arr.length);
+  crypto.getRandomValues(rnd);
+  for(let k = arr.length - 1; k > 0; k--){ const j = rnd[k] % (k + 1); [arr[k], arr[j]] = [arr[j], arr[k]]; }
+  pick.push(...arr.slice(0, n));
+  window.__draw = pick;
+  $('rf-result').innerHTML = pick.length ? `<div class="winbox">
+      <p style="font-size:13px; color:var(--gold); font-weight:700; margin-bottom:6px;">대상 ${pool.length}명 중 ${pick.length}명 당첨</p>
+      ${pick.map(w => `<div class="row"><div class="main"><p class="t">${esc(w.contact)}</p><p class="m">${w.source === 'survey' ? '설문' : '경기 예측'} · ${time(w.at)} 응모</p></div><button class="btn small ghost" data-copy="${esc(w.contact)}">복사</button></div>`).join('')}
+      <div style="display:flex; gap:8px; margin-top:12px;"><button class="btn" data-act="rf-save">이 결과 저장</button><button class="btn ghost" data-act="rf-draw">다시 뽑기</button></div>
+    </div>` : `<p class="empty">조건에 맞는 응모자가 없어요.</p>`;
+}
+
+function findCode(){
+  const q = val('code-q').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if(!q) return;
+  const S = stats();
+  const all = [...S.rl.wins, ...(D.winners || []).map(w => ({ code:w.code, title:w.prize, at:w.at, type:'응원' }))];
+  const hit = all.find(w => w.code === q);
+  const red = (D.redeemed || {})[q];
+  $('code-result').innerHTML = !hit ? `<p class="status err">이 경기에서 발급된 코드가 아니에요. 경기 ID를 확인해주세요.</p>`
+    : `<div class="row" style="border:0;"><div class="main"><p class="t"><span class="chip ${red ? 'off' : 'ok'}">${red ? '이미 교환됨' : '교환 가능'}</span>${esc(hit.title)}</p>
+       <p class="m">${hit.type} · ${time(hit.at)} 발급${red ? ` · ${time(red)} 교환` : ''}</p></div>${redeemBtn(q)}</div>`;
+}
+</script>
+</body>
+</html>
