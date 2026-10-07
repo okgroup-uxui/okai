@@ -1860,13 +1860,6 @@
     background:#1C1C1C; color:#E9C46A; font-size:14px; font-weight:700;}
   .cheer-win-link[hidden]{display:none;}
 
-  /* 응원 — 전체 응원 수 */
-  .cheer-total{position:fixed; z-index:41; right:calc(50% - min(240px, 50vw) + 16px); bottom:calc(150px + var(--court-b));
-    padding:6px 12px; border-radius:100px; background:rgba(22,28,38,.86); color:#fff; font-size:12px; line-height:18px; font-weight:600;
-    opacity:0; transform:translateY(6px); transition:opacity .2s, transform .2s; pointer-events:none; white-space:nowrap;}
-  .cheer-total b{color:#FFD339; font-weight:800;}
-  .cheer-total.show{opacity:1; transform:none;}
-  @media (min-width:640px){ .cheer-total{bottom:calc(28px + 150px);} }
 
   /* 공통 팝업 */
   .pop-dim,.sheet-dim{position:fixed; inset:0; z-index:140; display:flex; align-items:center; justify-content:center; padding:24px;
@@ -1907,6 +1900,12 @@
   .sheet__cancel{display:block; width:100%; margin-top:6px; padding:10px; font-size:14px; color:var(--ink-faint); background:none;}
   @media (min-width:640px){ .sheet-dim{align-items:center;} .sheet{border-radius:24px; max-width:420px;} }
   @media (prefers-reduced-motion: reduce){ .live-dot{animation:none;} }
+
+
+  /* 응원 배지 — 전체 순서 (자릿수가 늘어도 버튼 오른쪽 위에 붙어 있게) */
+  .cheer-fab__badge{min-width:22px; width:auto; padding:0 6px; white-space:nowrap; font-variant-numeric:tabular-nums;}
+  .cheer-fab__badge.bump{animation:badgeBump .35s var(--spring);}
+  @keyframes badgeBump{0%{transform:scale(1)} 40%{transform:scale(1.25)} 100%{transform:scale(1)}}
 </style>
 </head>
 <body>
@@ -2185,7 +2184,6 @@
 
   <!-- ============ 응원 버튼 (플로팅) ============ -->
   <div class="cheer-phrase" id="cheer-phrase"></div>
-  <div class="cheer-total" id="cheer-total" aria-live="polite"></div>
   <button class="cheer-fab" id="cheer-fab" aria-label="응원하기">
     <span class="cheer-fab__ring"></span>
     <span class="cheer-fab__ring cheer-fab__ring--2"></span>
@@ -2849,7 +2847,7 @@ const LIVE = (function(){
     }
   }catch(e){ device = 'anon' + Math.floor(Math.random() * 1e9); }
 
-  const L = { state:[], total:[], win:[] };
+  const L = { state:[], total:[], win:[], optimistic:[] };
   const on = (k, f)=> L[k].push(f);
   const emit = (k, v)=> L[k].forEach(f=>{ try{ f(v); }catch(e){ console.error(e); } });
   let state = { events:[], total:0 };
@@ -2866,14 +2864,31 @@ const LIVE = (function(){
     }catch(e){}
   }
 
-  let pending = 0, timer = null, sending = false;
-  function tap(n){ pending += n || 1; if(!timer) timer = setTimeout(flush, 350); }
+  /* 응원 묶어 보내기 — 동시 접속 수천 명을 버티도록
+     · 첫 탭은 0.35초 뒤 바로 보내서 반응이 빠르고, 연타 중에는 1.5초마다 모아서 한 번에 보내요.
+     · 한 번 연타한 횟수는 전부 세요(보내는 횟수만 줄어요). 서버가 묶음에 순서 범위를 매겨줘서 'n번째' 판정도 정확해요.
+     · 서버가 바쁘거나 네트워크가 끊기면 모은 클릭을 버리지 않고 1→2→4초… 간격으로 다시 보내요. */
+  const BATCH_MS = 1500, FIRST_MS = 350;
+  let pending = 0, timer = null, sending = false, lastSent = 0, backoff = 0;
+  let optimistic = 0;   // 응답 오기 전 배지에 미리 보여줄 숫자
+  function schedule(){
+    if(timer) return;
+    const since = Date.now() - lastSent;
+    const wait = backoff || (since >= BATCH_MS ? FIRST_MS : BATCH_MS - since);
+    timer = setTimeout(flush, wait);
+  }
+  function tap(n){
+    n = n || 1; pending += n;
+    optimistic = Math.max(optimistic, Number(LOCAL.cheer_order) || 0) + n;
+    emit('optimistic', optimistic);
+    schedule();
+  }
   async function flush(){
     timer = null;
-    if(sending){ timer = setTimeout(flush, 200); return; }
-    const n = pending; pending = 0;
+    if(sending){ schedule(); return; }
+    const n = pending;
     if(!n) return;
-    sending = true;
+    pending = 0; sending = true; lastSent = Date.now();
     try{
       let res;
       if(demo){
@@ -2883,18 +2898,31 @@ const LIVE = (function(){
         const p = ((CONFIG.LIVE_DEMO || {}).prizes || []).find(p=> p.n >= from && p.n <= to && !won.some(w=> w.n === p.n));
         res = { total:to, from, to, win: p ? { n:p.n, prize:p.prize, place:p.place, code:Math.random().toString(36).slice(2, 6).toUpperCase(), at:Date.now() } : null };
       } else {
-        res = await (await fetch(`${base}/live/${encodeURIComponent(MATCH_KEY)}/cheer`, {
+        const r = await fetch(`${base}/live/${encodeURIComponent(MATCH_KEY)}/cheer`, {
           method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ device, count:n }),
-        })).json();
+        });
+        if(!r.ok) throw new Error('busy');
+        res = await r.json();
       }
-      if(res && res.total){ state.total = res.total; emit('total', res); }
+      backoff = 0;
+      if(res && res.total){ state.total = res.total; optimistic = Math.max(optimistic, res.to || 0); emit('total', res); }
       if(res && res.win){
         LOCAL.cheer_wins = [...(LOCAL.cheer_wins || []), res.win]; saveLocal(LOCAL);
         emit('win', res.win);
       }
-    }catch(e){}
-    finally{ sending = false; }
+    }catch(e){
+      pending += n;                                   // 못 보낸 클릭은 다음에 같이
+      backoff = Math.min(8000, backoff ? backoff * 2 : 1000) + Math.random() * 400;
+    }
+    finally{
+      sending = false;
+      if(pending) schedule();
+    }
   }
+  // 화면을 닫거나 다른 앱으로 넘어갈 때 남은 클릭을 바로 보내요
+  document.addEventListener('visibilitychange', ()=>{ if(document.hidden && pending && !demo){
+    try{ navigator.sendBeacon(`${base}/live/${encodeURIComponent(MATCH_KEY)}/cheer`, new Blob([JSON.stringify({ device, count:pending })], { type:'text/plain' })); pending = 0; }catch(e){}
+  }});
 
   // 참여 기록 보내기 — 관리자 페이지에서 집계해요 (predictions·survey·mvp·raffle_entry·roulette·checkin)
   async function submit(type, data){
@@ -2916,7 +2944,7 @@ const LIVE = (function(){
   }
 
   setTimeout(refresh, 0);
-  setInterval(()=>{ if(!document.hidden) refresh(); }, demo ? 60000 : 20000);
+  (function loop(){ setTimeout(()=>{ if(!document.hidden) refresh(); loop(); }, demo ? 60000 : 20000 + Math.random() * 10000); })();   // 4,000명이 같은 순간에 몰리지 않게 20~30초로 흩어요
   document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh(); });
   return { on, tap, checkin, submit, refresh, get state(){ return state; }, demo };
 })();
@@ -3916,10 +3944,15 @@ tabButtons.forEach(btn=>{
   const CHEER_KEY = 'cheer_count';
   let count = LOCAL[CHEER_KEY] || 0;
 
+  // 배지 = 오늘 경기 전체 응원 중 내가 마지막으로 누른 순서 (응원 이벤트 'n번째 당첨'과 같은 기준)
+  const ORDER_KEY = 'cheer_order';
+  const short = n=> n >= 100000 ? `${(Math.floor(n / 1000) / 10).toLocaleString()}만` : n.toLocaleString();
   function renderBadge(){
-    if(count > 0){
-      badge.textContent = count > 99 ? '99+' : String(count);
+    const n = Number(LOCAL[ORDER_KEY]) || 0;
+    if(n > 0){
+      badge.textContent = short(n);
       badge.classList.add('show');
+      btn.setAttribute('aria-label', `응원하기 · 오늘 전체 ${n.toLocaleString()}번째 응원`);
     }
   }
   renderBadge();
@@ -3970,15 +4003,14 @@ tabButtons.forEach(btn=>{
     count++;
     LOCAL[CHEER_KEY] = count; saveLocal(LOCAL);
     LIVE.tap(1);                       // 오늘 경기 전체 응원 수에 더해요 (서버가 몇 번째인지 매겨줘요)
-    renderBadge();
   }
-  // 전체 응원 수 — 누른 직후 잠깐 보여줘요
-  const totalEl = document.getElementById('cheer-total');
-  let totalTimer = null;
+  LIVE.on('optimistic', n=>{          // 누르는 즉시 +1 (실제 순서는 다른 사람 클릭까지 더해져 응답 때 더 커질 수 있어요)
+    badge.textContent = short(n); badge.classList.add('show');
+  });
   LIVE.on('total', res=>{
-    totalEl.innerHTML = `오늘 응원 <b>${Number(res.total).toLocaleString()}</b>번째`;
-    totalEl.classList.add('show'); clearTimeout(totalTimer);
-    totalTimer = setTimeout(()=> totalEl.classList.remove('show'), 2200);
+    LOCAL[ORDER_KEY] = Math.max(Number(LOCAL[ORDER_KEY]) || 0, res.to || res.total); saveLocal(LOCAL);
+    renderBadge();
+    badge.classList.remove('bump'); void badge.offsetWidth; badge.classList.add('bump');
   });
 
   function center(){
