@@ -450,6 +450,34 @@
     opacity:0; transform:translateY(4px); transition:opacity .4s var(--ease-out), transform .4s var(--ease-out); line-height:18px}
   .predict-status.show{opacity:1; transform:translateY(0);}
 
+  /* ---- AI 예측 ---- */
+  .ai-card{margin-bottom:12px; background:linear-gradient(135deg,#FFF4EE 0%,#FFFFFF 60%); box-shadow:inset 0 0 0 1px rgba(255,87,31,.18);}
+  .ai-card[hidden]{display:none;}
+  .ai-head{display:flex; align-items:center; gap:8px;}
+  .ai-badge{display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:100px; background:var(--fut-orange); color:#fff;
+    font-size:12px; line-height:18px; font-weight:700; letter-spacing:.02em;}
+  .ai-badge svg{width:12px; height:12px; fill:currentColor;}
+  .ai-head small{margin-left:auto; font-size:12px; line-height:18px; color:var(--ink-faint); font-weight:600;}
+  .ai-win{margin:12px 0 0; display:flex; align-items:baseline; gap:6px; font-size:14px; line-height:22px; font-weight:600; color:var(--ink);}
+  .ai-win b{font-size:28px; line-height:32px; font-weight:800; color:var(--brand-dark); font-variant-numeric:tabular-nums; letter-spacing:-0.02em;}
+  .ai-bar{display:flex; height:8px; border-radius:100px; overflow:hidden; margin-top:8px; background:#E9EBEE;}
+  .ai-bar i{display:block; background:var(--fut-orange); transition:width .6s var(--ease-out);}
+  .ai-bar-l{display:flex; justify-content:space-between; margin-top:4px; font-size:12px; line-height:18px; color:var(--ink-dim); font-weight:600;}
+  .ai-apply{width:100%; margin-top:14px; height:44px; border-radius:12px; border:0; background:var(--ink); color:#fff; font-size:14px; font-weight:600; cursor:pointer;}
+  .ai-apply[disabled]{opacity:.4; pointer-events:none;}
+  .ai-note{margin:8px 0 0; font-size:11px; line-height:16px; color:var(--ink-faint);}
+  /* 문항별 추천 한 줄 */
+  .ai-tip{display:flex; align-items:flex-start; gap:6px; margin:-4px 0 12px; font-size:12px; line-height:18px; color:var(--ink-dim);}
+  .ai-tip .ai-badge{flex-shrink:0; padding:0 6px; font-size:11px; line-height:18px;}
+  .ai-tip b{color:var(--brand-dark); font-weight:700;}
+  /* 추천 보기에 붙는 AI 표시 */
+  .opt.ai-rec{box-shadow:inset 0 0 0 1.5px rgba(255,87,31,.45);}
+  .opt.ai-rec > span:first-child::after{content:'AI 추천'; margin-left:8px; padding:1px 6px; border-radius:100px; background:rgba(255,87,31,.12);
+    color:var(--brand-dark); font-size:11px; line-height:16px; font-weight:700; vertical-align:1px;}
+  .pick-player.ai-rec{box-shadow:inset 0 0 0 1.5px rgba(255,87,31,.45);}
+  .pick-player.ai-rec::after{content:'AI'; position:absolute; right:4px; top:4px; padding:0 5px; border-radius:100px; background:var(--brand); color:#fff;
+    font-size:10px; line-height:15px; font-weight:800;}
+
   /* ---- 추첨 응모 ---- */
   .raffle-card{margin-top:14px;}
   .raffle-title{font-size:14px; font-weight:600; color:var(--ink); margin:0 0 5px; line-height:22px}
@@ -2177,6 +2205,7 @@
           <span class="lbl"><span class="tab-ic" aria-hidden="true"><svg data-k="cd" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" fill="#E9EBF0"/><path d="M16 8.5V16l5 3" stroke="#4D5764" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="16" r="2" fill="#FF571F"/></svg></span>예측 마감까지</span>
           <span class="val" id="predict-countdown">--:--:--</span>
         </div>
+        <div class="card ai-card" id="ai-predict" hidden><!-- AI 예측 요약 (JS) --></div>
         <div id="predict-list"><!-- JS로 채움 --></div>
         <button class="btn full" id="predict-submit" style="margin-top:6px;">예측 제출하기</button>
         <p class="predict-status" id="predict-status">예측을 제출했어요. 경기 중 결과를 확인하세요!</p>
@@ -2685,7 +2714,7 @@ const CONFIG = {
   DATA_MODE: 'local', // 'local' = 기기 내 데모 저장 · 'api' = 아래 API_BASE 연동
   API_BASE: '', // 예: 'https://wm-api.yourname.workers.dev'
   // 기록 API(okman-stats Worker) 주소 — DATA_MODE와 따로 동작해요. 비워두면 샘플 기록을 보여줘요.
-  STATS_API: 'https://okman-stats.okgroup0425.workers.dev', // 예: 'https://okman-stats.<계정>.workers.dev'
+  STATS_API: '', // 예: 'https://okman-stats.<계정>.workers.dev'
 
   MATCH: {
     home: 'OK저축은행 읏맨',
@@ -3816,7 +3845,9 @@ tabButtons.forEach(btn=>{
     document.getElementById('mb-date').textContent =
       `${d.getMonth() + 1}.${d.getDate()} (${'일월화수목금토'[d.getDay()]})${g.time ? ' ' + g.time : ''}`;
     document.getElementById('mb-venue').textContent = g.home ? CONFIG.MATCH.venue : '원정 경기';
+    window.__matchHome = !!g.home;
     current = null; apply();
+    window.__aiPredictRefresh && window.__aiPredictRefresh();
   };
 })();
 
@@ -5117,8 +5148,159 @@ function seasonLabel(code){ const n = parseInt(code, 10); if(!n || n >= 100) ret
       STATS.sample = false;
       STATS.seasonLabel = seasonLabel(d.season);
       renderAll();
-    }).catch(()=>{ STATS.sample = true; renderAll(); });
+      window.__aiPredictRefresh && window.__aiPredictRefresh();
+    }).catch(()=>{ STATS.sample = true; renderAll(); window.__aiPredictRefresh && window.__aiPredictRefresh(); });
   }
+})();
+
+/* ================================================================
+   3-2. AI 경기 예측 — 데이터로 계산한 추천 (브라우저 안에서 바로 계산, 서버·비용 없음)
+   · 승리 확률: 두 팀 승률(log5) + 세트 득실률 + 맞대결 결과 + 홈 이점
+   · 세트 스코어: 승리 확률을 '세트 1개를 이길 확률'로 바꿔서 3:0 · 3:1 · 3:2 · 2:3 이하 확률을 계산
+   · 첫 득점: 서브(세트당 에이스) · 리시브 효율 · 공격 성공률 차이
+   · 첫 블로킹: 블로킹 능력치 × 세트당 블로킹 × 주전 여부 × 포지션 × 오늘의 운세
+   · 같은 경기·같은 데이터면 누구에게나 같은 추천이 나와요. 고르는 건 관람객 몫이에요.
+   ================================================================ */
+(function initAiPredict(){
+  const box = document.getElementById('ai-predict');
+  const list = document.getElementById('predict-list');
+  if(!box || !list) return;
+  const EVS = CONFIG.PREDICT_EVENTS;
+  const pct = v => Math.round(v * 100);
+  const clamp = (v, a, b)=> Math.max(a, Math.min(b, v));
+  let rec = {};
+
+  function teams(){
+    const ts = STATS.teams || [];
+    const us = ts.find(t=> t.us) || null;
+    const oppName = (document.getElementById('mb-away') || {}).textContent || CONFIG.MATCH.away || '';
+    const opp = ts.find(t=> !t.us && oppName && (oppName.includes(t.name) || t.name.includes(oppName.trim()))) || null;
+    return { us, opp, oppName: opp ? opp.name : (oppName && oppName !== '상대팀' ? oppName : '') };
+  }
+  // 리그 평균 — 상대를 모를 때 기준
+  function avgTeam(){
+    const ts = (STATS.teams || []).filter(t=> !t.us);
+    const m = k => ts.length ? ts.reduce((a, t)=> a + (t[k] || 0), 0) / ts.length : 0;
+    return { name:'리그 평균', g:m('g'), w:m('w'), l:m('l'), setRatio:m('setRatio') || 1, atk:m('atk'), blk:m('blk'), ace:m('ace'), rcv:m('rcv') };
+  }
+  function headToHead(us, opp){
+    if(!us || !opp) return 0;
+    let d = 0;
+    (STATS.results || []).forEach(r=>{
+      const ids = [r.home, r.away];
+      if(!ids.includes(us.id) || !ids.includes(opp.id)) return;
+      let a = 0, b = 0;
+      (r.sets || []).forEach(sc=>{ const [h, w] = String(sc).split('-').map(Number); if(h > w) a++; else b++; });
+      const usWon = r.home === us.id ? a > b : b > a;
+      d += usWon ? 1 : -1;
+    });
+    return clamp(d * 0.03, -0.06, 0.06);
+  }
+  // 승리 확률
+  function matchWin(us, opp){
+    const wp = t => clamp((t.w + 1) / ((t.w || 0) + (t.l || 0) + 2), 0.05, 0.95);   // 시즌 초반 0승도 안정적으로
+    const a = wp(us), b = wp(opp);
+    let p = (a - a * b) / (a + b - 2 * a * b);                                          // log5
+    p += clamp(Math.log((us.setRatio || 1) / (opp.setRatio || 1)) * 0.08, -0.06, 0.06);
+    p += headToHead(us, opp);
+    if(window.__matchHome !== false) p += 0.03;                                         // 홈 이점
+    return clamp(p, 0.12, 0.88);
+  }
+  // 5세트제에서 세트 승률 s일 때 경기 승리 확률 → 역으로 s를 찾아요
+  const matchFromSet = s => Math.pow(s, 3) * (1 + 3 * (1 - s) + 6 * Math.pow(1 - s, 2));
+  function setProb(P){ let lo = 0.01, hi = 0.99; for(let i = 0; i < 40; i++){ const m = (lo + hi) / 2; matchFromSet(m) < P ? lo = m : hi = m; } return (lo + hi) / 2; }
+
+  function blockPicks(ev){
+    const cands = ev.candidates && ev.candidates.length ? PLAYERS.filter(p=> ev.candidates.includes(p.num)) : PLAYERS.filter(p=> p.pos !== 'L');
+    const maxG = Math.max(1, ...cands.map(p=> (p.season && p.season.g) || 0));
+    const POSW = { MB:1, OP:0.75, OH:0.55, S:0.45, L:0 };
+    const rows = cands.map(p=>{
+      const ab = playerAbilityToday(p), s = p.season || {};
+      const blk = (ab.blk || 0) / 100;
+      const perSet = typeof s.blk === 'number' ? s.blk : 0.15;
+      const play = 0.35 + 0.65 * (((s.g || 0) / maxG));                                // 출전이 많을수록 코트에 있을 확률↑
+      const f = FORTUNE.of(p);
+      const luck = f ? 1 + (f.luck - 75) / 250 : 1;                                     // 오늘의 운세 ±10%
+      return { p, w: Math.pow(blk, 2) * (0.4 + perSet) * play * (POSW[p.pos] ?? 0.5) * luck };
+    }).filter(r=> r.w > 0);
+    const sum = rows.reduce((a, r)=> a + r.w, 0) || 1;
+    return rows.map(r=> ({ p:r.p, prob:r.w / sum })).sort((a, b)=> b.prob - a.prob);
+  }
+
+  function compute(){
+    const t = teams();
+    if(!t.us) return null;
+    const opp = t.opp || avgTeam();
+    const P = matchWin(t.us, opp);
+    const s = setProb(P);
+    const q = 1 - s;
+    const dist = { '3:0':Math.pow(s, 3), '3:1':3 * Math.pow(s, 3) * q, '3:2':6 * Math.pow(s, 3) * q * q };
+    dist['2:3 이하'] = Math.max(0, 1 - dist['3:0'] - dist['3:1'] - dist['3:2']);
+    // 첫 득점 — 서브·리시브·공격 지표 차이를 조금만 반영 (첫 점은 원래 반반에 가까워요)
+    const edge = ((t.us.ace || 0) - (opp.ace || 0)) * 0.12 + ((t.us.rcv || 0) - (opp.rcv || 0)) * 0.004 + ((t.us.atk || 0) - (opp.atk || 0)) * 0.006 + (s - 0.5) * 0.25;
+    const fp = clamp(0.5 + edge, 0.35, 0.65);
+    return { P, s, dist, fp, opp, oppName: t.oppName || '상대팀', known: !!t.opp };
+  }
+
+  function render(){
+    const m = compute();
+    if(!m){ box.hidden = true; return; }
+    rec = {};
+    const submitted = !!LOCAL['predictions'];
+    EVS.forEach((ev, i)=>{
+      const card = list.querySelectorAll('.predict-card')[i];
+      if(!card) return;
+      let pick = null, tip = '';
+      if(ev.type === 'player'){
+        const top = blockPicks(ev).slice(0, 3);
+        if(top.length){
+          pick = String(top[0].p.num);
+          tip = `<b>${playerName(top[0].p)}</b> ${pct(top[0].prob)}%` + top.slice(1).map(r=> ` · ${playerName(r.p)} ${pct(r.prob)}%`).join('');
+        }
+      } else if(ev.id === 'set_score' || ev.options.some(o=> /^\d:\d/.test(o))){
+        const opts = ev.options.map(o=> ({ o, v: m.dist[o] ?? 0 }));
+        const best = opts.reduce((a, b)=> b.v > a.v ? b : a);
+        pick = best.o;
+        tip = `<b>${best.o}</b> ${pct(best.v)}% · ` + opts.filter(x=> x !== best).sort((a, b)=> b.v - a.v).slice(0, 2).map(x=> `${x.o} ${pct(x.v)}%`).join(' · ');
+      } else if(ev.id === 'first_point' || ev.options.length === 2){
+        const usFirst = m.fp >= 0.5;
+        pick = usFirst ? ev.options[0] : ev.options[1];
+        tip = `<b>${usFirst ? '읏맨' : m.oppName}</b> ${pct(usFirst ? m.fp : 1 - m.fp)}% · 서브·리시브 지표 기준`;
+      }
+      rec[ev.id] = pick;
+      card.querySelectorAll('[data-opt]').forEach(o=> o.classList.toggle('ai-rec', pick != null && o.dataset.opt === pick));
+      let tipEl = card.querySelector('.ai-tip');
+      if(!tipEl){ tipEl = document.createElement('p'); tipEl.className = 'ai-tip'; card.querySelector('.q').after(tipEl); }
+      tipEl.innerHTML = pick != null ? `<span class="ai-badge">AI</span><span>${tip}</span>` : '';
+      tipEl.hidden = pick == null;
+    });
+    const winPct = pct(m.P);
+    box.innerHTML = `
+      <div class="ai-head"><span class="ai-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.2 6.3L20.5 10l-6.3 2.2L12 18.5l-2.2-6.3L3.5 10l6.3-1.7z"/></svg>AI 예측</span>
+        <small>${m.known ? 'vs ' + m.oppName : '상대팀 미정 · 리그 평균 기준'}</small></div>
+      <p class="ai-win">읏맨 승리 확률 <b>${winPct}%</b></p>
+      <div class="ai-bar" role="img" aria-label="승리 확률 ${winPct}%"><i style="width:${winPct}%"></i></div>
+      <div class="ai-bar-l"><span>읏맨</span><span>${m.known ? m.oppName : '상대팀'}</span></div>
+      <button class="ai-apply" id="ai-apply" ${submitted ? 'disabled' : ''}>${submitted ? '예측을 이미 제출했어요' : 'AI 추천대로 고르기'}</button>
+      <p class="ai-note">팀 승률·세트 득실·맞대결·선수 기록·오늘의 운세로 계산했어요${STATS.sample ? ' (샘플 데이터)' : ''}. 참고만 하고 마음 가는 대로 골라도 돼요!</p>`;
+    box.hidden = false;
+    const btn = document.getElementById('ai-apply');
+    btn && btn.addEventListener('click', ()=>{
+      if(LOCAL['predictions']) return;
+      EVS.forEach((ev, i)=>{
+        const card = list.querySelectorAll('.predict-card')[i];
+        const el = card && rec[ev.id] != null ? [...card.querySelectorAll('[data-opt]')].find(o=> o.dataset.opt === rec[ev.id]) : null;
+        if(el && !el.classList.contains('selected')) el.click();
+      });
+      btn.textContent = '추천대로 골랐어요 · 바꿔도 돼요';
+      if(navigator.vibrate) navigator.vibrate(15);
+    });
+  }
+
+  window.__aiPredictRefresh = render;
+  render();
+  // 제출하면 버튼 잠그기
+  document.getElementById('predict-submit').addEventListener('click', ()=> setTimeout(()=>{ if(LOCAL['predictions']) render(); }, 50));
 })();
 
 /* ================================================================
