@@ -613,8 +613,13 @@
   .seg-panel{display:none;}
   .seg-panel.active{display:block;}
 
-  .chip-row{display:flex; overflow-x:auto; margin:0 -16px 14px; padding:2px 16px 4px; scrollbar-width:none;}
+  .chip-row{display:flex; overflow-x:auto; margin:0 -16px 8px; padding:4px 16px 10px; scrollbar-width:none;
+    -webkit-overflow-scrolling:touch; overscroll-behavior-x:contain;
+    /* 양 끝 페이드 — 더 넘겨볼 칩이 있는 쪽만 흐려져요 (JS가 --fl/--fr을 바꿔요) */
+    -webkit-mask-image:linear-gradient(to right, transparent 0, #000 var(--fl, 0px), #000 calc(100% - var(--fr, 0px)), transparent 100%);
+            mask-image:linear-gradient(to right, transparent 0, #000 var(--fl, 0px), #000 calc(100% - var(--fr, 0px)), transparent 100%);}
   .chip-row::-webkit-scrollbar{display:none;}
+  .chip-row::after{content:''; flex:0 0 1px;}   /* Safari에서 오른쪽 여백이 사라지는 문제 보정 */
   .chip{
     flex-shrink:0;}
 
@@ -2718,7 +2723,7 @@ const CONFIG = {
   DATA_MODE: 'local', // 'local' = 기기 내 데모 저장 · 'api' = 아래 API_BASE 연동
   API_BASE: '', // 예: 'https://wm-api.yourname.workers.dev'
   // 기록 API(okman-stats Worker) 주소 — DATA_MODE와 따로 동작해요. 비워두면 샘플 기록을 보여줘요.
-  STATS_API: '', // 예: 'https://okman-stats.<계정>.workers.dev'
+  STATS_API: 'https://okman-stats.okgroup0425.workers.dev', // 예: 'https://okman-stats.<계정>.workers.dev'
 
   MATCH: {
     home: 'OK저축은행 읏맨',
@@ -4820,6 +4825,30 @@ const STATS = { teams: CONFIG.TEAMS, results: CONFIG.RESULTS, games: CONFIG.GAME
 // KOVO 시즌 코드 → '2025-26' (001 = 2004-05)
 function currentSeasonLabel(){ const d = new Date(); const y = d.getMonth() >= 7 ? d.getFullYear() : d.getFullYear() - 1; return `${y}-${String(y + 1).slice(2)}`; }
 function seasonLabel(code){ const n = parseInt(code, 10); if(!n || n >= 100) return ''; const y = 2003 + n; return `${y}-${String(y + 1).slice(2)}`; }
+/* 칩 줄(.chip-row) — 화면보다 길면 가로로 넘기고, 넘길 쪽 끝을 흐리게 + 고른 칩을 가운데로 */
+function chipRowSync(row, center){
+  if(!row) return;
+  const max = row.scrollWidth - row.clientWidth;
+  if(center){
+    const a = row.querySelector('.chip.active');
+    if(a && max > 0){
+      const to = Math.max(0, Math.min(max, a.offsetLeft - (row.clientWidth - a.offsetWidth) / 2));
+      row.scrollTo({ left:to, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    }
+  }
+  const x = row.scrollLeft;
+  row.style.setProperty('--fl', x > 2 ? '28px' : '0px');
+  row.style.setProperty('--fr', x < max - 2 ? '40px' : '0px');
+}
+document.querySelectorAll('.chip-row').forEach(row=>{
+  row.addEventListener('scroll', ()=> chipRowSync(row), { passive:true });
+  row.addEventListener('click', e=>{ if(e.target.closest('.chip')) setTimeout(()=> chipRowSync(row, true), 0); });
+  chipRowSync(row);
+});
+addEventListener('resize', ()=> document.querySelectorAll('.chip-row').forEach(r=> chipRowSync(r)));
+// 탭을 처음 열 때(숨겨져 있다가 보일 때) 다시 계산
+if('ResizeObserver' in window){ const ro = new ResizeObserver(es=> es.forEach(e=> chipRowSync(e.target))); document.querySelectorAll('.chip-row').forEach(r=> ro.observe(r)); }
+
 (function initStats(){
   const grid = document.getElementById('squad-grid');
   const chips = document.getElementById('pos-chips');
@@ -4832,7 +4861,9 @@ function seasonLabel(code){ const n = parseInt(code, 10); if(!n || n >= 100) ret
     chips.querySelectorAll('.chip').forEach(c=> c.addEventListener('click', ()=>{
       if(c.dataset.pos === posFilter) return;
       hapticTick(); posFilter = c.dataset.pos; renderChips(); renderSquad();
+      chipRowSync(chips, true);
     }));
+    chipRowSync(chips);
   }
   function visiblePlayers(){ return posFilter === 'all' ? PLAYERS : PLAYERS.filter(p=> p.pos === posFilter); }
   function renderSquad(){
@@ -5320,6 +5351,7 @@ function seasonLabel(code){ const n = parseInt(code, 10); if(!n || n >= 100) ret
   let list = PLAYERS, idx = 0;
   let ry = 0, rx = 0, vel = 0, dragging = false, lastX = 0, lastY = 0, raf = null, rot = null, t0 = 0;
   let flip = 0, fa = 0, moved = 0, sumDx = 0;   // 뒤집기 — 목표 각도(0/180) · 현재 각도 · 끈 거리
+  let revealTimer = 0;
   const back = document.getElementById('pc-back');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -5437,7 +5469,14 @@ function seasonLabel(code){ const n = parseInt(code, 10); if(!n || n >= 100) ret
     buildStage(p);
     ry = 0; vel = 0; rx = 0; t0 = performance.now();
     flip = 0; fa = 0; card.classList.remove('is-back'); card.setAttribute('aria-pressed', 'false');
-    card.classList.remove('reveal'); void card.offsetWidth; card.classList.add('reveal');
+    // 등장 애니메이션 — '동작 줄이기'면 애니메이션이 없어서 animationend가 안 와요.
+    //  그러면 reveal이 계속 남아 카드 회전이 멈추고, 뒤집은 뒷면 글자가 거울처럼 뒤집혀 보였어요.
+    card.classList.remove('reveal');
+    clearTimeout(revealTimer);
+    if(!reduce){
+      void card.offsetWidth; card.classList.add('reveal');
+      revealTimer = setTimeout(()=> card.classList.remove('reveal'), 1200);   // 혹시 animationend가 안 와도 풀리게
+    }
     if(navigator.vibrate) navigator.vibrate(12);
   }
 
