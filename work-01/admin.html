@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title>관리자 · 읏맨 직관 가이드</title>
+<title>관리자 · 읏배구놀이터</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
   :root{
@@ -130,9 +130,9 @@
 <!-- 로그인 -->
 <div class="gate" id="gate">
   <h2>관리자</h2>
-  <p>읏맨 직관 가이드 — 경기별 참여 현황과 현장 이벤트를 관리해요.</p>
-  <div class="field"><label for="api">서버 주소 (okman-live Worker)</label><input id="api" placeholder="https://okman-live.○○○.workers.dev"></div>
-  <div class="field"><label for="key">관리자 키</label><input id="key" type="password" placeholder="ADMIN_KEY"></div>
+  <p>읏배구놀이터 — 경기별 참여 현황과 현장 이벤트를 관리해요.</p>
+  <div class="field"><label for="uid">아이디</label><input id="uid" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="아이디"></div>
+  <div class="field"><label for="key">비밀번호</label><input id="key" type="password" autocomplete="current-password" placeholder="비밀번호"></div>
   <button class="btn" id="login">들어가기</button>
   <p class="status" id="gate-status"></p>
 </div>
@@ -140,7 +140,7 @@
 <!-- 본 화면 -->
 <div id="app" hidden>
   <div class="topbar">
-    <h1>읏맨 직관 가이드 <span>관리자</span></h1>
+    <h1>읏배구놀이터 <span>관리자</span></h1>
     <div class="sp"></div>
     <select id="match" aria-label="경기 선택"></select>
     <span class="auto" id="auto"><i></i>5초마다 새로고침</span>
@@ -168,7 +168,10 @@ const hm = v => v ? v.replace('T', ' ').slice(5, 16) : '';
 const mask = c => { c = String(c || ''); if(c.includes('@')){ const [a, b] = c.split('@'); return a.slice(0, 2) + '***@' + b; } const d = c.replace(/\D/g, ''); return d.length >= 8 ? `${d.slice(0, 3)}-****-${d.slice(-4)}` : c.replace(/\d/g, '*'); };
 
 let D = null, page = 'dash', timer = null, busy = false;
-const base = () => (localStorage.getItem('adm_api') || '').replace(/\/$/, '');
+// 서버 주소는 고정 (관람객 화면 index.html의 LIVE_API와 같은 주소)
+const ADMIN_API = 'https://okman-live.okgroup0425.workers.dev';
+const base = () => ADMIN_API;
+const uid = () => sessionStorage.getItem('adm_id') || '';
 const key = () => sessionStorage.getItem('adm_key') || '';
 const mid = () => $('match').value || today();
 
@@ -176,28 +179,31 @@ function toast(msg, err){ const t = $('toast'); t.textContent = msg; t.className
 
 async function call(method, path, body){
   const res = await fetch(`${base()}/admin/${path}`, {
-    method, headers:{ 'Content-Type':'application/json', 'X-Admin-Key': key() },
+    method, headers:{ 'Content-Type':'application/json', 'X-Admin-Id': uid(), 'X-Admin-Key': key() },
     body: body ? JSON.stringify(body) : undefined,
   });
   const d = await res.json().catch(() => ({}));
-  if(res.status === 401) throw new Error('관리자 키가 맞지 않아요.');
+  if(res.status === 401) throw new Error('아이디 또는 비밀번호가 맞지 않아요.');
   if(!res.ok) throw new Error(d.error || `서버 오류 (${res.status})`);
   return d;
 }
 const mcall = (method, action, body) => call(method, encodeURIComponent(mid()) + (action ? '/' + action : ''), body);
 
 /* ---------- 로그인 ---------- */
-$('api').value = localStorage.getItem('adm_api') || '';
-$('key').value = key();
-$('login').addEventListener('click', async ()=>{
-  localStorage.setItem('adm_api', $('api').value.trim().replace(/\/$/, ''));
-  sessionStorage.setItem('adm_key', $('key').value.trim());
+$('uid').value = uid();
+async function login(){
+  const id = $('uid').value.trim(), pw = $('key').value;
+  if(!id || !pw){ $('gate-status').textContent = '아이디와 비밀번호를 입력해주세요.'; $('gate-status').className = 'status err'; return; }
+  sessionStorage.setItem('adm_id', id);
+  sessionStorage.setItem('adm_key', pw);
   $('gate-status').textContent = '연결하는 중…'; $('gate-status').className = 'status';
   try{ await start(); }
-  catch(e){ $('gate-status').textContent = e.message === 'Failed to fetch' ? '서버에 연결하지 못했어요. 주소와 ALLOW_ORIGIN 설정을 확인해주세요.' : e.message; $('gate-status').className = 'status err'; }
-});
-$('logout').addEventListener('click', ()=>{ sessionStorage.removeItem('adm_key'); clearInterval(timer); location.reload(); });
-if(base() && key()) start().catch(()=>{});
+  catch(e){ $('gate-status').textContent = e.message === 'Failed to fetch' ? '서버에 연결하지 못했어요. 잠시 후 다시 시도해주세요.' : e.message; $('gate-status').className = 'status err'; sessionStorage.removeItem('adm_key'); }
+}
+$('login').addEventListener('click', login);
+['uid','key'].forEach(id => $(id).addEventListener('keydown', e => { if(e.key === 'Enter' && !e.isComposing) login(); }));
+$('logout').addEventListener('click', ()=>{ sessionStorage.removeItem('adm_id'); sessionStorage.removeItem('adm_key'); clearInterval(timer); location.reload(); });
+if(uid() && key()) start().catch(()=>{});
 
 async function start(){
   const { matches } = await call('GET', '_/matches');
@@ -487,7 +493,7 @@ const VIEWS = {
   /* ---------- 출석체크 ---------- */
   checkin: S => `<p class="page-title">출석체크</p><p class="page-sub">${fmt(S.ck.count)}명 · 홈의 '출석체크'에서 고른 답이에요. 한 기기에 한 번만 집계돼요.</p>
     <div class="grid2">
-      <section class="card"><h2>성별</h2>${bars(S.ck.gender, { order:['남성', '여성', '응답 안 함'] })}</section>
+      <section class="card"><h2>성별</h2>${bars(S.ck.gender, { order:['남성', '여성'] })}</section>
       <section class="card"><h2>누구와</h2>${bars(S.ck.company, { order:['혼자', '친구', '연인', '가족', '동료', '기타'] })}</section>
     </div>
     <section class="card"><h2>나이</h2>${bars(S.ck.age, { order:['10대 이하', '20대', '30대', '40대', '50대', '60대 이상'] })}</section>`,
