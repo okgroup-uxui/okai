@@ -1346,6 +1346,39 @@
   }
   .pcard-hint{margin-top:16px;}
 
+  /* ---- 운세 — 앞면 보정 배지 · 뒷면 ---- */
+  .pcard__luck{margin-top:4px; padding:1px 6px; border-radius:100px; background:rgba(255,255,255,.9); color:#E8470F;
+    font-size:11px; line-height:16px; font-weight:800; letter-spacing:0; text-shadow:none; font-variant-numeric:tabular-nums;}
+  .pcard__luck[hidden]{display:none;}
+  .pcard[data-mvp="1"] .pcard__luck{background:var(--mvp-gold); color:#1A1A1A;}
+  .pcard__stats b.lucky::before{content:'▲'; margin-right:2px; font-size:9px; vertical-align:2px;}
+
+  /* 뒤집기 — 90°를 넘으면 앞면을 숨기고 뒷면을 보여줘요 (뒷면은 좌우 반전을 되돌려 정방향) */
+  .pcard.is-back .pcard__top,.pcard.is-back .pcard__stage,.pcard.is-back .pcard__plate,
+  .pcard.is-back .pcard__stats,.pcard.is-back .pcard__num{visibility:hidden;}
+  .pcard__back{position:absolute; left:13%; right:13%; top:10%; bottom:19%; z-index:4; display:none;
+    flex-direction:column; align-items:center; text-align:center; transform:scaleX(-1); color:#fff;}
+  .pcard.is-back .pcard__back{display:flex;}
+  .pcard[data-tier="silver"] .pcard__back{color:var(--ink-silver);}
+  .pcard[data-tier="gold"] .pcard__back{color:var(--ink-gold);}
+  .pcard[data-mvp="1"] .pcard__back{color:var(--mvp-gold);}
+  .fb__label{font-size:12px; line-height:18px; font-weight:700; letter-spacing:.08em; opacity:.85;}
+  .fb__sign{margin-top:2px; font-size:12px; line-height:18px; font-weight:600; opacity:.75;}
+  .fb__score{display:flex; align-items:baseline; justify-content:center; gap:6px; margin-top:12px;}
+  .fb__score b{font-size:48px; line-height:48px; font-weight:800; letter-spacing:-0.04em; font-variant-numeric:tabular-nums;}
+  .fb__score em{font-style:normal; font-size:14px; line-height:20px; font-weight:800; padding:2px 8px; border-radius:100px; background:currentColor;}
+  .fb__score em span{color:#FF571F;}
+  .pcard[data-tier="silver"] .fb__score em span,.pcard[data-tier="gold"] .fb__score em span{color:#fff;}
+  .pcard[data-mvp="1"] .fb__score em span{color:#1A1A1A;}
+  .fb__line{margin:12px 0 0; font-size:13px; line-height:20px; font-weight:600; word-break:keep-all;}
+  .fb__rows{margin-top:auto; width:100%; display:flex; flex-direction:column; gap:4px; padding-top:10px; border-top:1px solid currentColor;
+    border-top-color:color-mix(in srgb, currentColor 35%, transparent);}
+  .fb__rows p{margin:0; display:flex; justify-content:space-between; font-size:12px; line-height:18px; font-weight:600;}
+  .fb__rows b{font-weight:800; font-variant-numeric:tabular-nums;}
+  .fb__note{margin-top:6px; font-size:10px; line-height:14px; opacity:.6;}
+  .fb__empty{margin:auto 0; font-size:14px; line-height:22px; font-weight:600; word-break:keep-all;}
+  .fb__empty small{display:block; margin-top:4px; font-size:12px; line-height:18px; opacity:.7;}
+
   .pcard__shine{transform:none;}
   .pcard__photo,.squad-tile__fig{
     -webkit-mask-image:linear-gradient(to bottom,#000 68%,transparent 98%),linear-gradient(to right,transparent 0,#000 6%,#000 92%,transparent 100%);
@@ -2366,10 +2399,11 @@
     </div>
   </div>
   <div class="pcard-modal__body">
-    <div class="pcard" id="pcard">
+    <div class="pcard" id="pcard" role="button" tabindex="0" aria-pressed="false" aria-label="카드 뒤집기 — 뒷면에 오늘의 운세">
       <div class="pcard__bg"></div>
       <div class="pcard__top">
         <span class="pcard__ovr" id="pc-ovr">--</span>
+        <span class="pcard__luck" id="pc-luck" hidden></span>
         <span class="pcard__pos" id="pc-pos">--</span>
         <span class="pcard__tier" id="pc-tier"></span>
       </div>
@@ -2380,12 +2414,13 @@
       </div>
       <div class="pcard__stats" id="pc-stats"></div>
       <span class="pcard__num" id="pc-num"></span>
+      <div class="pcard__back" id="pc-back" aria-live="polite"></div>
       <div class="pcard__shine" id="pc-shine"></div>
     </div>
     <p class="pcard-hint" id="pc-hint">카드를 끌어서 기울여 보세요</p>
 
     <div class="pc-panel">
-      <p class="pc-panel__title">능력치</p>
+      <p class="pc-panel__title" id="pc-ab-title">능력치</p>
       <div class="pc-radar" id="pc-radar"></div>
     </div>
 
@@ -2650,7 +2685,7 @@ const CONFIG = {
   DATA_MODE: 'local', // 'local' = 기기 내 데모 저장 · 'api' = 아래 API_BASE 연동
   API_BASE: '', // 예: 'https://wm-api.yourname.workers.dev'
   // 기록 API(okman-stats Worker) 주소 — DATA_MODE와 따로 동작해요. 비워두면 샘플 기록을 보여줘요.
-  STATS_API: '', // 예: 'https://okman-stats.<계정>.workers.dev'
+  STATS_API: 'https://okman-stats.okgroup0425.workers.dev', // 예: 'https://okman-stats.<계정>.workers.dev'
 
   MATCH: {
     home: 'OK저축은행 읏맨',
@@ -2772,27 +2807,29 @@ const CONFIG = {
        face    : 캐릭터 얼굴 크롭 위치 [가로%, 세로%, 확대%] — 캐릭터를 바꿀 때만 조정하세요.
        model   : .glb 3D 모델 URL. 넣으면 캐릭터 대신 실제 3D 모델이 돌아가요.
        ability : 육각형 능력치(0~100) — atk 공격 · srv 서브 · blk 블로킹 · dig 디그 · rcv 리시브 · set 세트
+       birth   : 생일 'YYYY-MM-DD' (구단 홈페이지 선수 프로필 기준) (연도를 모르면 'MM-DD'도 돼요) — 카드 뒷면 '오늘의 운세'와 운세 보정 점수에 써요.
+                 비워두면 그 선수는 운세 없이 기본 능력치로만 보여요.
        season  : 시즌 기록 — g 경기 · pts 득점 · atk 공격성공률% · blk 세트당 블로킹 · ace 세트당 서브 · dig 세트당 디그 · rcv 리시브효율%
      ⚠ 이름·사진은 실제 선수예요. 능력치(ability)·시즌 기록(season)은 화면 확인용 샘플이니 실제 값으로 바꿔주세요.
      --------------------------------------------------------------- */
   PLAYERS: [
-    { num:1 , name:'김정호', pos:'OH', figure:1 , photo:'images/players/face-1.webp', card:'images/players/card-1.webp', model:'', ability:{atk:84,srv:73,blk:56,dig:71,rcv:77,set:52}, season:{g:14,pts:196,atk:46.3,blk:0.23,ace:0.19,dig:1.71,rcv:32.2} },
-    { num:3 , name:'정성현', pos:'L', figure:2 , photo:'images/players/face-3.webp', card:'images/players/card-3.webp', model:'', ability:{atk:19,srv:32,blk:10,dig:91,rcv:90,set:66}, season:{g:22,pts:0,atk:null,blk:null,ace:null,dig:2.36,rcv:50.8} },
-    { num:5 , name:'김도훈', pos:'L', figure:3 , photo:'images/players/face-5.webp', card:'images/players/card-5.webp', model:'', ability:{atk:21,srv:24,blk:10,dig:85,rcv:85,set:66}, season:{g:12,pts:0,atk:null,blk:null,ace:null,dig:2.67,rcv:46.3} },
-    { num:6 , name:'김대환', pos:'S', figure:4 , photo:'images/players/face-6.webp', card:'images/players/card-6.webp', model:'', ability:{atk:47,srv:66,blk:65,dig:67,rcv:49,set:84}, season:{g:9,pts:75,atk:38.3,blk:0.23,ace:0.21,dig:1.32,rcv:null} },
-    { num:7 , name:'신장호', pos:'OP', figure:5 , photo:'images/players/face-7.webp', card:'images/players/card-7.webp', model:'', ability:{atk:83,srv:89,blk:73,dig:51,rcv:37,set:42}, season:{g:13,pts:591,atk:48.8,blk:0.37,ace:0.38,dig:1.05,rcv:null} },
-    { num:8 , name:'차지환', pos:'OH', figure:6 , photo:'images/players/face-8.webp', card:'images/players/card-8.webp', model:'', ability:{atk:85,srv:72,blk:63,dig:74,rcv:78,set:52}, season:{g:11,pts:208,atk:43.4,blk:0.24,ace:0.17,dig:1.75,rcv:30.7} },
-    { num:10, name:'페이즈', pos:'OH', figure:7 , photo:'images/players/face-10.webp', card:'images/players/card-10.webp', model:'', ability:{atk:85,srv:73,blk:57,dig:72,rcv:73,set:48}, season:{g:12,pts:292,atk:47.1,blk:0.22,ace:0.19,dig:1.64,rcv:30.1} },  // ⚠ 포지션 확인 필요
-    { num:11, name:'박원빈', pos:'MB', figure:8 , photo:'images/players/face-11.webp', card:'images/players/card-11.webp', model:'', ability:{atk:84,srv:64,blk:80,dig:43,rcv:28,set:53}, season:{g:10,pts:241,atk:53.4,blk:0.62,ace:0.11,dig:0.46,rcv:null} },
-    { num:12, name:'전광인', pos:'OH', figure:9 , photo:'images/players/face-12.webp', card:'images/players/card-12.webp', model:'', ability:{atk:95,srv:88,blk:85,dig:90,rcv:92,set:80}, season:{g:24,pts:230,atk:46.3,blk:0.24,ace:0.16,dig:1.83,rcv:39.5} },
-    { num:14, name:'송희채', pos:'OH', figure:10, photo:'images/players/face-14.webp', card:'images/players/card-14.webp', model:'', ability:{atk:86,srv:73,blk:57,dig:70,rcv:79,set:55}, season:{g:22,pts:196,atk:53.9,blk:0.23,ace:0.19,dig:1.44,rcv:31.2} },
-    { num:15, name:'노재욱', pos:'S', figure:11, photo:'images/players/face-15.webp', card:'images/players/card-15.webp', model:'', ability:{atk:47,srv:75,blk:56,dig:65,rcv:50,set:90}, season:{g:23,pts:65,atk:42.7,blk:0.24,ace:0.15,dig:1.32,rcv:null} },
-    { num:16, name:'진상헌', pos:'MB', figure:12, photo:'images/players/face-16.webp', card:'images/players/card-16.webp', model:'', ability:{atk:84,srv:65,blk:84,dig:50,rcv:25,set:55}, season:{g:18,pts:184,atk:58.0,blk:0.66,ace:0.09,dig:0.43,rcv:null} },
-    { num:17, name:'박창성', pos:'MB', figure:13, photo:'images/players/face-17.webp', card:'images/players/card-17.webp', model:'', ability:{atk:82,srv:67,blk:80,dig:45,rcv:25,set:47}, season:{g:21,pts:275,atk:55.4,blk:0.56,ace:0.09,dig:0.4,rcv:null} },
-    { num:19, name:'진성태', pos:'MB', figure:14, photo:'images/players/face-19.webp', card:'images/players/card-19.webp', model:'', ability:{atk:66,srv:52,blk:70,dig:40,rcv:24,set:44}, season:{g:7,pts:273,atk:59.1,blk:0.69,ace:0.11,dig:0.42,rcv:null} },
-    { num:22, name:'박인우', pos:'OH', figure:15, photo:'images/players/face-22.webp', card:'images/players/card-22.webp', model:'', ability:{atk:66,srv:60,blk:50,dig:64,rcv:66,set:48}, season:{g:6,pts:239,atk:42.0,blk:0.23,ace:0.16,dig:1.53,rcv:32.1} },  // ⚠ 포지션 확인 필요
-    { num:31, name:'김준호', pos:'OH', figure:16, photo:'images/players/face-31.webp', card:'images/players/card-31.webp', model:'', ability:{atk:68,srv:62,blk:52,dig:62,rcv:65,set:50}, season:{g:8,pts:311,atk:42.1,blk:0.2,ace:0.2,dig:1.71,rcv:32.3} },  // ⚠ 포지션 확인 필요
-    { num:40, name:'러셀', pos:'OP', figure:17, photo:'images/players/face-40.webp', card:'images/players/card-40.webp', model:'', ability:{atk:99,srv:99,blk:96,dig:85,rcv:37,set:85}, season:{g:24,pts:599,atk:47.6,blk:0.42,ace:0.43,dig:1.08,rcv:null} },
+    { num:1 , name:'김정호', pos:'OH', birth:'1997-03-01', figure:1 , photo:'images/players/face-1.webp', card:'images/players/card-1.webp', model:'', ability:{atk:84,srv:73,blk:56,dig:71,rcv:77,set:52}, season:{g:14,pts:196,atk:46.3,blk:0.23,ace:0.19,dig:1.71,rcv:32.2} },
+    { num:3 , name:'정성현', pos:'L', birth:'1991-05-18', figure:2 , photo:'images/players/face-3.webp', card:'images/players/card-3.webp', model:'', ability:{atk:19,srv:32,blk:10,dig:91,rcv:90,set:66}, season:{g:22,pts:0,atk:null,blk:null,ace:null,dig:2.36,rcv:50.8} },
+    { num:5 , name:'김도훈', pos:'L', birth:'1998-04-19', figure:3 , photo:'images/players/face-5.webp', card:'images/players/card-5.webp', model:'', ability:{atk:21,srv:24,blk:10,dig:85,rcv:85,set:66}, season:{g:12,pts:0,atk:null,blk:null,ace:null,dig:2.67,rcv:46.3} },
+    { num:6 , name:'김대환', pos:'S', birth:'2005-05-20', figure:4 , photo:'images/players/face-6.webp', card:'images/players/card-6.webp', model:'', ability:{atk:47,srv:66,blk:65,dig:67,rcv:49,set:84}, season:{g:9,pts:75,atk:38.3,blk:0.23,ace:0.21,dig:1.32,rcv:null} },
+    { num:7 , name:'신장호', pos:'OP', birth:'1996-06-01', figure:5 , photo:'images/players/face-7.webp', card:'images/players/card-7.webp', model:'', ability:{atk:83,srv:89,blk:73,dig:51,rcv:37,set:42}, season:{g:13,pts:591,atk:48.8,blk:0.37,ace:0.38,dig:1.05,rcv:null} },
+    { num:8 , name:'차지환', pos:'OH', birth:'1996-05-09', figure:6 , photo:'images/players/face-8.webp', card:'images/players/card-8.webp', model:'', ability:{atk:85,srv:72,blk:63,dig:74,rcv:78,set:52}, season:{g:11,pts:208,atk:43.4,blk:0.24,ace:0.17,dig:1.75,rcv:30.7} },
+    { num:10, name:'페이즈', pos:'MB', birth:'2001-11-23', figure:7 , photo:'images/players/face-10.webp', card:'images/players/card-10.webp', model:'', ability:{atk:85,srv:73,blk:57,dig:72,rcv:73,set:48}, season:{g:12,pts:292,atk:47.1,blk:0.22,ace:0.19,dig:1.64,rcv:30.1} },  // 포지션: 구단 홈페이지 기준
+    { num:11, name:'박원빈', pos:'MB', birth:'1992-04-07', figure:8 , photo:'images/players/face-11.webp', card:'images/players/card-11.webp', model:'', ability:{atk:84,srv:64,blk:80,dig:43,rcv:28,set:53}, season:{g:10,pts:241,atk:53.4,blk:0.62,ace:0.11,dig:0.46,rcv:null} },
+    { num:12, name:'전광인', pos:'OH', birth:'1991-09-18', figure:9 , photo:'images/players/face-12.webp', card:'images/players/card-12.webp', model:'', ability:{atk:95,srv:88,blk:85,dig:90,rcv:92,set:80}, season:{g:24,pts:230,atk:46.3,blk:0.24,ace:0.16,dig:1.83,rcv:39.5} },
+    { num:14, name:'송희채', pos:'OH', birth:'1992-04-29', figure:10, photo:'images/players/face-14.webp', card:'images/players/card-14.webp', model:'', ability:{atk:86,srv:73,blk:57,dig:70,rcv:79,set:55}, season:{g:22,pts:196,atk:53.9,blk:0.23,ace:0.19,dig:1.44,rcv:31.2} },
+    { num:15, name:'노재욱', pos:'S', birth:'1992-07-10', figure:11, photo:'images/players/face-15.webp', card:'images/players/card-15.webp', model:'', ability:{atk:47,srv:75,blk:56,dig:65,rcv:50,set:90}, season:{g:23,pts:65,atk:42.7,blk:0.24,ace:0.15,dig:1.32,rcv:null} },
+    { num:16, name:'진상헌', pos:'MB', birth:'1986-04-22', figure:12, photo:'images/players/face-16.webp', card:'images/players/card-16.webp', model:'', ability:{atk:84,srv:65,blk:84,dig:50,rcv:25,set:55}, season:{g:18,pts:184,atk:58.0,blk:0.66,ace:0.09,dig:0.43,rcv:null} },
+    { num:17, name:'박창성', pos:'MB', birth:'1998-09-21', figure:13, photo:'images/players/face-17.webp', card:'images/players/card-17.webp', model:'', ability:{atk:82,srv:67,blk:80,dig:45,rcv:25,set:47}, season:{g:21,pts:275,atk:55.4,blk:0.56,ace:0.09,dig:0.4,rcv:null} },
+    { num:19, name:'진성태', pos:'MB', birth:'1993-02-03', figure:14, photo:'images/players/face-19.webp', card:'images/players/card-19.webp', model:'', ability:{atk:66,srv:52,blk:70,dig:40,rcv:24,set:44}, season:{g:7,pts:273,atk:59.1,blk:0.69,ace:0.11,dig:0.42,rcv:null} },
+    { num:22, name:'박인우', pos:'S', birth:'2003-02-16', figure:15, photo:'images/players/face-22.webp', card:'images/players/card-22.webp', model:'', ability:{atk:66,srv:60,blk:50,dig:64,rcv:66,set:48}, season:{g:6,pts:239,atk:42.0,blk:0.23,ace:0.16,dig:1.53,rcv:32.1} },  // 포지션: 구단 홈페이지 기준
+    { num:31, name:'김준호', pos:'OP', birth:'2002-10-04', figure:16, photo:'images/players/face-31.webp', card:'images/players/card-31.webp', model:'', ability:{atk:68,srv:62,blk:52,dig:62,rcv:65,set:50}, season:{g:8,pts:311,atk:42.1,blk:0.2,ace:0.2,dig:1.71,rcv:32.3} },  // 포지션: 구단 홈페이지 기준
+    { num:40, name:'러셀', pos:'OP', birth:'1993-08-25', figure:17, photo:'images/players/face-40.webp', card:'images/players/card-40.webp', model:'', ability:{atk:99,srv:99,blk:96,dig:85,rcv:37,set:85}, season:{g:24,pts:599,atk:47.6,blk:0.42,ace:0.43,dig:1.08,rcv:null} },
   ],
   // MVP 후보 — 등번호 배열. 비워두면(null) 전체 선수가 후보예요. 경기 당일 출전 명단만 넣어도 돼요.
   MVP_CANDIDATES: null,
@@ -3127,6 +3164,93 @@ function playerOvr(p){
   const w = OVR_WEIGHTS[p.pos] || OVR_WEIGHTS.OH; const a = p.ability || {};
   return Math.round(Object.keys(w).reduce((s, k)=> s + (a[k] || 0) * w[k], 0));
 }
+/* ================================================================
+   오늘의 운세 — 생일 + 오늘 날짜로 정해지는 재미용 운세
+   · 같은 날·같은 선수면 누구 폰에서 봐도 같은 결과예요 (날짜가 바뀌면 새 운세).
+   · 운세 점수(50~100)에 따라 행운 능력치 1개가 오르고, 종합(OVR)에 보너스가 붙어요.
+   · 좋은 말만 나와요 — 실제 선수라서 '흉'은 넣지 않았어요.
+   · 등급(골드·실버)은 기본 OVR 기준 그대로예요. 운세로 등급이 바뀌진 않아요.
+   ================================================================ */
+const FORTUNE = (function(){
+  const ZODIAC = [[1,20,'물병자리'],[2,19,'물고기자리'],[3,21,'양자리'],[4,20,'황소자리'],[5,21,'쌍둥이자리'],[6,22,'게자리'],
+                  [7,23,'사자자리'],[8,23,'처녀자리'],[9,23,'천칭자리'],[10,23,'전갈자리'],[11,22,'사수자리'],[12,22,'염소자리']];
+  const ANIMALS = ['원숭이','닭','개','돼지','쥐','소','호랑이','토끼','용','뱀','말','양'];
+  // 등급 — min 이상이면 그 등급 / bonus = 종합(OVR)에 더하는 점수
+  const BANDS = [
+    { key:'top',  name:'대길', min:92, bonus:3, lines:[
+      '코트 위 모든 공이 내 편이 되는 날! 결정적인 한 방이 기다려요.',
+      '무엇을 해도 술술 풀려요. 팬들의 함성이 날개가 돼요.',
+      '평소보다 한 뼘 더 높이 뜨는 날. 자신 있게 때려도 좋아요.' ]},
+    { key:'good', name:'길',   min:80, bonus:2, lines:[
+      '집중력이 빛나는 날. 긴 랠리 끝에 웃게 될 거예요.',
+      '동료와 호흡이 척척! 작은 콜 하나가 승부를 바꿔요.',
+      '좋은 흐름을 탄 날. 첫 득점이 오늘의 리듬을 만들어요.' ]},
+    { key:'fine', name:'소길', min:65, bonus:1, lines:[
+      '차분하게 기본기를 지키면 기회가 찾아와요.',
+      '서두르지 않아도 괜찮아요. 한 세트씩 쌓아가는 날.',
+      '조용히 빛나는 날. 수비 하나가 분위기를 바꿔요.' ]},
+    { key:'calm', name:'평',   min:0,  bonus:0, lines:[
+      '무난한 하루. 응원 소리가 오늘의 행운을 불러와요.',
+      '평범한 듯 특별한 날. 팬들의 응원이 운을 끌어올려요.',
+      '기본에 충실하기 좋은 날. 끝까지 집중!' ]},
+  ];
+  const AB_LABELS = { atk:'공격', srv:'서브', blk:'블로킹', dig:'디그', rcv:'리시브', set:'세트' };
+  const pad = n=> String(n).padStart(2, '0');
+  const todayKey = ()=>{ const t = new Date(); return `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`; };
+  function hash(str){ let h = 2166136261; for(let i = 0; i < str.length; i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function rng(seed){ return ()=>{ seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function parseBirth(b){
+    const m = String(b || '').trim().match(/^(?:(\d{4})-)?(\d{1,2})-(\d{1,2})$/);
+    if(!m) return null;
+    const y = m[1] ? +m[1] : null, mo = +m[2], d = +m[3];
+    return mo >= 1 && mo <= 12 && d >= 1 && d <= 31 ? { y, mo, d } : null;
+  }
+  function zodiac(mo, d){
+    let z = '염소자리';
+    ZODIAC.forEach(([m, day, name])=>{ if(mo > m || (mo === m && d >= day)) z = name; });
+    return z;
+  }
+  const cache = {};
+  function of(p){
+    const day = todayKey();
+    const k = p.num + '|' + day;
+    if(k in cache) return cache[k];
+    const b = parseBirth(p.birth);
+    if(!b){ return cache[k] = null; }
+    const r = rng(hash(`${p.num}|${b.mo}-${b.d}|${day}`));
+    const birthday = new Date().getMonth() + 1 === b.mo && new Date().getDate() === b.d;
+    const luck = birthday ? 100 : 50 + Math.floor(r() * 51);                     // 50~100
+    const band = BANDS.find(x=> luck >= x.min);
+    const w = OVR_WEIGHTS[p.pos] || OVR_WEIGHTS.OH;
+    const pool = Object.keys(w).filter(x=> w[x] >= 0.1);                        // 포지션에 중요한 능력 중에서
+    const lucky = pool[Math.floor(r() * pool.length)];
+    const boost = Math.round(2 + (luck - 50) / 12.5);                          // +2 ~ +6
+    const line = birthday ? '생일 축하해요! 오늘의 주인공은 바로 나. 최고의 하루가 될 거예요.'
+                          : band.lines[Math.floor(r() * band.lines.length)];
+    return cache[k] = {
+      luck, band, birthday, line, lucky, luckyLabel:AB_LABELS[lucky], boost,
+      zodiac: zodiac(b.mo, b.d), animal: b.y ? ANIMALS[b.y % 12] + '띠' : '',
+      date: day,
+    };
+  }
+  return { of };
+})();
+// 오늘의 능력치 — 운세의 행운 능력치를 반영해요 (운세 없으면 기본 그대로)
+function playerAbilityToday(p){
+  const a = Object.assign({}, p.ability || {});
+  const f = FORTUNE.of(p);
+  if(f && typeof a[f.lucky] === 'number') a[f.lucky] = Math.min(99, a[f.lucky] + f.boost);
+  return a;
+}
+// 오늘의 종합 — 운세 반영 능력치 + 등급 보너스 (등급 판정은 기본 OVR 그대로)
+function playerOvrToday(p){
+  if(p.noRecord) return '-';
+  const f = FORTUNE.of(p);
+  if(!f) return playerOvr(p);
+  const base = playerOvr(Object.assign({}, p, { ability: playerAbilityToday(p) }));
+  return Math.min(99, base + f.band.bonus);
+}
+
 function faceHtml(p, size){
   const sz = size ? `--sz:${size}px;` : '';
   if(p.photo) return `<span class="face" style="${sz}"><img class="is-photo" src="${p.photo}" alt=""></span>`;
@@ -4679,7 +4803,7 @@ function seasonLabel(code){ const n = parseInt(code, 10); if(!n || n >= 100) ret
   function renderSquad(){
     grid.innerHTML = visiblePlayers().map(p=> `
       <button class="squad-tile tier-${playerTier(p)}${isRare(p) ? ' rare' : ''}${isMvpCard(p) ? ' mvp' : ''}" data-num="${p.num}" aria-label="${playerName(p)} 능력치 카드 열기">
-        <span class="squad-tile__ovr"><b>${playerOvr(p)}</b><small>${p.pos}</small>${isMvpCard(p) ? `<em class="mvp-tag">${CONFIG.MVP_CARD.title || 'MVP'}</em>` : ''}</span>
+        <span class="squad-tile__ovr"><b>${playerOvrToday(p)}</b><small>${p.pos}</small>${isMvpCard(p) ? `<em class="mvp-tag">${CONFIG.MVP_CARD.title || 'MVP'}</em>` : ''}</span>
         <span class="squad-tile__fig">${cardSrc(p) ? `<img src="${cardSrc(p)}" alt="" loading="lazy">` : ''}</span>
         <span class="squad-tile__name">${playerName(p)}<span>#${p.num} · ${POS[p.pos] ? POS[p.pos].chip : p.pos}</span></span>
       </button>`).join('');
@@ -5009,6 +5133,8 @@ function seasonLabel(code){ const n = parseInt(code, 10); if(!n || n >= 100) ret
   const hint = document.getElementById('pc-hint');
   let list = PLAYERS, idx = 0;
   let ry = 0, rx = 0, vel = 0, dragging = false, lastX = 0, lastY = 0, raf = null, rot = null, t0 = 0;
+  let flip = 0, fa = 0, moved = 0, sumDx = 0;   // 뒤집기 — 목표 각도(0/180) · 현재 각도 · 끈 거리
+  const back = document.getElementById('pc-back');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const AB_KEYS = ['atk','srv','blk','dig','rcv','set'];
@@ -5034,8 +5160,8 @@ function seasonLabel(code){ const n = parseInt(code, 10); if(!n || n >= 100) ret
   }
 
   // FUT 카드 하단 능력치 — 왼쪽 공격·서브·블로킹 / 오른쪽 디그·리시브·세트
-  function statsHtml(ab){
-    const col = keys => `<ul>${keys.map(k=> `<li><b>${ab[k] ?? '-'}</b><span>${AB_LABELS[k]}</span></li>`).join('')}</ul>`;
+  function statsHtml(ab, lucky){
+    const col = keys => `<ul>${keys.map(k=> `<li><b${k === lucky ? ' class="lucky"' : ''}>${ab[k] ?? '-'}</b><span>${AB_LABELS[k]}</span></li>`).join('')}</ul>`;
     return col(['atk','srv','blk']) + `<i aria-hidden="true"></i>` + col(['dig','rcv','set']);
   }
 
@@ -5051,6 +5177,28 @@ function seasonLabel(code){ const n = parseInt(code, 10); if(!n || n >= 100) ret
       p.noRecord ? `${label} · 출전 기록 없음`
       : (s.g ? `${label} · ${p.prevTeam ? p.prevTeam + ' 소속 · ' : ''}${s.g}경기 출전` : label);
     return items.map(([l, v])=> `<div class="pc-season__item"><div class="pc-season__v">${v}</div><div class="pc-season__l">${l}</div></div>`).join('');
+  }
+
+  // 카드 뒷면 — 오늘의 운세 (간략히)
+  function backHtml(p, f){
+    if(!f) return `<p class="fb__label">오늘의 운세</p>
+      <p class="fb__empty">생일 정보를 준비 중이에요<small>곧 ${playerName(p)} 선수의 운세를 볼 수 있어요</small></p>`;
+    const [, m, d] = f.date.split('-');
+    const base = playerOvr(p), today = playerOvrToday(p);
+    return `<p class="fb__label">오늘의 운세 · ${+m}.${+d}</p>
+      <p class="fb__sign">${f.zodiac}${f.animal ? ' · ' + f.animal : ''}${f.birthday ? ' · 생일' : ''}</p>
+      <div class="fb__score"><b>${f.luck}</b><em><span>${f.band.name}</span></em></div>
+      <p class="fb__line">${f.line}</p>
+      <div class="fb__rows">
+        <p><span>행운의 플레이</span><b>${f.luckyLabel} +${f.boost}</b></p>
+        <p><span>오늘의 종합</span><b>${base} → ${today}</b></p>
+      </div>
+      <p class="fb__note">재미로 보는 운세예요</p>`;
+  }
+  function setFlip(on){
+    flip = on ? 180 : 0;
+    card.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if(navigator.vibrate) navigator.vibrate(10);
   }
 
   let mvLoaded = false;
@@ -5071,29 +5219,38 @@ function seasonLabel(code){ const n = parseInt(code, 10); if(!n || n >= 100) ret
     if(!src){ hint.textContent = ''; return; }
     stage.innerHTML = `<img class="pcard__photo" src="${src}" alt="" draggable="false">`;
     rot = card;
-    hint.textContent = '카드를 끌어서 기울여 보세요';
+    hint.textContent = '카드를 탭하면 뒷면에 오늘의 운세가 있어요';
   }
 
   function render(){
     const p = list[idx];
-    const ovr = playerOvr(p);
+    const ovr = playerOvrToday(p);
+    const fort = FORTUNE.of(p);
+    const abToday = playerAbilityToday(p);
     card.dataset.tier = playerTier(p);
     card.dataset.rare = isRare(p) ? '1' : '';
     card.dataset.mvp = isMvpCard(p) ? '1' : '';
     modal.dataset.tier = 'base';
     document.getElementById('pc-ovr').textContent = ovr;
+    const luckEl = document.getElementById('pc-luck');
+    const gain = fort && typeof ovr === 'number' ? ovr - playerOvr(p) : 0;
+    luckEl.hidden = !gain;
+    luckEl.textContent = gain ? `운 +${gain}` : '';
+    back.innerHTML = backHtml(p, fort);
+    document.getElementById('pc-ab-title').textContent = fort ? `능력치 · 오늘의 운세 반영 (${fort.luckyLabel} +${fort.boost})` : '능력치';
     document.getElementById('pc-pos').textContent = p.pos;
     document.getElementById('pc-tier').textContent = isMvpCard(p) ? (CONFIG.MVP_CARD.title || 'MVP') : '';
     document.getElementById('pc-num').textContent = p.num;
-    document.getElementById('pc-stats').innerHTML = statsHtml(p.ability || {});
+    document.getElementById('pc-stats').innerHTML = statsHtml(abToday, fort && fort.lucky);
     document.getElementById('pc-name').textContent = playerName(p);
     document.getElementById('pc-meta').textContent = `#${p.num} · ${POS[p.pos] ? POS[p.pos].ko : p.pos}`;
     document.getElementById('pc-count').textContent = `${idx + 1} / ${list.length}`;
-    document.getElementById('pc-radar').innerHTML = radarSvg(p.ability || {});
+    document.getElementById('pc-radar').innerHTML = radarSvg(abToday);
     document.getElementById('pc-season').innerHTML = seasonHtml(p);
     document.getElementById('pc-mvp').style.display = LOCAL.mvp_voted ? 'none' : '';
     buildStage(p);
     ry = 0; vel = 0; rx = 0; t0 = performance.now();
+    flip = 0; fa = 0; card.classList.remove('is-back'); card.setAttribute('aria-pressed', 'false');
     card.classList.remove('reveal'); void card.offsetWidth; card.classList.add('reveal');
     if(navigator.vibrate) navigator.vibrate(12);
   }
@@ -5107,8 +5264,11 @@ function seasonLabel(code){ const n = parseInt(code, 10); if(!n || n >= 100) ret
       ry += (ty - ry) * 0.08;
       rx += (tx - rx) * 0.08;
     }
-    if(rot && !card.classList.contains('reveal')){
-      card.style.transform = `perspective(900px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg)`;
+    fa = reduce ? flip : fa + (flip - fa) * 0.14;
+    if(Math.abs(flip - fa) < 0.2) fa = flip;
+    card.classList.toggle('is-back', fa > 90);
+    if((rot || fa) && !card.classList.contains('reveal')){
+      card.style.transform = `perspective(900px) rotateX(${rx.toFixed(2)}deg) rotateY(${(ry + fa).toFixed(2)}deg)`;
     }
     card.style.setProperty('--mx', (50 + ry * 2.2).toFixed(1) + '%');
     card.style.setProperty('--my', (50 - rx * 3).toFixed(1) + '%');
@@ -5117,20 +5277,28 @@ function seasonLabel(code){ const n = parseInt(code, 10); if(!n || n >= 100) ret
   }
   card.addEventListener('animationend', e=>{ if(e.target === card) card.classList.remove('reveal'); });
 
+  // 탭하면 뒤집기 · 옆으로 크게 밀어도 뒤집기 · 살짝 끌면 기울이기
   card.addEventListener('pointerdown', e=>{
-    if(!rot) return;
-    dragging = true; lastX = e.clientX; lastY = e.clientY;
+    dragging = true; lastX = e.clientX; lastY = e.clientY; moved = 0; sumDx = 0;
     card.setPointerCapture(e.pointerId);
   });
   card.addEventListener('pointermove', e=>{
     if(!dragging) return;
     const dx = e.clientX - lastX, dy = e.clientY - lastY;
     lastX = e.clientX; lastY = e.clientY;
+    moved += Math.abs(dx) + Math.abs(dy); sumDx += dx;
+    if(!rot) return;
     ry = Math.max(-28, Math.min(28, ry + dx * 0.35));
     rx = Math.max(-18, Math.min(18, rx - dy * 0.3));
   });
   const endDrag = ()=>{ dragging = false; t0 = performance.now(); };
-  card.addEventListener('pointerup', endDrag);
+  card.addEventListener('pointerup', e=>{
+    if(dragging && (moved < 8 || Math.abs(sumDx) > 70)) setFlip(flip === 0);
+    endDrag();
+  });
+  card.addEventListener('keydown', e=>{
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); setFlip(flip === 0); }
+  });
   card.addEventListener('pointercancel', endDrag);
 
   function open(num, sourceList){
