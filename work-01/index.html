@@ -1331,14 +1331,15 @@
   .pcard-modal{background:radial-gradient(120% 60% at 50% 10%, #4A2414 0%, #1E1A22 50%, #12161E 85%);}
   .pcard-modal[data-tier="gold"]{background:radial-gradient(120% 60% at 50% 10%, #4D3A0C 0%, #1F1B14 50%, #12161E 85%);}
   
-  .pcard{width:min(300px, 80vw); aspect-ratio:3/4.35; touch-action:none; cursor:grab; transform-style:preserve-3d; will-change:transform;}
+  .pcard{width:min(300px, 80vw); aspect-ratio:3/4.35; touch-action:pan-y; cursor:grab; transform-style:flat; will-change:transform; -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent;}
   .pcard:active{cursor:grabbing;}
   .pcard__bg{background:radial-gradient(90% 55% at 55% 28%, rgba(255,255,255,.32), transparent 70%), var(--tier-base);}
 
   .pcard__bg::after{border-color:rgba(255,255,255,.6);}
 
   /* 사진 */
-  .pcard__stage{left:18%; right:2%; top:7%; bottom:auto; height:58%; perspective:none; cursor:inherit; touch-action:none; z-index:3; overflow:hidden;}
+  .pcard__stage{left:18%; right:2%; top:7%; bottom:auto; height:58%; perspective:none; cursor:inherit; touch-action:pan-y; z-index:3; overflow:hidden;}
+  .pcard__stage model-viewer{touch-action:none;}
   .pcard__photo{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 0;
     filter:drop-shadow(0 6px 10px rgba(60,20,0,.25)); user-select:none; -webkit-user-drag:none; pointer-events:none;}
 
@@ -1384,28 +1385,31 @@
   /* 뒤집기 — 90°를 넘으면 앞면을 숨기고 뒷면을 보여줘요 (뒷면은 좌우 반전을 되돌려 정방향) */
   .pcard.is-back .pcard__top,.pcard.is-back .pcard__stage,.pcard.is-back .pcard__plate,
   .pcard.is-back .pcard__stats,.pcard.is-back .pcard__num{visibility:hidden;}
-  .pcard__back{position:absolute; left:13%; right:13%; top:10%; bottom:19%; z-index:4; display:none;
+  .pcard__back{position:absolute; left:12%; right:12%; top:9%; bottom:20%; z-index:4; display:none;
     flex-direction:column; align-items:center; text-align:center; transform:scaleX(-1); color:#fff;}
   .pcard.is-back .pcard__back{display:flex;}
   .pcard[data-tier="silver"] .pcard__back{color:var(--ink-silver);}
   .pcard[data-tier="gold"] .pcard__back{color:var(--ink-gold);}
   .pcard[data-mvp="1"] .pcard__back{color:var(--mvp-gold);}
-  .fb__label{font-size:12px; line-height:18px; font-weight:700; letter-spacing:.08em; opacity:.85;}
-  .fb__sign{margin-top:2px; font-size:12px; line-height:18px; font-weight:600; opacity:.75;}
-  .fb__score{display:flex; align-items:baseline; justify-content:center; gap:6px; margin-top:12px;}
-  .fb__score b{font-size:48px; line-height:48px; font-weight:800; letter-spacing:-0.04em; font-variant-numeric:tabular-nums;}
-  .fb__score em{font-style:normal; font-size:14px; line-height:20px; font-weight:800; padding:2px 8px; border-radius:100px; background:currentColor;}
+  /* 카드 폭(최대 300px)에 맞춰 글자도 같이 줄어요 — 기준 1em = 카드 폭 300px일 때 10px */
+  .pcard__back{font-size:min(10px, 2.667vw); -webkit-font-smoothing:antialiased;}
+  .fb__label{margin:0; font-size:1.2em; line-height:1.5; font-weight:700; letter-spacing:.06em; opacity:.85;}
+  .fb__sign{margin:.2em 0 0; font-size:1.2em; line-height:1.5; font-weight:600; opacity:.75;}
+  .fb__score{display:flex; align-items:center; justify-content:center; gap:.6em; margin-top:1em;}
+  .fb__score b{font-size:4.6em; line-height:1; font-weight:800; letter-spacing:-0.04em; font-variant-numeric:tabular-nums;}
+  .fb__score em{font-style:normal; font-size:1.4em; line-height:1.45; font-weight:800; padding:.1em .6em; border-radius:100px; background:currentColor;}
   .fb__score em span{color:#FF571F;}
   .pcard[data-tier="silver"] .fb__score em span,.pcard[data-tier="gold"] .fb__score em span{color:#fff;}
   .pcard[data-mvp="1"] .fb__score em span{color:#1A1A1A;}
-  .fb__line{margin:12px 0 0; font-size:13px; line-height:20px; font-weight:600; word-break:keep-all;}
-  .fb__rows{margin-top:auto; width:100%; display:flex; flex-direction:column; gap:4px; padding-top:10px; border-top:1px solid currentColor;
-    border-top-color:color-mix(in srgb, currentColor 35%, transparent);}
-  .fb__rows p{margin:0; display:flex; justify-content:space-between; font-size:12px; line-height:18px; font-weight:600;}
-  .fb__rows b{font-weight:800; font-variant-numeric:tabular-nums;}
-  .fb__note{margin-top:6px; font-size:10px; line-height:14px; opacity:.6;}
-  .fb__empty{margin:auto 0; font-size:14px; line-height:22px; font-weight:600; word-break:keep-all;}
-  .fb__empty small{display:block; margin-top:4px; font-size:12px; line-height:18px; opacity:.7;}
+  .fb__line{margin:1em 0 0; font-size:1.3em; line-height:1.5; font-weight:600; word-break:keep-all; overflow-wrap:anywhere;}
+  .fb__rows{position:relative; margin-top:auto; width:100%; display:flex; flex-direction:column; gap:.3em; padding-top:.9em;}
+  .fb__rows::before{content:''; position:absolute; left:0; right:0; top:0; height:1px; background:currentColor; opacity:.35;}
+  .fb__rows p{margin:0; display:flex; justify-content:space-between; align-items:center; gap:.6em; font-size:1.2em; line-height:1.5; font-weight:600;}
+  .fb__rows b{display:inline-flex; align-items:center; gap:.3em; font-weight:800; font-variant-numeric:tabular-nums; white-space:nowrap;}
+  .fb__arrow{display:inline-block; width:.45em; height:.45em; border-top:2px solid currentColor; border-right:2px solid currentColor; transform:rotate(45deg); opacity:.7;}
+  .fb__note{margin:.5em 0 0; font-size:1em; line-height:1.4; opacity:.6;}
+  .fb__empty{margin:auto 0; font-size:1.4em; line-height:1.55; font-weight:600; word-break:keep-all;}
+  .fb__empty small{display:block; margin-top:.3em; font-size:.85em; line-height:1.5; opacity:.7;}
 
   .pcard__shine{transform:none;}
   .pcard__photo,.squad-tile__fig{
@@ -5373,7 +5377,7 @@ function seasonLabel(code){ const n = parseInt(code, 10); if(!n || n >= 100) ret
       <p class="fb__line">${f.line}</p>
       <div class="fb__rows">
         <p><span>행운의 플레이</span><b>${f.luckyLabel} +${f.boost}</b></p>
-        <p><span>오늘의 종합</span><b>${base} → ${today}</b></p>
+        <p><span>오늘의 종합</span><b>${base}<i class="fb__arrow" aria-label="에서"></i>${today}</b></p>
       </div>
       <p class="fb__note">재미로 보는 운세예요</p>`;
   }
@@ -5460,22 +5464,32 @@ function seasonLabel(code){ const n = parseInt(code, 10); if(!n || n >= 100) ret
   card.addEventListener('animationend', e=>{ if(e.target === card) card.classList.remove('reveal'); });
 
   // 탭하면 뒤집기 · 옆으로 크게 밀어도 뒤집기 · 살짝 끌면 기울이기
+  let axis = '';   // 끄는 방향 — 'x'(카드 기울이기·뒤집기) / 'y'(화면 스크롤)
   card.addEventListener('pointerdown', e=>{
-    dragging = true; lastX = e.clientX; lastY = e.clientY; moved = 0; sumDx = 0;
-    card.setPointerCapture(e.pointerId);
+    dragging = true; lastX = e.clientX; lastY = e.clientY; moved = 0; sumDx = 0; axis = '';
+    try{ card.setPointerCapture(e.pointerId); }catch(err){}
   });
+  // iOS Safari — 가로로 끌기 시작하면 화면이 같이 스크롤되지 않게 막아요 (세로면 그대로 스크롤)
+  let tsx = 0, tsy = 0;
+  card.addEventListener('touchstart', e=>{ const t = e.touches[0]; tsx = t.clientX; tsy = t.clientY; }, { passive:true });
+  card.addEventListener('touchmove', e=>{
+    const t = e.touches[0], dx = Math.abs(t.clientX - tsx), dy = Math.abs(t.clientY - tsy);
+    if(!axis && dx + dy > 6) axis = dx > dy ? 'x' : 'y';
+    if(axis === 'x' && e.cancelable) e.preventDefault();
+  }, { passive:false });
   card.addEventListener('pointermove', e=>{
     if(!dragging) return;
     const dx = e.clientX - lastX, dy = e.clientY - lastY;
     lastX = e.clientX; lastY = e.clientY;
     moved += Math.abs(dx) + Math.abs(dy); sumDx += dx;
-    if(!rot) return;
+    if(!axis && moved > 6) axis = Math.abs(sumDx) * 2 > moved ? 'x' : 'y';
+    if(!rot || axis === 'y') return;
     ry = Math.max(-28, Math.min(28, ry + dx * 0.35));
     rx = Math.max(-18, Math.min(18, rx - dy * 0.3));
   });
   const endDrag = ()=>{ dragging = false; t0 = performance.now(); };
   card.addEventListener('pointerup', e=>{
-    if(dragging && (moved < 8 || Math.abs(sumDx) > 70)) setFlip(flip === 0);
+    if(dragging && (moved < 12 || (axis === 'x' && Math.abs(sumDx) > 60))) setFlip(flip === 0);
     endDrag();
   });
   card.addEventListener('keydown', e=>{
