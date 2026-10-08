@@ -624,6 +624,12 @@
     transition:opacity .3s var(--ease-out), transform .3s var(--ease-out);
   }
   .mvp-confirm[disabled]{opacity:.45;}
+  /* .btn{position:relative}(아래 공통 규칙)가 sticky를 덮어서 버튼이 84px 위로 밀려 카드와 겹치던 문제 */
+  .btn.mvp-confirm{position:sticky;}
+  /* 카드 위에 떠 있을 때 비쳐 보이지 않게 — 비활성도 불투명 */
+  .btn.mvp-confirm[disabled]{opacity:1; background:#E4E6EA; color:#8A8F98; box-shadow:none;}
+  /* MVP 버튼이 화면에 있으면 응원 버튼을 그 위로 올려요 (겹침 방지) */
+  .cheer-fab,.cheer-phrase{transition:bottom .25s var(--ease-out), transform .18s var(--ease-spring), opacity .25s var(--ease-out);}
   .mvp-rank{display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid rgba(20,18,15,.06);}
   .mvp-rank:last-child{border-bottom:none;}
   .mvp-rank__pos{width:18px; font-size:14px; font-weight:600; color:var(--ink-faint); text-align:center; flex-shrink:0; line-height:20px}
@@ -2644,7 +2650,7 @@ const CONFIG = {
   DATA_MODE: 'local', // 'local' = 기기 내 데모 저장 · 'api' = 아래 API_BASE 연동
   API_BASE: '', // 예: 'https://wm-api.yourname.workers.dev'
   // 기록 API(okman-stats Worker) 주소 — DATA_MODE와 따로 동작해요. 비워두면 샘플 기록을 보여줘요.
-  STATS_API: 'https://okman-stats.okgroup0425.workers.dev', // 예: 'https://okman-stats.<계정>.workers.dev'
+  STATS_API: '', // 예: 'https://okman-stats.<계정>.workers.dev'
 
   MATCH: {
     home: 'OK저축은행 읏맨',
@@ -3791,6 +3797,7 @@ tabButtons.forEach(btn=>{
         ${picked ? `${playerName(playerByNum(picked))}에게 투표하기` : '선수를 골라주세요'}
       </button>`;
     note.textContent = '선수 한 명에게만 투표할 수 있어요.';
+    watchBar(document.getElementById('mvp-confirm'));
 
     list.querySelectorAll('.pick-player').forEach(btn=>{
       btn.addEventListener('click', ()=>{
@@ -3817,7 +3824,37 @@ tabButtons.forEach(btn=>{
     });
   }
 
+  // MVP 버튼이 화면에 보이는 동안 응원 버튼을 그 바로 위로 올려서 겹치지 않게 해요
+  //  (버튼이 하단에 붙어 있을 때도, 맨 아래로 내려 원래 자리에 있을 때도)
+  let barIO = null, barEl = null, barOn = false, barRaf = 0;
+  const fab = document.querySelector('.cheer-fab'), phrase = document.querySelector('.cheer-phrase');
+  function placeFab(){
+    barRaf = 0;
+    if(!fab) return;
+    if(!barOn || !barEl){ fab.style.bottom = ''; if(phrase) phrase.style.bottom = ''; return; }
+    fab.style.bottom = '';
+    const base = parseFloat(getComputedStyle(fab).bottom) || 0;           // 원래 자리
+    const r = barEl.getBoundingClientRect();
+    const need = innerHeight - r.top + 12;                                // 버튼 위 12px
+    const fr = fab.getBoundingClientRect();
+    const hit = fr.left < r.right && fr.right > r.left;                   // 가로로 겹칠 때만
+    const b = hit ? Math.max(base, need) : base;
+    fab.style.bottom = b + 'px';
+    if(phrase) phrase.style.bottom = (b + 62) + 'px';
+  }
+  const queueFab = ()=>{ if(barOn && !barRaf) barRaf = requestAnimationFrame(placeFab); };
+  addEventListener('scroll', queueFab, { passive:true, capture:true });   // PC는 #app 안에서 스크롤돼서 capture
+  addEventListener('resize', queueFab);
+  function watchBar(el){
+    if(barIO) barIO.disconnect();
+    barEl = el; barOn = false; placeFab();
+    if(!el || !('IntersectionObserver' in window)) return;
+    barIO = new IntersectionObserver(([e])=>{ barOn = e.isIntersecting; placeFab(); });
+    barIO.observe(el);
+  }
+
   function renderResult(){
+    watchBar(null);
     const total = Object.values(counts).reduce((a, b)=> a + b, 0);
     const ranked = candidates()
       .map(p=> ({ p, c: counts[p.num] || 0 }))
