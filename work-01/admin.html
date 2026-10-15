@@ -229,6 +229,8 @@
   </div>
 </div>
 <div class="toast" id="toast"></div>
+<!-- 엑셀 불러오기용 파일 선택 — 5초 새로고침으로 다시 그려지는 화면(#main) 밖에 둬야 파일 고르는 동안 사라지지 않아요 -->
+<input type="file" id="sv-file" accept=".xlsx,.xls,.csv" hidden>
 <div class="modal" id="modal" hidden role="dialog" aria-modal="true"><div class="modal__box" id="modal-box"></div></div>
 
 <script>
@@ -601,9 +603,9 @@ function surveyAgg(it, rows){
   return out;
 }
 /* 설문 결과 카드 — 유형별 */
-function textList(title, list){
+function textList(title, list, key){
   if(!list.length) return '';
-  return `<details class="tlist"><summary>${title} ${list.length}건</summary>${list.slice().sort((a, b) => (b.at || 0) - (a.at || 0)).map(x => `<p>${esc(x.t)}<span>${time(x.at)}</span></p>`).join('')}</details>`;
+  return `<details class="tlist" data-open-key="${esc(key || title)}"><summary>${title} ${list.length}건</summary>${list.slice().sort((a, b) => (b.at || 0) - (a.at || 0)).map(x => `<p>${esc(x.t)}<span>${time(x.at)}</span></p>`).join('')}</details>`;
 }
 function surveyCard(q){
   const head = `<h2 style="align-items:flex-start;"><span>${esc(q.id != null ? q.id + '. ' : '')}${esc(q.q)}</span><span class="muted" style="font-size:13px; font-weight:600; white-space:nowrap;">응답 ${fmt(q.n)}명</span></h2>
@@ -629,7 +631,7 @@ function surveyCard(q){
   }
   else bodyHtml = bars(q.counts, { order:q.order || undefined, base:q.n, multi:q.type === 'multi' })
     + (q.type === 'multi' ? '<p class="desc" style="margin-top:6px;">복수 선택이라 비율의 합이 100%를 넘을 수 있어요 (응답자 대비).</p>' : '');
-  return `<section class="card">${head}${bodyHtml}${textList("'기타' 직접 입력", q.etc || [])}${textList('자유 의견', q.memo || [])}</section>`;
+  return `<section class="card">${head}${bodyHtml}${textList("'기타' 직접 입력", q.etc || [], 'etc:' + q.id)}${textList('자유 의견', q.memo || [], 'memo:' + q.id)}</section>`;
 }
 function vTabs(kind, list, extra){
   const sel = DR.tab && DR.tab[kind];
@@ -744,6 +746,8 @@ function render(){
     document.querySelectorAll('#main input[id], #main select[id], #main textarea[id]').forEach(el=> keep[el.id] = el.value);
     ['rf-result', 'code-result'].forEach(id=>{ if($(id)) keepHtml[id] = $(id).innerHTML; });
   }
+  // 펼쳐 둔 목록은 새로고침해도 펼친 채로 (같은 화면일 때)
+  const openKeys = render.last === page ? [...document.querySelectorAll('#main details[open][data-open-key]')].map(d => d.dataset.openKey) : [];
   render.last = page;
   const S = stats(); window.__S = S;
   const count = { cheer:fmt(D.total), predict:S.pred.count, mvp:S.mvpRank.reduce((a, b) => a + b.n, 0), survey:(D.subs.survey || []).length,
@@ -752,6 +756,7 @@ function render(){
   $('main').innerHTML = (VIEWS[page] || VIEWS.dash)(S);
   Object.entries(keep).forEach(([id, v])=>{ const el = $(id); if(el) el.value = v; });
   Object.entries(keepHtml).forEach(([id, h])=>{ if($(id)) $(id).innerHTML = h; });
+  openKeys.forEach(k => { const d = document.querySelector(`#main details[data-open-key="${CSS.escape(k)}"]`); if(d) d.open = true; });
   (AFTER[page] || (()=>{}))(S);
 }
 $('nav').addEventListener('click', e=>{ const b = e.target.closest('[data-page]'); if(!b) return; page = b.dataset.page; render(); scrollTo(0, 0); });
@@ -1167,8 +1172,7 @@ const VIEWS = {
     const liveCard = live
       ? `<section class="card"><h2><span>${esc(live.title || '제목 없는 설문')} <span class="chip">${vLabel(live.v)}</span> <span class="chip ${live.source === 'match' ? '' : 'ok'}">${live.source === 'match' ? '이 경기만 따로 지정' : '보관함 기본 설문'}</span></span>
           ${live.source === 'match' ? `<button class="btn small ghost" data-act="lib-match-reset">보관함 기본 설문으로 되돌리기</button>` : ''}</h2>
-          <p class="desc">${esc(mid())} 경기 관람객에게 지금 나가는 설문이에요 · ${live.items.length}문항 · 응답 ${fmt(n)}명 · 같은 설문이 다시 나가면 같은 버전으로 묶여요.</p>
-          <details class="tlist"><summary>문항 ${live.items.length}개 보기</summary>${svList(live.items)}</details></section>`
+          <p class="desc">${esc(mid())} 경기 관람객에게 지금 나가는 설문이에요 · ${live.items.length}문항 · 응답 ${fmt(n)}명 · 같은 설문이 다시 나가면 같은 버전으로 묶여요. 문항은 아래 보관함의 '미리보기'로 볼 수 있어요.</p></section>`
       : `<section class="card"><h2>지금 나가는 설문 <span class="chip off">비상용 기본 문항</span></h2>
           <p class="desc">보관함에 기본 설문이 없어서 짧은 기본 문항 ${SURV_DEF.length}개가 나가고 있어요. 아래 보관함에서 엑셀로 불러오고 '기본으로 지정'을 눌러주세요.</p></section>`;
 
@@ -1188,7 +1192,7 @@ const VIEWS = {
     const libCard = `<section class="card">
       <h2>설문 보관함 <span class="muted" style="font-size:12px; font-weight:600;">시즌 전체 공통</span></h2>
       <div class="opts" style="margin:0 0 6px;">
-        <label class="btn small dark" style="display:inline-flex; align-items:center; cursor:pointer;">엑셀로 불러오기<input type="file" id="sv-file" accept=".xlsx,.xls,.csv" hidden></label>
+        <button class="btn small dark" data-act="sv-import">엑셀로 불러오기</button>
         <button class="btn small ghost" data-act="lib-new">새 설문 만들기</button>
       </div>
       <p class="desc">'기본'으로 지정한 설문이 모든 경기에 나가요(경기에 따로 내보낸 설문이 있으면 그게 먼저). 엑셀 열: 번호 · 문항 · 응답 유형 · 선택지 · 기타.</p>
@@ -1385,6 +1389,7 @@ document.addEventListener('click', e=>{
       closeModal();
       return saveLib({ surveys:[...LIB.surveys, e], defaultId:makeDef ? e.id : LIB.defaultId }, makeDef ? `'${title}'을 보관함에 넣고 기본 설문으로 지정했어요. 관람객 화면엔 1분 안에 보여요.` : `'${title}'을 보관함에 넣었어요.`);
     }
+    case 'sv-import': loadXlsx().catch(()=>{}); return $('sv-file').click();   // 엑셀 도구도 미리 불러둬요
     case 'lib-new': DR.svEdit = { id:'', title:'' }; DR.survey = [{ id:'1', q:'', type:'single', options:['', '', ''] }]; return render();
     case 'lib-edit': { const e = libIdx(i); if(!e) return; DR.svEdit = { id:e.id, title:e.title }; DR.survey = clone(e.items); scrollTo(0, 0); return render(); }
     case 'lib-preview': { const e = libIdx(i); if(!e) return;
