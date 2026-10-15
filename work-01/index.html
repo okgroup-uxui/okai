@@ -3622,11 +3622,18 @@ if(TEST_MATCH){
   document.body.appendChild(tag);
 }
 
+// 상단 경기 정보의 날짜 — 10.15 (목) 19:00
+function fmtMatchDate(d, withTime){
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getMonth() + 1}.${d.getDate()} (${'일월화수목금토'[d.getDay()]})${withTime ? ` ${p(d.getHours())}:${p(d.getMinutes())}` : ''}`;
+}
+
 (function renderMatchbar(){
   document.getElementById('mb-home').textContent = CONFIG.MATCH.home;
   document.getElementById('mb-away').textContent = CONFIG.MATCH.away;
   document.getElementById('mb-venue').textContent = CONFIG.MATCH.venue;
-  document.getElementById('mb-date').textContent = CONFIG.MATCH.date || '경기 일시 입력 필요';
+  // 테스트 경기(?match=)는 일정표와 연결되지 않으니, 관리자 시작 시각이 오기 전까진 오늘 날짜를 보여줘요
+  document.getElementById('mb-date').textContent = CONFIG.MATCH.date || (TEST_MATCH ? fmtMatchDate(new Date(), false) : '경기 일시 입력 필요');
 })();
 
 /* ================================================================
@@ -4095,7 +4102,17 @@ if(TEST_MATCH){
   const phase = ()=> forced || livePhase() || (start && Date.now() >= start.getTime() ? 'live' : 'before');
   window.__matchPhase = phase;
   LIVE.on('state', st=>{
-    if(st.start && !CONFIG.MATCH.start){ const d = new Date(st.start); if(!isNaN(d)){ start = d; adminStart = true; } }
+    if(st.start && !CONFIG.MATCH.start){
+      const d = new Date(st.start);
+      if(!isNaN(d)){
+        start = d; adminStart = true;
+        // 관리자 대시보드 '경기 시작 시각'이 있으면 상단 경기 정보 날짜도 그 시각으로 보여줘요
+        if(!CONFIG.MATCH.date){
+          document.getElementById('mb-date').textContent = fmtMatchDate(d, true);
+          if(TEST_MATCH) document.getElementById('mb-venue').textContent = CONFIG.MATCH.venue;
+        }
+      }
+    }
     current = null; apply();
   });
 
@@ -4166,6 +4183,7 @@ if(TEST_MATCH){
       window.__applyDayMode && window.__applyDayMode();
     }
     if(!games || !games.length || CONFIG.MATCH.start) return;
+    if(TEST_MATCH) return;            // 테스트 경기엔 실제 일정(다음 경기 날짜·상대)을 섞지 않아요
     const keepStart = adminStart;
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const day = g=> new Date(g.date + 'T00:00:00');
@@ -4175,9 +4193,11 @@ if(TEST_MATCH){
     if(!keepStart) start = new Date(`${g.date}T${g.time || '19:00'}:00`);
     const d = day(g);
     document.getElementById('mb-away').textContent = g.opponent;
-    document.getElementById('mb-date').textContent =
-      `${d.getMonth() + 1}.${d.getDate()} (${'일월화수목금토'[d.getDay()]})${g.time ? ' ' + g.time : ''}`;
-    document.getElementById('mb-venue').textContent = g.home ? CONFIG.MATCH.venue : '원정 경기';
+    if(!keepStart){   // 관리자가 시작 시각을 넣었으면 그 날짜가 우선이에요
+      document.getElementById('mb-date').textContent =
+        `${d.getMonth() + 1}.${d.getDate()} (${'일월화수목금토'[d.getDay()]})${g.time ? ' ' + g.time : ''}`;
+      document.getElementById('mb-venue').textContent = g.home ? CONFIG.MATCH.venue : '원정 경기';
+    }
     window.__matchHome = !!g.home;
     current = null; apply();
     window.__aiPredictRefresh && window.__aiPredictRefresh();
@@ -5411,6 +5431,7 @@ const ROULETTE_ASSETS = {
     if(urlDay === 'on' || urlDay === 'off') return urlDay === 'on';
     const m = CONTENT.get().open || 'auto';
     if(m === 'on' || m === 'off') return m === 'on';
+    if(TEST_MATCH) return true;   // 테스트 경기는 기본으로 경기 있는 화면
     return window.__homeToday !== false;
   }
   window.__applyDayMode = ()=>{
