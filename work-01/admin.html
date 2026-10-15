@@ -86,6 +86,14 @@
   .stack{display:flex; height:12px; border-radius:6px; overflow:hidden; background:var(--fill); min-width:120px;}
   .stack i{display:block; height:100%; background:var(--brand);}
   .rltab td{vertical-align:middle;} .rltab input[type=checkbox]{width:16px; height:16px; accent-color:var(--brand);}
+  .settabs{display:flex; gap:4px; padding:4px; margin:0 0 16px; border-radius:12px; background:var(--fill); width:max-content; max-width:100%; overflow-x:auto;}
+  .settabs button{height:36px; padding:0 16px; border-radius:9px; font-size:14px; font-weight:700; color:var(--ink-dim); white-space:nowrap;}
+  .settabs button.on{background:#fff; color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .chip.role-owner{background:#FFF1EC; color:var(--brand-dark);} .chip.role-manager{background:#EEF4FF; color:#2557C8;} .chip.role-staff{background:var(--fill); color:var(--ink-dim);}
+  .roles{display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin:4px 0 12px;}
+  .roles div{padding:10px 12px; border-radius:10px; background:var(--bg);}
+  .roles p{font-size:12px; line-height:18px; color:var(--ink-dim); margin-top:6px;}
+  @media (max-width:880px){ .roles{grid-template-columns:1fr;} }
   .who{font-size:13px; font-weight:700; color:var(--ink-dim); margin-right:4px;}
   .check{display:grid; grid-template-columns:1fr 1fr; gap:6px;}
   .check__i{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; background:var(--bg); font-size:13px; line-height:18px;}
@@ -271,14 +279,14 @@ const mid = () => $('match').value || today();
 function toast(msg, err){ const t = $('toast'); t.textContent = msg; t.className = 'toast show' + (err ? ' err' : ''); clearTimeout(t._t); t._t = setTimeout(()=> t.className = 'toast', 2200); }
 
 const ERR_TEXT = {
-  nothing_to_reset:'지울 항목을 골라주세요.', forbidden:'이 계정으로는 할 수 없는 작업이에요. 총괄 관리자에게 부탁해주세요.',
+  nothing_to_reset:'지울 항목을 골라주세요.', forbidden:'이 계정 권한으로는 할 수 없는 작업이에요. 총괄 관리자에게 부탁해주세요.',
   bad_user_id:'아이디는 영문·숫자 3~30자로 넣어주세요.', duplicate_user:'같은 아이디가 있어요.', weak_password:'비밀번호는 8자 이상으로 넣어주세요.',
   password_required:'새 계정은 비밀번호가 필요해요.', wrong_password:'지금 비밀번호가 맞지 않아요.', env_owner_password:'총괄 관리자 비밀번호는 Cloudflare 환경변수(ADMIN_KEY)에서 바꿔요.',
   roulette_needs_8:'룰렛은 8칸이 모두 있어야 해요.', roulette_all_zero:'확률이 모두 0이에요. 하나 이상 넣어주세요.', home_too_large:'이미지가 너무 커요. 더 작은 이미지를 써주세요.', busy:'서버가 잠시 바빠요. 조금 뒤 다시 눌러주세요.', content_too_large:'등록하려는 내용이 너무 커요. 출석 이미지 수를 줄여주세요.',
   library_too_large:'보관함이 너무 커요. 안 쓰는 설문을 지워주세요.', code_required:'코드를 입력해주세요.',
 };
 // 이 관리자 화면이 기대하는 서버 버전 (index.js의 SERVER_VERSION)
-const SERVER_NEED = '2026-10-15.ops';
+const SERVER_NEED = '2026-10-16.roles';
 async function call(method, path, body){
   const res = await fetch(`${base()}/admin/${path}`, {
     method, headers:{ 'Content-Type':'application/json', 'X-Admin-Id': uid(), 'X-Admin-Key': key() },
@@ -519,12 +527,22 @@ $('logout').addEventListener('click', ()=>{ sessionStorage.removeItem('adm_id');
 if(uid() && key()) start().catch(()=>{});
 
 let ME = { role:'owner', name:'' };
+// 권한 — owner 총괄 관리자 · manager 일반 관리자 · staff 부스 담당 (서버 index.js의 OWNER_ONLY와 맞춰요)
+const ROLE_NAME = { owner:'총괄 관리자', manager:'일반 관리자', staff:'부스 담당' };
+const ROLE_DESC = {
+  owner:'전부 — 계정 관리 · 데이터 초기화 · 응모 삭제 · 룰렛·배너(경품·확률)까지',
+  manager:'경기 운영 전부 — 경기 진행·설문·예측·MVP·추첨·전광판·금칙어 (초기화·계정·룰렛 경품은 빼고)',
+  staff:'조회 + 교환 코드 처리만 (부스용)',
+};
 const isOwner = () => ME.role === 'owner';
+const isStaff = () => ME.role === 'staff';
+const isAdmin = () => !isStaff();   // 총괄·일반
 async function start(){
   const { matches } = await call('GET', '_/matches');
   try{ ME = await call('GET', '_/me'); }catch(e){ ME = { id:uid(), name:uid(), role:'owner' }; }   // 예전 서버엔 없어요
-  $('who').textContent = `${ME.name || ME.id}${ME.role === 'owner' ? '' : ' · 부스'}`;
-  if(!isOwner()) page = 'codes';
+  const nm = ME.name || ME.id, rn = ROLE_NAME[ME.role] || ME.role;
+  $('who').textContent = nm === rn ? nm : `${nm} · ${rn}`;
+  if(isStaff()) page = 'codes';
   const ids = [...new Set([today(), ...Object.keys(matches || {})])].sort().reverse();
   MATCHES = ids;
   const want = new URLSearchParams(location.search).get('match');
@@ -796,8 +814,8 @@ function render(){
   const S = stats(); window.__S = S;
   const count = { cheer:fmt(D.total), predict:S.pred.count, mvp:S.mvpRank.reduce((a, b) => a + b.n, 0), survey:(D.subs.survey || []).length,
                   raffle:S.raffle.length, codes:S.rl.wins.length + (D.winners || []).length, checkin:S.ck.count, events:(D.events || []).filter(e => e.active !== false).length };
-  if(!isOwner() && !STAFF_PAGES.includes(page)) page = 'codes';
-  $('nav').innerHTML = PAGES.filter(([k]) => isOwner() || STAFF_PAGES.includes(k)).map(([k, t]) => `${k === 'settings' ? '<hr class="navsep">' : ''}<button class="${k === page ? 'on' : ''}" data-page="${k}">${t}${count[k] != null ? `<em>${count[k]}</em>` : ''}</button>`).join('');
+  if(isStaff() && !STAFF_PAGES.includes(page)) page = 'codes';
+  $('nav').innerHTML = PAGES.filter(([k]) => !isStaff() || STAFF_PAGES.includes(k)).map(([k, t]) => `${k === 'settings' ? '<hr class="navsep">' : ''}<button class="${k === page ? 'on' : ''}" data-page="${k}">${t}${count[k] != null ? `<em>${count[k]}</em>` : ''}</button>`).join('');
   const oldServer = D.serverVersion !== SERVER_NEED;
   $('main').innerHTML = (oldServer ? `<div class="winbox" style="background:#FFF1EC; color:#C2410C; margin:0 0 16px;"><b>서버(okman-live)가 최신 버전이 아니에요</b>
       <p style="font-size:13px; margin-top:4px;">지금 서버: ${esc(D.serverVersion || '버전 정보 없음(예전 버전)')} · 필요한 버전: ${SERVER_NEED}<br>설정 › 데이터 초기화, 설문 보관함, 접속자처럼 새로 넣은 기능이 '서버가 이 기능을 몰라요'로 실패해요. Cloudflare › okman-live › Edit code에 최신 index.js를 붙여넣고 Deploy해 주세요.</p></div>` : '')
@@ -1098,6 +1116,35 @@ function saveBoard(patch, msg){
   return act(()=> mcall('PUT', 'settings', { board:b }), msg);
 }
 
+/* 설정 › 데이터 초기화 (총괄 관리자) */
+function resetCard(S){
+  const sel = new Set(DR.reset || []);
+  const parts = resetParts(S);
+  const busy = mid() === today() && ((D.visits || {}).unique || 0) > 0;
+  return `<section class="card">
+      <h2>데이터 초기화 <span class="muted" style="font-size:13px; font-weight:600;">${esc(mid())}</span></h2>
+      <p class="desc">리허설이나 테스트가 끝나면 실제 경기 전에 비워주세요. 고른 항목만 지워요. 관람객 휴대폰에 남은 이 경기 진행 기록(미션 완료·설문 답·응모 등)도 다음에 화면을 열거나 20~30초 안에 같이 지워져요. 지운 데이터는 되돌릴 수 없어요.</p>
+      ${busy ? `<div class="winbox" style="background:#FFF1EC; color:#C2410C; margin:12px 0 0;"><b>오늘 경기예요</b><p style="font-size:13px; margin-top:4px;">지금까지 ${fmt(D.visits.unique)}명이 접속했어요. 경기 중에 지우면 관람객의 미션·응모 기록이 사라져요.</p></div>` : ''}
+      <div class="opts" style="margin:14px 0 6px;">
+        <button class="btn small ghost" data-act="rs-all">응답 데이터 모두 고르기</button>
+        <button class="btn small ghost" data-act="rs-none">선택 해제</button>
+        <span style="flex:1"></span>
+        <button class="btn small ghost" data-act="csv-survey">설문 CSV 받아두기</button>
+        <button class="btn small ghost" data-act="csv-predict">예측 CSV 받아두기</button>
+      </div>
+      <div class="rslist">${parts.map(p => `
+        <label class="rsrow${p.cfg ? ' cfg' : ''}${sel.has(p.k) ? ' on' : ''}">
+          <input type="checkbox" data-rs="${p.k}"${sel.has(p.k) ? ' checked' : ''}>
+          <span class="rsrow__t"><b>${p.t}</b>${p.m ? `<em>${esc(p.m)}</em>` : ''}</span>
+          <span class="rsrow__n">${p.n == null ? '설정' : `${fmt(p.n)}${p.u}`}</span>
+        </label>`).join('')}</div>
+      <div class="edfoot"><span class="muted" style="font-size:13px; align-self:center;">${sel.size ? `${sel.size}개 항목을 지워요` : '지울 항목을 골라주세요'}</span>
+        <button class="btn danger" data-act="rs-go"${sel.size ? '' : ' disabled'}>초기화</button></div>
+    </section>
+    <section class="card"><h2>지워지지 않는 것</h2>
+      <p class="desc">설문 보관함(시즌 공통) · 다른 경기 데이터 · 관리자 계정은 그대로예요. 경기 목록에서 이 경기 ID도 남아요.</p></section>`;
+}
+
 /* ================================================================
    설정 › 계정 · 내 비밀번호 · 닉네임 금칙어 · 작업 기록
    ================================================================ */
@@ -1123,7 +1170,8 @@ async function loadExtra(kind, force){
   render();
 }
 function accountCards(){
-  const me = `<section class="card"><h2>내 계정 <span class="muted" style="font-size:13px; font-weight:600;">${esc(ME.name || ME.id || '')} · ${ME.role === 'owner' ? '총괄 관리자' : '부스 담당'}</span></h2>
+  const me = `<section class="card"><h2>내 계정 <span class="muted" style="font-size:13px; font-weight:600;">${esc($('who').textContent)}</span></h2>
+    <p class="desc">할 수 있는 일: ${ROLE_DESC[ME.role] || ''}</p>
     <div class="form" style="grid-template-columns:1fr 1fr auto;">
       <div class="field" style="grid-column:auto;"><label for="pw-cur">지금 비밀번호</label><input id="pw-cur" type="password" autocomplete="current-password"></div>
       <div class="field" style="grid-column:auto;"><label for="pw-new">새 비밀번호 (8자 이상)</label><input id="pw-new" type="password" autocomplete="new-password"></div>
@@ -1132,15 +1180,17 @@ function accountCards(){
     <p class="muted" style="font-size:12px; margin-top:8px;">Cloudflare 환경변수로 만든 총괄 관리자 계정은 여기서 못 바꿔요 (ADMIN_KEY).</p></section>`;
   if(!isOwner()) return me;
   if(!EXTRA.users){ loadExtra('users'); return me + '<section class="card"><h2>관리자 계정</h2><p class="empty">불러오는 중…</p></section>'; }
-  const list = EXTRA.users.error ? `<p class="empty">${esc(EXTRA.users.error)}</p>` : (EXTRA.users.length ? EXTRA.users.map(u => `<div class="row"><div class="main"><p class="t">${esc(u.name)} <span class="chip ${u.role === 'owner' ? 'ok' : 'off'}">${u.role === 'owner' ? '총괄 관리자' : '부스 담당'}</span></p><p class="m">아이디 ${esc(u.id)} · ${time(u.at)} 생성</p></div>
-      <div class="acts"><button class="btn small ghost" data-act="user-pw" data-id="${esc(u.id)}">비밀번호 재설정</button><button class="btn small danger" data-act="user-del" data-id="${esc(u.id)}">삭제</button></div></div>`).join('') : '<p class="empty">아직 만든 계정이 없어요.</p>');
+  const list = EXTRA.users.error ? `<p class="empty">${esc(EXTRA.users.error)}</p>` : (EXTRA.users.length ? EXTRA.users.map(u => `<div class="row"><div class="main"><p class="t">${esc(u.name)} <span class="chip role-${esc(u.role)}">${ROLE_NAME[u.role] || u.role}</span></p><p class="m">아이디 ${esc(u.id)} · ${time(u.at)} 생성</p></div>
+      <div class="acts"><select class="in" style="height:32px; width:auto;" data-urole="${esc(u.id)}" aria-label="${esc(u.name)} 권한">${Object.entries(ROLE_NAME).map(([k, t]) => `<option value="${k}"${u.role === k ? ' selected' : ''}>${t}</option>`).join('')}</select>
+        <button class="btn small ghost" data-act="user-pw" data-id="${esc(u.id)}">비밀번호 재설정</button><button class="btn small danger" data-act="user-del" data-id="${esc(u.id)}">삭제</button></div></div>`).join('') : '<p class="empty">아직 만든 계정이 없어요.</p>');
   return me + `<section class="card"><h2>관리자 계정</h2>
-    <p class="desc">사람마다 계정을 따로 만들면 '작업 기록'에 누가 했는지 남아요. 부스 담당은 교환 코드 처리와 조회만 할 수 있어요.</p>
+    <p class="desc">사람마다 계정을 따로 만들면 '작업 기록'에 누가 했는지 남아요.</p>
+    <div class="roles">${Object.entries(ROLE_NAME).map(([k, t]) => `<div><span class="chip role-${k}">${t}</span><p>${ROLE_DESC[k]}</p></div>`).join('')}</div>
     ${list}
     <div class="form" style="grid-template-columns:1fr 1fr 1fr 1fr auto; margin-top:12px;">
       <div class="field" style="grid-column:auto;"><label for="nu-id">아이디</label><input id="nu-id" maxlength="30" placeholder="booth1"></div>
       <div class="field" style="grid-column:auto;"><label for="nu-name">이름</label><input id="nu-name" maxlength="20" placeholder="1층 부스"></div>
-      <div class="field" style="grid-column:auto;"><label for="nu-role">권한</label><select id="nu-role"><option value="staff">부스 담당</option><option value="owner">총괄 관리자</option></select></div>
+      <div class="field" style="grid-column:auto;"><label for="nu-role">권한</label><select id="nu-role"><option value="staff">부스 담당</option><option value="manager">일반 관리자</option><option value="owner">총괄 관리자</option></select></div>
       <div class="field" style="grid-column:auto;"><label for="nu-pw">비밀번호 (8자 이상)</label><input id="nu-pw" type="password" autocomplete="new-password"></div>
       <button class="btn" data-act="user-add" style="grid-column:auto; align-self:end;">추가</button>
     </div></section>`;
@@ -1220,7 +1270,8 @@ function homeView(){
       ${['title:제목', 'desc:설명', 'ios:App Store 링크 (아이폰)', 'android:Play 스토어 링크 (안드로이드)'].map(x => { const [k, t] = x.split(':'); return `<div class="field" style="margin-top:8px;"><label>${t}</label><input class="in" data-hb="app.${k}" value="${esc(H.app[k] || '')}"></div>`; }).join('')}
     </section>
   </div>
-  <div class="edfoot"><button class="btn ghost" data-act="home-reset">되돌리기</button><button class="btn" data-act="home-save">저장 (모든 경기)</button></div>`;
+  ${isOwner() ? `<div class="edfoot"><button class="btn ghost" data-act="home-reset">되돌리기</button><button class="btn" data-act="home-save">저장 (모든 경기)</button></div>`
+               : `<p class="muted" style="font-size:13px; margin-top:14px;">룰렛 경품·확률은 모든 경기에 영향을 줘서 총괄 관리자만 저장할 수 있어요. 바꿀 내용은 총괄 관리자에게 알려주세요.</p>`}`;
 }
 
 /* ================================================================
@@ -1334,7 +1385,7 @@ const VIEWS = {
     const st = D.settings || {}, phase = st.phase || 'auto';
     const top = S.mvpRank[0];
     return `<p class="page-title">대시보드 <button class="btn small ghost" data-act="report" style="vertical-align:4px; margin-left:6px;">경기 리포트 (엑셀)</button></p><p class="page-sub">${esc(mid())} 경기 · 참여 현황과 경기 진행을 한 곳에서 관리해요.</p>
-    ${isOwner() ? checklistCard(S) : ''}
+    ${isAdmin() ? checklistCard(S) : ''}
     ${visitCard(S)}
     <div class="kpis">
       <div class="kpi hot"><span>전체 응원</span><b>${fmt(D.total)}</b></div>
@@ -1423,7 +1474,7 @@ const VIEWS = {
         <div class="field full"><label>수령 장소</label><input id="pz-place" maxlength="40" placeholder="1층 OK저축은행 부스"></div>
         <button class="btn" data-act="pz-add">당첨 번호 추가</button>
       </div>
-      <div style="margin-top:14px; display:flex; justify-content:flex-end;"><button class="btn small danger" data-act="reset-cheer">응원 수·당첨 초기화 (리허설용)</button></div>
+      <div style="margin-top:14px; display:flex; justify-content:flex-end;">${isOwner() ? '<button class="btn small danger" data-act="reset-cheer">응원 수·당첨 초기화 (리허설용)</button>' : ''}</div>
     </section>`;
   },
 
@@ -1514,37 +1565,18 @@ const VIEWS = {
 
   /* ---------- 설정 ---------- */
   settings: S => {
-    if(!isOwner()) return `<p class="page-title">설정</p><p class="page-sub">부스 계정이에요 — 교환 코드 처리와 조회만 할 수 있어요.</p>${accountCards()}${auditCard()}`;
-    const sel = new Set(DR.reset || []);
-    const parts = resetParts(S);
-    const isToday = mid() === today();
-    const busy = isToday && ((D.visits || {}).unique || 0) > 0;
-    return `<p class="page-title">설정</p><p class="page-sub">${esc(mid())} 경기 · 리허설이나 테스트가 끝나면 실제 경기 전에 데이터를 비워주세요.</p>
-    <section class="card">
-      <h2>데이터 초기화 <span class="muted" style="font-size:13px; font-weight:600;">${esc(mid())}</span></h2>
-      <p class="desc">고른 항목만 지워요. 관람객 휴대폰에 남은 이 경기 진행 기록(미션 완료·설문 답·응모 등)도 다음에 화면을 열거나 20~30초 안에 같이 지워져요. 지운 데이터는 되돌릴 수 없어요.</p>
-      ${busy ? `<div class="winbox" style="background:#FFF1EC; color:#C2410C; margin:12px 0 0;"><b>오늘 경기예요</b><p style="font-size:13px; margin-top:4px;">지금까지 ${fmt(D.visits.unique)}명이 접속했어요. 경기 중에 지우면 관람객의 미션·응모 기록이 사라져요.</p></div>` : ''}
-      <div class="opts" style="margin:14px 0 6px;">
-        <button class="btn small ghost" data-act="rs-all">응답 데이터 모두 고르기</button>
-        <button class="btn small ghost" data-act="rs-none">선택 해제</button>
-        <span style="flex:1"></span>
-        <button class="btn small ghost" data-act="csv-survey">설문 CSV 받아두기</button>
-        <button class="btn small ghost" data-act="csv-predict">예측 CSV 받아두기</button>
-      </div>
-      <div class="rslist">${parts.map(p => `
-        <label class="rsrow${p.cfg ? ' cfg' : ''}${sel.has(p.k) ? ' on' : ''}">
-          <input type="checkbox" data-rs="${p.k}"${sel.has(p.k) ? ' checked' : ''}>
-          <span class="rsrow__t"><b>${p.t}</b>${p.m ? `<em>${esc(p.m)}</em>` : ''}</span>
-          <span class="rsrow__n">${p.n == null ? '설정' : `${fmt(p.n)}${p.u}`}</span>
-        </label>`).join('')}</div>
-      <div class="edfoot"><span class="muted" style="font-size:13px; align-self:center;">${sel.size ? `${sel.size}개 항목을 지워요` : '지울 항목을 골라주세요'}</span>
-        <button class="btn danger" data-act="rs-go"${sel.size ? '' : ' disabled'}>초기화</button></div>
-    </section>
-    ${accountCards()}
-    ${isOwner() ? nickBanCard() : ''}
-    ${auditCard()}
-    <section class="card"><h2>지워지지 않는 것</h2>
-      <p class="desc">설문 보관함(시즌 공통) · 다른 경기 데이터 · 관리자 계정은 그대로예요. 경기 목록에서 이 경기 ID도 남아요.</p></section>`;
+    // 탭: 데이터 초기화(총괄) · 계정 · 닉네임 금칙어(총괄·일반) · 작업 기록
+    const tabs = [
+      isOwner() && ['reset', '데이터 초기화'],
+      ['account', isOwner() ? '계정 관리' : '내 계정'],
+      isAdmin() && ['nickban', '닉네임 금칙어'],
+      ['audit', '작업 기록'],
+    ].filter(Boolean);
+    const tab = tabs.some(([k]) => k === DR.setTab) ? DR.setTab : tabs[0][0];
+    const body = { reset:() => resetCard(S), account:() => accountCards(), nickban:() => nickBanCard(), audit:() => auditCard() }[tab]();
+    return `<p class="page-title">설정</p><p class="page-sub">${esc($('who').textContent)} 계정으로 로그인했어요.</p>
+      <div class="settabs" role="tablist">${tabs.map(([k, t]) => `<button role="tab" aria-selected="${k === tab}" class="${k === tab ? 'on' : ''}" data-settab="${k}">${t}</button>`).join('')}</div>
+      ${body}`;
   },
 
   /* ---------- 경품 응모 · 추첨 ---------- */
@@ -1567,7 +1599,7 @@ const VIEWS = {
       ${saved.length ? saved.map(w => { const nm = w.nickname || w.contact; return `<div class="row"><div class="main"><p class="t">${esc(nm)}</p><p class="m">${esc(w.route || ({ predict:'예측', survey:'설문' })[w.source] || '')}${w.at ? ' · ' + time(w.at) + ' 응모' : ''}</p></div><button class="btn small ghost" data-copy="${esc(nm)}">복사</button></div>`; }).join('') : `<p class="empty">저장한 당첨자가 없어요.</p>`}
     </section>
     <section class="card">
-      <h2>응모 목록 <button class="btn small danger" data-act="rf-clear">응모 닉네임 삭제</button></h2>
+      <h2>응모 목록 ${isOwner() ? '<button class="btn small danger" data-act="rf-clear">응모 닉네임 삭제</button>' : ''}</h2>
       <p class="desc">전광판에 부적절한 닉네임이 나가지 않게, 추첨 전에 훑어보고 '추첨에서 빼기'를 눌러주세요. 금칙어가 들어간 닉네임은 응모 단계에서 막혀요.</p>
       ${S.raffle.length ? `<div class="scroll"><table><thead><tr><th>닉네임</th><th>경로</th><th>예측 정답</th><th>응모 시각</th><th></th></tr></thead><tbody>
         ${S.raffle.slice().sort((a, b) => (b.at || 0) - (a.at || 0)).map(r => { const hid = (D.raffleHidden || {})[r.device]; return `<tr class="${hid ? 'hid' : ''}"><td><b>${esc(r.name)}</b>${hid ? ' <span class="chip off">추첨 제외</span>' : ''}</td><td>${route(r)}</td><td>${S.pred.allCorrect.has(r.device) ? '<span class="chip ok">전부 정답</span>' : '<span class="muted">—</span>'}</td><td class="muted">${time(r.at)}</td><td><button class="btn small ghost" data-act="rf-hide" data-dev="${esc(r.device)}" data-h="${hid ? 0 : 1}">${hid ? '다시 넣기' : '추첨에서 빼기'}</button></td></tr>`; }).join('')}
@@ -1855,6 +1887,16 @@ document.addEventListener('click', e=>{
   const v = s.dataset.v;
   if(v === 'live' && !confirm('경기 시작으로 바꿀까요? 관람객 화면의 경기 예측이 마감되고 MVP 투표가 열려요.')) return;
   act(()=> mcall('PUT', 'settings', { phase:v }), { auto:'자동으로 바꿨어요.', before:'시작 전으로 바꿨어요.', live:'경기 시작! MVP 투표가 열렸어요.' }[v]);
+});
+document.addEventListener('click', e=>{
+  const t = e.target.closest('[data-settab]'); if(!t) return;
+  DR.setTab = t.dataset.settab; render();
+});
+document.addEventListener('change', e=>{
+  const sel = e.target.closest('[data-urole]'); if(!sel) return;
+  const id = sel.dataset.urole, role = sel.value;
+  if(!confirm(`${id} 계정을 '${ROLE_NAME[role]}'(으)로 바꿀까요?`)){ render(); return; }
+  saveUsers((EXTRA.users || []).map(x => ({ id:x.id, name:x.name, role:x.id === id ? role : x.role })), '권한을 바꿨어요.');
 });
 document.addEventListener('click', e=>{
   const t = e.target.closest('#board-scene [data-v]'); if(!t) return;

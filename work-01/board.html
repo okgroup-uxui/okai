@@ -41,7 +41,8 @@
   .steps{margin-top:4vh; display:flex; flex-direction:column; gap:1.6vh; font-size:3.2vh; font-weight:700;}
   .steps span{display:inline-flex; width:5vh; height:5vh; border-radius:50%; background:var(--brand); align-items:center; justify-content:center; margin-right:1.6vh; font-size:2.6vh;}
   /* 응원 */
-  .cheer .big{background:linear-gradient(180deg, #fff 30%, #FFC2A8); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  /* 그라데이션 글자는 움직이는 숫자(span) 자체에 줘야 해요 — 부모에 주면 transform 애니메이션 중인 자식 글자가 안 그려져요 */
+  .cheer .big .pulse{background:linear-gradient(180deg, #fff 30%, #FFC2A8); -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent;}
   .pulse{display:inline-block; animation:pulse 1.6s ease-in-out infinite;}
   @keyframes pulse{50%{transform:scale(1.03);}}
   /* MVP */

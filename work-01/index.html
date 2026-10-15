@@ -1214,6 +1214,7 @@
   .goods-card__ic{display:block; width:32px; height:32px; margin-bottom:8px;}
   .goods-card__ic svg{width:32px; height:32px;}
   .app-card{margin-top:12px;}
+  .rl-sub[hidden]{display:none;}
   .goods-card[hidden]{display:none;}
 
   /* ---------- 룰렛 — 밝은 카드형 ---------- */
@@ -5341,13 +5342,22 @@ const ROULETTE_ASSETS = {
     }
     return null;
   }
+  // 홈 상단 안내도 보너스 횟수에 맞게 (0이면 미션 보너스 이야기를 빼요)
+  function syncHomeSub(){
+    const el = document.querySelector('#view-home .pagesub'); if(!el) return;
+    const b = R.MISSION_BONUS;
+    el.dataset.text = b > 0 ? `미션을 채우면 룰렛 기회가 ${b === 1 ? '한 번' : b + '번'} 더 생겨요.` : '오늘의 직관 미션을 채우고 경품에 응모해보세요.';
+    if(!document.body.classList.contains('no-game')) el.textContent = el.dataset.text;
+  }
   function renderChances(){
     const c = chances();
     chanceEl.innerHTML = c.left > 0 ? `남은 기회 <b>${c.left}회</b>` : '오늘 기회를 모두 사용했어요';
     spinBtn.disabled = spinning || c.left === 0;
     subEl.textContent = c.bonusEarned
       ? '미션 보너스 기회까지 모두 받았어요.'
-      : `직관 미션 ${c.m.total - c.m.done}개를 더 채우면 1회 더 돌릴 수 있어요.`;
+      : R.MISSION_BONUS > 0 ? `직관 미션 ${c.m.total - c.m.done}개를 더 채우면 ${R.MISSION_BONUS}회 더 돌릴 수 있어요.` : '';
+    subEl.hidden = !subEl.textContent;
+    syncHomeSub();
     lastBtn.hidden = spinning || !lastValidWin();
   }
 
@@ -5697,7 +5707,7 @@ const ROULETTE_ASSETS = {
     const open = isOpen();
     document.body.classList.toggle('no-game', !open);
     card.hidden = open;
-    if(sub) sub.textContent = open ? subText : '선수 기록과 리그 순위는 언제든 볼 수 있어요.';
+    if(sub) sub.textContent = open ? (sub.dataset.text || subText) : '선수 기록과 리그 순위는 언제든 볼 수 있어요.';
     const nh = window.__nextHome;
     nextEl.hidden = open || !nh;
     if(nh){
