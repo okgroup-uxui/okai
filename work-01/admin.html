@@ -85,6 +85,16 @@
   .gtab td,.gtab th{white-space:nowrap;} .gtab .num{text-align:right;}
   .stack{display:flex; height:12px; border-radius:6px; overflow:hidden; background:var(--fill); min-width:120px;}
   .stack i{display:block; height:100%; background:var(--brand);}
+  .navsep{border:0; border-top:1px solid var(--line); margin:8px 4px;}
+  .rslist{display:flex; flex-direction:column; gap:6px;}
+  .rsrow{display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:12px; background:var(--bg); cursor:pointer;}
+  .rsrow input{width:18px; height:18px; accent-color:#DC2626; flex-shrink:0;}
+  .rsrow.on{background:#FEF2F2; box-shadow:inset 0 0 0 1px #FCA5A5;}
+  .rsrow.cfg{margin-top:8px; border:1px dashed var(--line); background:none;}
+  .rsrow.cfg.on{background:#FEF2F2;}
+  .rsrow__t{flex:1; display:flex; flex-direction:column; gap:2px; font-size:14px;}
+  .rsrow__t em{font-style:normal; font-size:12px; color:var(--ink-faint);}
+  .rsrow__n{font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink-dim);}
   .row .acts{display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px; max-width:60%;}
   .tlist{margin-top:12px; font-size:13px;}
   .tlist summary{cursor:pointer; font-weight:700; color:var(--ink-dim);}
@@ -725,6 +735,7 @@ function stats(){
 const PAGES = [
   ['dash', '대시보드'], ['events', '현장 이벤트'], ['cheer', '응원 이벤트'], ['predict', '경기 예측'],
   ['mvp', 'MVP 투표'], ['survey', '설문'], ['raffle', '경품 응모·추첨'], ['codes', '룰렛·교환 코드'], ['checkin', '출석체크'],
+  ['settings', '설정'],
 ];
 function render(){
   // 새로고침해도 입력 중인 값·추첨 결과·코드 확인 결과는 그대로 두기
@@ -737,7 +748,7 @@ function render(){
   const S = stats(); window.__S = S;
   const count = { cheer:fmt(D.total), predict:S.pred.count, mvp:S.mvpRank.reduce((a, b) => a + b.n, 0), survey:(D.subs.survey || []).length,
                   raffle:S.raffle.length, codes:S.rl.wins.length + (D.winners || []).length, checkin:S.ck.count, events:(D.events || []).filter(e => e.active !== false).length };
-  $('nav').innerHTML = PAGES.map(([k, t]) => `<button class="${k === page ? 'on' : ''}" data-page="${k}">${t}${count[k] != null ? `<em>${count[k]}</em>` : ''}</button>`).join('');
+  $('nav').innerHTML = PAGES.map(([k, t]) => `${k === 'settings' ? '<hr class="navsep">' : ''}<button class="${k === page ? 'on' : ''}" data-page="${k}">${t}${count[k] != null ? `<em>${count[k]}</em>` : ''}</button>`).join('');
   $('main').innerHTML = (VIEWS[page] || VIEWS.dash)(S);
   Object.entries(keep).forEach(([id, v])=>{ const el = $(id); if(el) el.value = v; });
   Object.entries(keepHtml).forEach(([id, h])=>{ if($(id)) $(id).innerHTML = h; });
@@ -968,6 +979,26 @@ document.addEventListener('click', e=>{
   $('match').value = r.dataset.goto; DR = {}; load(); scrollTo(0, 0);
 });
 
+/* ================================================================
+   설정 › 데이터 초기화 — 이 경기(경기 ID) 데이터만 지워요. 설문 보관함(시즌 공통)은 그대로예요.
+   ================================================================ */
+function resetParts(S){
+  const subN = t => (D.subs[t] || []).length;
+  return [
+    { k:'visits',   t:'접속자',                       n:(D.visits || {}).unique || 0, u:'명' },
+    { k:'cheer',    t:'응원 수 · 응원 당첨',           n:D.total || 0, u:'회', m:`당첨 ${(D.winners || []).length}건` },
+    { k:'checkin',  t:'출석체크 응답',                 n:subN('checkin'), u:'명' },
+    { k:'predict',  t:'경기 예측 응답 · 입력한 정답 · 버전 기록', n:subN('predictions'), u:'명' },
+    { k:'mvp',      t:'MVP 투표 · 확정한 MVP',          n:subN('mvp'), u:'표', m:D.settings && D.settings.mvp ? `확정: ${D.settings.mvp.name || '#' + D.settings.mvp.num}` : '' },
+    { k:'survey',   t:'설문 응답 · 버전 기록',          n:subN('survey'), u:'명', m:'보관함 설문은 남아요' },
+    { k:'raffle',   t:'경품 응모 닉네임 · 저장한 당첨자', n:subN('raffle_entry'), u:'건', m:`당첨자 ${(D.raffleWinners || []).length}명` },
+    { k:'roulette', t:'룰렛 당첨 · 교환 처리 기록',     n:subN('roulette'), u:'건', m:`교환 처리 ${Object.keys(D.redeemed || {}).length}건` },
+    { k:'config',   t:'이 경기 설정',                   n:null, cfg:true,
+      m:'현장 이벤트 · 응원 당첨 번호 · 경기 진행/시작 시각 · 이 경기에만 지정한 설문·예측 문항 · 오늘 운영 · 미션 순서' },
+  ];
+}
+const DATA_PARTS = ['visits', 'cheer', 'checkin', 'predict', 'mvp', 'survey', 'raffle', 'roulette'];
+
 /* 대시보드 — 오늘 운영 · 홈 미션 순서 */
 function dayCard(){
   const open = CT().open || 'auto';
@@ -1165,6 +1196,37 @@ const VIEWS = {
     </section>`;
     return `${head}<p class="page-sub">응답 ${fmt(n)}명 · 설문은 보관함에 여러 개 넣어두고 골라서 내보내요. 나간 설문은 경기마다 버전으로 따로 집계돼요.</p>
       ${liveCard}${libCard}${results}`;
+  },
+
+  /* ---------- 설정 ---------- */
+  settings: S => {
+    const sel = new Set(DR.reset || []);
+    const parts = resetParts(S);
+    const isToday = mid() === today();
+    const busy = isToday && ((D.visits || {}).unique || 0) > 0;
+    return `<p class="page-title">설정</p><p class="page-sub">${esc(mid())} 경기 · 리허설이나 테스트가 끝나면 실제 경기 전에 데이터를 비워주세요.</p>
+    <section class="card">
+      <h2>데이터 초기화 <span class="muted" style="font-size:13px; font-weight:600;">${esc(mid())}</span></h2>
+      <p class="desc">고른 항목만 지워요. 관람객 휴대폰에 남은 이 경기 진행 기록(미션 완료·설문 답·응모 등)도 다음에 화면을 열거나 20~30초 안에 같이 지워져요. 지운 데이터는 되돌릴 수 없어요.</p>
+      ${busy ? `<div class="winbox" style="background:#FFF1EC; color:#C2410C; margin:12px 0 0;"><b>오늘 경기예요</b><p style="font-size:13px; margin-top:4px;">지금까지 ${fmt(D.visits.unique)}명이 접속했어요. 경기 중에 지우면 관람객의 미션·응모 기록이 사라져요.</p></div>` : ''}
+      <div class="opts" style="margin:14px 0 6px;">
+        <button class="btn small ghost" data-act="rs-all">응답 데이터 모두 고르기</button>
+        <button class="btn small ghost" data-act="rs-none">선택 해제</button>
+        <span style="flex:1"></span>
+        <button class="btn small ghost" data-act="csv-survey">설문 CSV 받아두기</button>
+        <button class="btn small ghost" data-act="csv-predict">예측 CSV 받아두기</button>
+      </div>
+      <div class="rslist">${parts.map(p => `
+        <label class="rsrow${p.cfg ? ' cfg' : ''}${sel.has(p.k) ? ' on' : ''}">
+          <input type="checkbox" data-rs="${p.k}"${sel.has(p.k) ? ' checked' : ''}>
+          <span class="rsrow__t"><b>${p.t}</b>${p.m ? `<em>${esc(p.m)}</em>` : ''}</span>
+          <span class="rsrow__n">${p.n == null ? '설정' : `${fmt(p.n)}${p.u}`}</span>
+        </label>`).join('')}</div>
+      <div class="edfoot"><span class="muted" style="font-size:13px; align-self:center;">${sel.size ? `${sel.size}개 항목을 지워요` : '지울 항목을 골라주세요'}</span>
+        <button class="btn danger" data-act="rs-go"${sel.size ? '' : ' disabled'}>초기화</button></div>
+    </section>
+    <section class="card"><h2>지워지지 않는 것</h2>
+      <p class="desc">설문 보관함(시즌 공통) · 다른 경기 데이터 · 관리자 계정은 그대로예요. 경기 목록에서 이 경기 ID도 남아요.</p></section>`;
   },
 
   /* ---------- 경품 응모 · 추첨 ---------- */
@@ -1420,6 +1482,22 @@ document.addEventListener('click', e=>{
     case 'redeem': return act(()=> mcall('PUT', 'redeem', { code:b.dataset.code, redeemed:b.dataset.v === '1' }), b.dataset.v === '1' ? '교환 완료로 처리했어요.' : '교환 처리를 취소했어요.', true).then(()=>{ if($('code-result') && $('code-result').innerHTML) findCode(); });
     case 'code-find': return findCode();
     case 'csv-survey': return csvSurvey();
+    case 'rs-all': DR.reset = [...DATA_PARTS]; return render();
+    case 'rs-none': DR.reset = []; return render();
+    case 'rs-go': {
+      const parts = DR.reset || []; if(!parts.length) return;
+      const names = resetParts(S0()).filter(p => parts.includes(p.k)).map(p => `· ${p.t}`).join('<br>');
+      return openModal(`<div class="modal__head"><h3>데이터 초기화</h3><button class="modal__x" data-act="modal-x" aria-label="닫기">×</button></div>
+        <p class="desc"><b style="color:var(--ink);">${esc(mid())}</b> 경기의 아래 항목을 지워요. 되돌릴 수 없어요.</p>
+        <p style="font-size:14px; line-height:24px; margin:10px 0 14px;">${names}</p>
+        <div class="field"><label for="rs-confirm">확인을 위해 경기 ID <b>${esc(mid())}</b>를 입력해주세요</label><input class="in" id="rs-confirm" autocomplete="off" placeholder="${esc(mid())}"></div>
+        <div class="modal__foot"><button class="btn ghost" data-act="modal-x">취소</button><button class="btn danger" id="rs-do" data-act="rs-do" disabled>지우기</button></div>`);
+    }
+    case 'rs-do': {
+      if(val('rs-confirm').trim() !== mid()) return toast('경기 ID가 맞지 않아요.', true);
+      const parts = DR.reset || []; closeModal();
+      return act(()=> mcall('POST', 'reset', { parts }).then(r =>{ DR.resetDone = r.deleted; }), '초기화했어요. 관람객 휴대폰 기록도 20~30초 안에 지워져요.').then(ok =>{ if(ok){ DR.reset = []; DR.predict = null; render(); } });
+    }
     case 'csv-predict': return csvPredict();
   }
 });
@@ -1455,6 +1533,9 @@ document.addEventListener('input', e=>{
     else if(f === 'low' || f === 'high') q[f] = t.value;
     else if(f === 'max') q.max = Number(t.value) || 0;
     else if(f === 'type'){ setSvType(q, t.value); render(); }
+  } else if(t.dataset.rs){
+    const set = new Set(DR.reset || []); t.checked ? set.add(t.dataset.rs) : set.delete(t.dataset.rs); DR.reset = [...set]; render();
+  } else if(t.id === 'rs-confirm'){ $('rs-do').disabled = t.value.trim() !== mid();
   } else if(t.id === 'sv-title' && DR.svEdit){ DR.svEdit.title = t.value;
   } else if(t.dataset.ck && MOD){
     const q = MOD.qs[MOD.i];

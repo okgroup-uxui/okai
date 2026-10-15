@@ -3198,7 +3198,7 @@ const LIVE = (function(){
         state = { events:(CONFIG.LIVE_DEMO || {}).events || [], total:Number(localStorage.getItem(DEMO_TOTAL)) || 0, phase:'auto', mvp:undefined, start:'' };
       } else {
         const d = await (await fetch(`${base}/live/${encodeURIComponent(MATCH_KEY)}`)).json();
-        state = { events:d.events || [], total:(d.cheer || {}).total || 0, phase:d.phase || 'auto', mvp:d.mvp || null, start:d.start || '', content:d.content || null };
+        state = { events:d.events || [], total:(d.cheer || {}).total || 0, phase:d.phase || 'auto', mvp:d.mvp || null, start:d.start || '', content:d.content || null, epoch:Number(d.epoch) || 0 };
       }
       emit('state', state);
     }catch(e){}
@@ -3378,6 +3378,23 @@ const CONTENT = (function(){
   const ver = k => { const c = cur || {}; return Array.isArray(c[k]) && c[k].length && c[k + 'Ver'] ? Number(c[k + 'Ver'].v) || 0 : 0; };
   return { get:()=> cur || {}, onChange:f=> hooks.push(f), ver };
 })();
+
+/* 관리자 › 설정 › 데이터 초기화 — 서버의 epoch(초기화 시각)가 바뀌면,
+   이 휴대폰에 남은 이 경기 진행 기록(미션·설문 답·응모 등)도 지우고 한 번 새로고침해요. 기기 ID는 그대로 둬요. */
+LIVE.on('state', st=>{
+  if(!st.epoch) return;
+  const K = 'wm_epoch__' + MATCH_KEY;
+  let prev = 0; try{ prev = Number(localStorage.getItem(K)) || 0; }catch(e){}
+  if(prev === st.epoch) return;
+  try{ localStorage.setItem(K, String(st.epoch)); }catch(e){}
+  if(!prev && !Object.keys(LOCAL).length) return;          // 처음 들어온 휴대폰 — 지울 게 없어요
+  try{
+    [STORAGE_KEY, 'wm_content__' + MATCH_KEY, 'wm_demo_cheer_total__' + MATCH_KEY].forEach(k=> localStorage.removeItem(k));
+    sessionStorage.removeItem('wm_visit__' + MATCH_KEY);
+  }catch(e){}
+  LOCAL = {};
+  location.reload();
+});
 
 async function fetchData(path){
   if(CONFIG.DATA_MODE === 'api'){ const res = await fetch(`${CONFIG.API_BASE}/matches/${MATCH_KEY}/${path}`); return res.json(); }
