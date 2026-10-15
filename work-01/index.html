@@ -2122,6 +2122,8 @@
 
   /* 홈 경기가 없는 날 */
   .no-game-card{display:flex; flex-direction:column; align-items:center; text-align:center; padding:32px 20px 28px; border-radius:20px; background:var(--surface); margin-bottom:16px;}
+  .test-tag{position:fixed; top:calc(6px + var(--court-h)); left:50%; transform:translateX(-50%); z-index:200; pointer-events:none;
+    padding:4px 10px; border-radius:100px; background:#161C26; color:#FFD339; font-size:11px; line-height:16px; font-weight:700; opacity:.92;}
   .no-game-card[hidden],.no-game-card__next[hidden]{display:none;}
   .no-game-card__ic svg{width:56px; height:56px;}
   .no-game-card__t{margin:14px 0 0; font-size:18px; line-height:26px; font-weight:700; color:var(--ink);}
@@ -3131,7 +3133,10 @@ const CONFIG = {
 /* ================================================================
    데이터 계층 — 경기(MATCH_ID)별로 분리해서 저장합니다.
    ================================================================ */
-const MATCH_KEY = CONFIG.MATCH_ID || (()=>{ const t = new Date(); return new Date(t.getTime() - t.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); })();   // 한국 날짜 기준 (admin과 동일)
+// 테스트용 경기 ID — 주소 뒤에 ?match=test-1 을 붙이면 실제 경기와 데이터가 섞이지 않는 별도 경기로 들어가요.
+//  관리자 페이지에서 같은 경기 ID를 고르면(+ 다른 경기 ID 입력) 그 경기만 따로 제어·집계할 수 있어요.
+const TEST_MATCH = (new URLSearchParams(location.search).get('match') || '').replace(/[^\w-]/g, '').slice(0, 64);
+const MATCH_KEY = TEST_MATCH || CONFIG.MATCH_ID || (()=>{ const t = new Date(); return new Date(t.getTime() - t.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); })();   // 한국 날짜 기준 (admin과 동일)
 const STORAGE_KEY = 'wm_guide_v1__' + MATCH_KEY;
 const MATCH_REGISTRY_KEY = 'wm_guide_matches_v1';
 
@@ -3608,6 +3613,14 @@ tabButtons.forEach(btn=>{
     navigate(btn.dataset.view);
   });
 });
+
+// 테스트 경기로 들어왔을 때 — 화면 위에 작게 표시해서 실제 경기와 헷갈리지 않게
+if(TEST_MATCH){
+  const tag = document.createElement('div');
+  tag.className = 'test-tag'; tag.setAttribute('role', 'status');
+  tag.textContent = `테스트 경기 · ${TEST_MATCH}`;
+  document.body.appendChild(tag);
+}
 
 (function renderMatchbar(){
   document.getElementById('mb-home').textContent = CONFIG.MATCH.home;

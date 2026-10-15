@@ -200,6 +200,7 @@
     <h1>읏배구놀이터 <span>관리자</span></h1>
     <div class="sp"></div>
     <select id="match" aria-label="경기 선택"></select>
+    <a class="btn small ghost" id="open-site" target="_blank" rel="noopener" title="이 경기 ID로 관람객 화면을 새 창에서 열어요" style="display:inline-flex; align-items:center; text-decoration:none;">관람객 화면 ↗</a>
     <span class="auto" id="auto"><i></i>5초마다 새로고침</span>
     <button class="btn small ghost" id="logout">나가기</button>
   </div>
@@ -361,7 +362,10 @@ $('match').addEventListener('change', ()=>{
   load();
 });
 
+// 관람객 화면 열기 — 지금 고른 경기 ID로 (오늘 날짜가 아니면 ?match= 로 그 경기에 들어가요)
+function syncSiteLink(){ const id = mid(); $('open-site').href = 'index.html' + (id === today() ? '' : '?match=' + encodeURIComponent(id)); }
 async function load(quiet){
+  syncSiteLink();
   try{ D = await mcall('GET'); render(); }
   catch(e){ if(!quiet) toast(e.message, true); }
 }
