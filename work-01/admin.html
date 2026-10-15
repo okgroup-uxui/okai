@@ -223,6 +223,7 @@ const fmt = n => Number(n || 0).toLocaleString();
 const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
 const today = () => { const t = new Date(); return new Date(t.getTime() - t.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
 const time = ts => ts ? new Date(ts).toLocaleString('ko-KR', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
+const fmtStart = v => { const d = new Date(v); if(isNaN(d)) return v; const p = n => String(n).padStart(2, '0'); return `${d.getMonth() + 1}.${d.getDate()} (${'일월화수목금토'[d.getDay()]}) ${p(d.getHours())}:${p(d.getMinutes())}`; };
 const hm = v => v ? v.replace('T', ' ').slice(5, 16) : '';
 const mask = c => { c = String(c || ''); if(c.includes('@')){ const [a, b] = c.split('@'); return a.slice(0, 2) + '***@' + b; } const d = c.replace(/\D/g, ''); return d.length >= 8 ? `${d.slice(0, 3)}-****-${d.slice(-4)}` : c.replace(/\d/g, '*'); };
 
@@ -723,7 +724,8 @@ const VIEWS = {
         </div>
         <div class="form" style="grid-template-columns:1fr auto;">
           <div class="field" style="grid-column:auto;"><label>경기 시작 시각 (자동일 때 기준 · 비우면 일정표 기준)</label><input id="start" type="datetime-local" value="${esc(st.start || '')}"></div>
-          <button class="btn dark" id="save-start" style="grid-column:auto; align-self:end;">저장</button>
+          <p class="muted" style="grid-column:1 / -1; font-size:12px;">${st.start ? `저장된 시각: <b style="color:var(--ink);">${esc(fmtStart(st.start))}</b> · 관람객 화면 상단 날짜와 '예측 마감까지'가 이 시각 기준이에요 <button class="btn small ghost" data-act="clear-start" style="margin-left:6px;">지우기</button>` : '저장된 시각이 없어요. 날짜와 시각을 모두 넣고 저장해주세요.'}</p>
+          <button class="btn dark" id="save-start" data-act="save-start" style="grid-column:auto; align-self:end;">저장</button>
         </div>
       </section>
       <section class="card">
@@ -948,7 +950,14 @@ document.addEventListener('click', e=>{
     case 'mvp-set': if(!confirm(`#${b.dataset.num} ${b.dataset.name} 선수를 MVP로 확정할까요?`)) return;
       return act(()=> mcall('PUT', 'settings', { mvp:{ num:Number(b.dataset.num), name:b.dataset.name, title:'MVP' } }), 'MVP를 확정했어요.');
     case 'mvp-clear': return act(()=> mcall('PUT', 'settings', { mvp:null }), 'MVP 카드를 해제했어요.');
-    case 'save-start': return act(()=> mcall('PUT', 'settings', { start:val('start') }), '시작 시각을 저장했어요.');
+    case 'save-start': {
+      const el = $('start');
+      // 날짜만 넣고 시각을 비우면 브라우저가 값을 빈칸으로 줘요 — 그대로 저장하면 지워지니 막아요
+      if(el.validity.badInput || !el.value) return toast('날짜와 시각(시·분, 오전/오후)을 모두 넣어주세요.', true);
+      return act(()=> mcall('PUT', 'settings', { start:el.value }), `시작 시각을 ${fmtStart(el.value)}로 저장했어요.`);
+    }
+    case 'clear-start': if(!confirm('저장한 시작 시각을 지울까요? 경기 일정표 기준으로 돌아가요.')) return;
+      return act(()=> mcall('PUT', 'settings', { start:'' }), '시작 시각을 지웠어요.');
     case 'ans-save': {
       // 지금 보는 버전의 정답만 바꾸고, 다른 버전 정답은 그대로 둬요
       const answers = { ...((D.settings || {}).answers || {}) };
