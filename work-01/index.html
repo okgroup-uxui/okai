@@ -1213,6 +1213,8 @@
   .raffle-title .tab-ic,.raffle-title .tab-ic svg{width:24px; height:24px;}
   .goods-card__ic{display:block; width:32px; height:32px; margin-bottom:8px;}
   .goods-card__ic svg{width:32px; height:32px;}
+  .app-card{margin-top:12px;}
+  .goods-card[hidden]{display:none;}
 
   /* ---------- 룰렛 — 밝은 카드형 ---------- */
   .rl-stage{
@@ -2305,6 +2307,18 @@
       </div>
       <div class="goods-card__figs" id="goods-figs" aria-hidden="true"></div>
     </a>
+
+    <!-- OK저축은행 앱 다운로드 — 휴대폰 종류에 맞는 스토어로 (관리자 › 룰렛·배너) -->
+    <a class="goods-card app-card" id="app-link" target="_blank" rel="noopener">
+      <div class="goods-card__text">
+        <span class="goods-card__ic" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><rect x="8" y="2.5" width="16" height="27" rx="4.5" fill="#FF571F"/><rect x="10.5" y="6" width="11" height="17" rx="1.6" fill="#FFE3D8"/><circle cx="16" cy="26" r="1.4" fill="#fff"/><path d="M16 9.6v8m0 0-3-3m3 3 3-3" stroke="#FF571F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <p class="goods-card__title" id="app-title">OK저축은행 앱 다운로드</p>
+        <p class="goods-card__desc" id="app-desc">앱에서 더 많은 혜택을 만나보세요.</p>
+        <span class="goods-card__cta" id="app-cta">앱스토어 바로가기
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+        </span>
+      </div>
+    </a>
   </div>
 
   <!-- ============ 안내 — 자리안내 · 막차안내 ============ -->
@@ -3139,6 +3153,8 @@ const CONFIG = {
     ],
     VOUCHER_HOURS: 0,   // 0이면 '다음 날 23:59'까지 교환권을 다시 보여줘요. 숫자를 넣으면 그 시간(시간 단위)만큼.
   },
+  // 앱 다운로드 배너 — 관리자 › 룰렛·배너에서 바꿀 수 있어요. ios/android 주소를 넣으면 휴대폰 종류에 맞게 열려요.
+  APP: { title:'OK저축은행 앱 다운로드', desc:'앱에서 더 많은 혜택을 만나보세요.', ios:'', android:'' },
   GOODS: {
     url: '',  // 굿즈샵 주소를 넣으면 카드가 그 링크로 열려요.
     title: '읏맨 공식 굿즈샵',
@@ -3201,7 +3217,7 @@ const LIVE = (function(){
         state = { events:(CONFIG.LIVE_DEMO || {}).events || [], total:Number(localStorage.getItem(DEMO_TOTAL)) || 0, phase:'auto', mvp:undefined, start:'' };
       } else {
         const d = await (await fetch(`${base}/live/${encodeURIComponent(MATCH_KEY)}`)).json();
-        state = { events:d.events || [], total:(d.cheer || {}).total || 0, phase:d.phase || 'auto', mvp:d.mvp || null, start:d.start || '', content:d.content || null, epoch:Number(d.epoch) || 0 };
+        state = { events:d.events || [], total:(d.cheer || {}).total || 0, phase:d.phase || 'auto', mvp:d.mvp || null, start:d.start || '', content:d.content || null, epoch:Number(d.epoch) || 0, opponent:d.opponent || '', home:d.home || null };
       }
       emit('state', state);
     }catch(e){}
@@ -3268,25 +3284,66 @@ const LIVE = (function(){
   }});
 
   // 참여 기록 보내기 — 관리자 페이지에서 집계해요 (predictions·survey·mvp·raffle_entry·roulette·checkin)
-  // 결과를 돌려줘요 — { ok:true } / { error:'nickname_taken' 등 } / { error:'network' }
-  async function submit(type, data){
+  // 결과를 돌려줘요 — { ok:true } / { error:'nickname_taken' 등 } / { error:'network', queued:true }
+  //  경기장 통신이 끊겨서 못 보냈으면(네트워크·서버 바쁨) 휴대폰 '우편함'에 넣어두고, 연결되면 다시 보내요.
+  //  같은 종류는 마지막 것만 남겨요 (서버도 기기당 마지막 응답으로 덮어써요). 경품 응모처럼 결과가 꼭 필요한 건 queue:false.
+  const OUTBOX = 'wm_outbox__' + MATCH_KEY;
+  const readBox = ()=>{ try{ return JSON.parse(localStorage.getItem(OUTBOX)) || {}; }catch(e){ return {}; } };
+  const writeBox = b=>{ try{ Object.keys(b).length ? localStorage.setItem(OUTBOX, JSON.stringify(b)) : localStorage.removeItem(OUTBOX); }catch(e){} };
+  async function post(type, data){
+    const r = await fetch(`${base}/live/${encodeURIComponent(MATCH_KEY)}/submit/${type}`, {
+      method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ device, data }),
+    });
+    const d = await r.json().catch(()=> ({}));
+    return r.ok ? { ok:true, ...d } : { ok:false, error:d.error || 'http_' + r.status, status:r.status };
+  }
+  async function submit(type, data, opts){
     if(demo) return { ok:true };
+    const queue = !opts || opts.queue !== false;
+    let res;
+    try{ res = await post(type, data); }catch(e){ res = { ok:false, error:'network' }; }
+    const retry = !res.ok && (res.error === 'network' || res.error === 'busy' || res.status >= 500 || res.status === 429);
+    const b = readBox();
+    if(res.ok){ if(b[type]){ delete b[type]; writeBox(b); } }
+    else if(retry && queue){ b[type] = { data, t:Date.now() }; writeBox(b); res.queued = true; }
+    return res;
+  }
+  let flushing = false;
+  async function flushOutbox(){
+    if(demo || flushing || (navigator.onLine === false)) return;
+    const b = readBox(); const types = Object.keys(b); if(!types.length) return;
+    flushing = true;
     try{
-      const r = await fetch(`${base}/live/${encodeURIComponent(MATCH_KEY)}/submit/${type}`, {
-        method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ device, data }),
-      });
-      const d = await r.json().catch(()=> ({}));
-      return r.ok ? { ok:true, ...d } : { ok:false, error:d.error || 'http_' + r.status };
-    }catch(e){ return { ok:false, error:'network' }; }
+      for(const type of types){
+        let res; try{ res = await post(type, b[type].data); }catch(e){ res = { ok:false, error:'network' }; }
+        const cur = readBox();
+        // 보냈거나, 다시 보내도 안 될 오류(형식·권한)면 우편함에서 빼요
+        if(res.ok || (res.status && res.status < 500 && res.status !== 429)){ if(cur[type] && cur[type].t === b[type].t){ delete cur[type]; writeBox(cur); } }
+        else break;
+      }
+    } finally { flushing = false; }
+  }
+  setTimeout(flushOutbox, 5000);
+  setInterval(flushOutbox, 15000);
+  window.addEventListener('online', ()=> setTimeout(flushOutbox, 800));
+
+  async function checkin(ans){ return submit('checkin', ans); }
+
+  // 화면을 닫을 때도 보낼 수 있게 (설문 진행 기록 등 — 실패해도 괜찮은 것만)
+  function beacon(type, data){
+    if(demo) return;
+    try{ navigator.sendBeacon(`${base}/live/${encodeURIComponent(MATCH_KEY)}/submit/${type}`, new Blob([JSON.stringify({ device, data })], { type:'text/plain' })); }catch(e){}
   }
 
-  async function checkin(ans){
-    if(demo) return;
+  // 룰렛 — 서버가 확률·남은 수량으로 뽑아요
+  async function spin(bonus){
     try{
-      await fetch(`${base}/live/${encodeURIComponent(MATCH_KEY)}/checkin`, {
-        method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ device, ...ans }),
+      const r = await fetch(`${base}/live/${encodeURIComponent(MATCH_KEY)}/spin`, {
+        method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ device, bonus:!!bonus }),
       });
-    }catch(e){}
+      const d = await r.json().catch(()=> ({}));
+      return r.ok ? d : { ok:false, error:d.error || 'http_' + r.status };
+    }catch(e){ return { ok:false, error:'network' }; }
   }
 
   // 접속 기록 — 관리자 대시보드 '접속자'용. 브라우저를 새로 열 때마다 한 번만, 몰리지 않게 0~4초 사이에 보내요.
@@ -3308,18 +3365,19 @@ const LIVE = (function(){
   setTimeout(refresh, 0);
   (function loop(){ setTimeout(()=>{ if(!document.hidden) refresh(); loop(); }, demo ? 60000 : 20000 + Math.random() * 10000); })();   // 4,000명이 같은 순간에 몰리지 않게 20~30초로 흩어요
   document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh(); });
-  // 경품 응모 닉네임 중복확인 — 서버가 아직 이 기능을 모르면(404 등) null을 돌려줘요
+  // 경품 응모 닉네임 확인 — { available, error } (error: nickname_banned 금칙어 · invalid_nickname)
+  //  서버가 아직 이 기능을 모르면(404 등) { available:null }
   async function nickCheck(name){
-    if(demo) return null;
+    if(demo) return { available:null };
     try{
       const r = await fetch(`${base}/live/${encodeURIComponent(MATCH_KEY)}/nick?name=${encodeURIComponent(name)}`);
-      if(!r.ok) return null;
+      if(!r.ok) return { available:null };
       const d = await r.json();
-      return typeof d.available === 'boolean' ? d.available : null;
-    }catch(e){ return null; }
+      return { available: typeof d.available === 'boolean' ? d.available : null, error:d.error || '' };
+    }catch(e){ return { available:null }; }
   }
 
-  return { on, tap, checkin, submit, refresh, nickCheck, get state(){ return state; }, get device(){ return device; }, demo };
+  return { on, tap, checkin, submit, refresh, nickCheck, spin, beacon, flushOutbox, get state(){ return state; }, get device(){ return device; }, demo };
 })();
 
 // 관리자 대시보드가 "지금까지 데이터가 쌓인 경기 목록"을 찾을 수 있도록
@@ -3381,6 +3439,15 @@ const CONTENT = (function(){
   const ver = k => { const c = cur || {}; return Array.isArray(c[k]) && c[k].length && c[k + 'Ver'] ? Number(c[k + 'Ver'].v) || 0 : 0; };
   return { get:()=> cur || {}, onChange:f=> hooks.push(f), ver };
 })();
+
+/* 관리자 대시보드 '상대팀' — 넣으면 상단 경기 정보와 AI 승부예측이 그 팀 기준이 돼요 */
+LIVE.on('state', st=>{
+  const opp = (st.opponent || '').trim();
+  if(opp === (window.__adminOpponent || '')) return;
+  window.__adminOpponent = opp;
+  if(opp){ const el = document.getElementById('mb-away'); if(el) el.textContent = opp; }
+  window.__aiPredictRefresh && window.__aiPredictRefresh();
+});
 
 /* 관리자 › 설정 › 데이터 초기화 — 서버의 epoch(초기화 시각)가 바뀌면,
    이 휴대폰에 남은 이 경기 진행 기록(미션·설문 답·응모 등)도 지우고 한 번 새로고침해요. 기기 ID는 그대로 둬요. */
@@ -4235,7 +4302,7 @@ function fmtMatchDate(d, withTime){
     if(!g) return;
     if(!keepStart) start = new Date(`${g.date}T${g.time || '19:00'}:00`);
     const d = day(g);
-    document.getElementById('mb-away').textContent = g.opponent;
+    if(!window.__adminOpponent) document.getElementById('mb-away').textContent = g.opponent;
     if(!keepStart){   // 관리자가 시작 시각을 넣었으면 그 날짜가 우선이에요
       document.getElementById('mb-date').textContent =
         `${d.getMonth() + 1}.${d.getDate()} (${'일월화수목금토'[d.getDay()]})${g.time ? ' ' + g.time : ''}`;
@@ -4265,10 +4332,26 @@ function fmtMatchDate(d, withTime){
     const d = LOCAL.survey_draft;
     if(d && d.ver === builtVer && d.n === qs.length){ A = d.A || {}; OTHER = d.OTHER || {}; MEMO = d.MEMO || {}; pos = d.pos || 0; }
     else { A = {}; OTHER = {}; MEMO = {}; pos = 0; }
+    far = pos;
     if(sub) sub.textContent = `오늘 직관은 어떠셨나요? ${qs.length > 8 ? '2~3분' : '1분'}이면 충분해요.`;
     render();
   }
   function saveDraft(){ LOCAL.survey_draft = { ver:builtVer, n:qs.length, A, OTHER, MEMO, pos }; saveLocal(LOCAL); }
+
+  // 설문 진행 기록 — 어디까지 왔는지(가장 멀리 간 문항)를 화면을 닫거나 다른 메뉴로 갈 때 한 번 보내요.
+  //  관리자 › 설문 '이탈 지점'에서 어느 문항에서 많이 그만두는지 봐요. 실패해도 괜찮은 기록이라 조용히 보내요.
+  let far = 0, sentSig = '';
+  function noteProgress(){ far = Math.max(far, pos); }
+  function sendProgress(){
+    if(LOCAL['survey'] || !Object.keys(A).length) return;
+    const list = visible(), q = list[Math.min(far, list.length - 1)];
+    const data = { ver:builtVer, reached:far + 1, n:list.length, last:q ? q.id : '', answered:Object.keys(A).length };
+    const sig = JSON.stringify(data); if(sig === sentSig) return;
+    sentSig = sig; LIVE.beacon('survey_progress', data);
+  }
+  document.addEventListener('visibilitychange', ()=>{ if(document.hidden) sendProgress(); });
+  window.addEventListener('pagehide', sendProgress);
+  document.addEventListener('wm:nav', e=>{ if(e.detail.view !== 'survey') sendProgress(); });
 
   // 앞 문항 답에 따라 보이는 문항만
   function condOk(c){
@@ -4346,7 +4429,7 @@ function fmtMatchDate(d, withTime){
       if(nav.dataset.nav === 'prev'){ hapticTick(); pos = Math.max(0, pos - 1); saveDraft(); render(); window.scrollTo({ top:0 }); return; }
       if(!answered(q)) return;
       const list = visible();
-      if(pos < list.length - 1){ hapticTick(); pos++; saveDraft(); render(); window.scrollTo({ top:0 }); return; }
+      if(pos < list.length - 1){ hapticTick(); pos++; noteProgress(); saveDraft(); render(); window.scrollTo({ top:0 }); return; }
       return submit(list);
     }
     const o = e.target.closest('.opt'), n = e.target.closest('.nps__b'), g = e.target.closest('.sg__b');
@@ -5194,8 +5277,8 @@ const ROULETTE_ASSETS = {
    9. 홈 — 행운의 룰렛 (Figma 디자인 · 경기당 기본 횟수 + 미션 완료 보너스)
    ================================================================ */
 (function initRoulette(){
-  const R = CONFIG.ROULETTE;
-  const prizes = R.PRIZES;
+  const R = { ...CONFIG.ROULETTE };   // 관리자 › 룰렛·배너(시즌 설정)가 오면 경품·횟수·안내문을 덮어써요
+  let prizes = R.PRIZES.slice();
   const A = ROULETTE_ASSETS;
   const wheelEl = document.getElementById('roulette-wheel');
   const wrap = document.getElementById('rl-wrap');
@@ -5215,13 +5298,30 @@ const ROULETTE_ASSETS = {
   // 휠 — 디스크 + 칸마다 경품 이미지 (칸 중심 = 12시 기준 시계방향 SEG/2, SEG*1.5 …)
   const N = prizes.length, SEG = 360 / N, ITEM_R = 25.56; // 반지름: 360 프레임에서 92px
   const center = i => i * SEG + SEG / 2;
-  wheelEl.innerHTML = `<img class="rl-wheel__disc" src="${A.disc}" alt="">` + prizes.map((p, i)=>{
-    const a = center(i) * Math.PI / 180;
-    const left = 50 + ITEM_R * Math.sin(a), top = 50 - ITEM_R * Math.cos(a);
-    return `<span class="rl-item" style="left:${left.toFixed(3)}%; top:${top.toFixed(3)}%"><img src="${A['item_' + p.img] || ''}" alt=""></span>`;
-  }).join('');
-  wheelEl.setAttribute('role', 'img');
-  wheelEl.setAttribute('aria-label', '룰렛 경품: ' + prizes.map(p=> p.miss ? '꽝' : p.title.replace('\n', ' ')).join(', '));
+  const itemSrc = p => p.image || A['item_' + p.img] || '';     // 관리자가 올린 이미지가 있으면 그걸로
+  function buildWheel(){
+    wheelEl.innerHTML = `<img class="rl-wheel__disc" src="${A.disc}" alt="">` + prizes.map((p, i)=>{
+      const a = center(i) * Math.PI / 180;
+      const left = 50 + ITEM_R * Math.sin(a), top = 50 - ITEM_R * Math.cos(a);
+      return `<span class="rl-item" style="left:${left.toFixed(3)}%; top:${top.toFixed(3)}%"><img src="${itemSrc(p)}" alt=""></span>`;
+    }).join('');
+    wheelEl.setAttribute('role', 'img');
+    wheelEl.setAttribute('aria-label', '룰렛 경품: ' + prizes.map(p=> p.miss ? '꽝' : String(p.title || '').replace('\n', ' ')).join(', '));
+  }
+  buildWheel();
+  // 시즌 룰렛 설정 — 8칸이 다 오면 바꿔요 (돌리는 중엔 기다렸다가)
+  let homeSig = '';
+  LIVE.on('state', st=>{
+    const r = st.home && st.home.roulette;
+    if(!r || !Array.isArray(r.prizes) || r.prizes.length !== N) return;
+    const sig = JSON.stringify(r); if(sig === homeSig || spinning) return;
+    homeSig = sig;
+    prizes = r.prizes.map(p=> ({ ...p }));
+    if(typeof r.base === 'number') R.BASE_SPINS = r.base;
+    if(typeof r.bonus === 'number') R.MISSION_BONUS = r.bonus;
+    if(r.notices && r.notices.length) document.getElementById('rlw-notice').innerHTML = r.notices.map(n=> `<li>${escHtml(n)}</li>`).join('');
+    buildWheel(); renderChances();
+  });
   wheelEl.style.transition = 'none';
   wheelEl.style.transform = `rotate(${state.rot}deg)`;
 
@@ -5279,7 +5379,7 @@ const ROULETTE_ASSETS = {
     document.getElementById('rlw-title').innerHTML = (p.title || '').split('\n').join('<br>');
     document.getElementById('rlw-desc').textContent = p.desc || '';
     const item = document.getElementById('rlw-item');
-    item.src = A['item_' + p.img] || '';
+    item.src = itemSrc(p);
     item.style.animation = 'none'; void item.offsetWidth; item.style.animation = '';
     winEl.classList.add('show');
     document.documentElement.style.overflow = 'hidden';
@@ -5355,13 +5455,30 @@ const ROULETTE_ASSETS = {
   document.getElementById('rlw-save').addEventListener('click', ()=>{ hapticTick(); saveVoucher(); });
 
   /* ---- 돌리기 ---- */
-  spinBtn.addEventListener('click', ()=>{
+  spinBtn.addEventListener('click', async ()=>{
     if(spinning || chances().left === 0) return;
     spinning = true; renderChances();
-    wrap.classList.add('rl-wrap-spin');
     if(navigator.vibrate) navigator.vibrate(15);
 
-    const idx = pickIndex();
+    // 서버가 확률·남은 수량으로 뽑고 교환 코드를 만들어요 (데모 모드에선 이 휴대폰에서)
+    let idx, serverWin = null;
+    if(LIVE.demo) idx = pickIndex();
+    else {
+      spinBtn.textContent = '돌리는 중…';
+      const res = await LIVE.spin(chances().bonusEarned);
+      spinBtn.textContent = '룰렛 돌리기';
+      if(!res.ok){
+        spinning = false;
+        if(res.error === 'no_spins'){ state.used = Math.max(state.used, R.BASE_SPINS + (chances().bonusEarned ? R.MISSION_BONUS : 0)); LOCAL.roulette = state; saveLocal(LOCAL); }
+        renderChances();
+        subEl.textContent = res.error === 'no_spins' ? '이 기기에선 오늘 기회를 모두 사용했어요.' : '연결이 불안정해요. 잠시 후 다시 눌러주세요. (기회는 그대로예요)';
+        return;
+      }
+      serverWin = res.win;
+      idx = prizes.findIndex(p=> p.id === serverWin.id);
+      if(idx < 0) idx = Math.min(prizes.length - 1, Math.max(0, serverWin.idx || 0));
+    }
+    wrap.classList.add('rl-wrap-spin');
     const jitter = (Math.random() - 0.5) * SEG * 0.6;
     const current = ((state.rot % 360) + 360) % 360;
     const targetMod = ((360 - center(idx) - jitter) % 360 + 360) % 360;
@@ -5374,11 +5491,13 @@ const ROULETTE_ASSETS = {
     setTimeout(()=>{
       spinning = false; wrap.classList.remove('rl-wrap-spin');
       const prize = prizes[idx];
-      const win = { id:prize.id, miss:!!prize.miss, code: prize.miss ? '' : makeCode(), ts:Date.now() };
+      const win = serverWin ? { id:serverWin.id, miss:!!serverWin.miss, code:serverWin.code || '', ts:serverWin.ts || Date.now() }
+                            : { id:prize.id, miss:!!prize.miss, code: prize.miss ? '' : makeCode(), ts:Date.now() };
       state.used += 1; state.rot = finalRot; state.wins.push(win);
       LOCAL.roulette = state; saveLocal(LOCAL);
       postData('roulette', state).catch(()=>{});
-      LIVE.submit('roulette', { wins: state.wins.map(w=> ({ ...w, title: w.miss ? '꽝' : String((prizes.find(p=> p.id === w.id) || {}).title || w.id).replace(/\n/g, ' ') })) });
+      // 서버가 이미 기록했어요 — 데모 모드에서만 따로 보내요
+      if(!serverWin) LIVE.submit('roulette', { wins: state.wins.map(w=> ({ ...w, title: w.miss ? '꽝' : String((prizes.find(p=> p.id === w.id) || {}).title || w.id).replace(/\n/g, ' ') })) });
       if(navigator.vibrate) navigator.vibrate(win.miss ? 20 : [30, 40, 30]);
       renderChances();
       setTimeout(()=> win.miss ? openLose() : openWin(win), 350);
@@ -5435,10 +5554,11 @@ const ROULETTE_ASSETS = {
     if(!name){ setHelp('닉네임을 입력해주세요.', 'err'); return; }
     if(!NICK_RE.test(name)){ setHelp('띄어쓰기·숫자·기호 없이 한글 또는 영문 10글자까지 쓸 수 있어요.', 'err'); return; }
     checking = true; checkBtn.disabled = true; setHelp('확인하고 있어요…');
-    const ok = await LIVE.nickCheck(name);   // true / false / null(서버가 아직 중복확인을 지원하지 않음)
+    const res = await LIVE.nickCheck(name);   // { available: true / false / null(서버가 아직 중복확인을 지원하지 않음), error }
     checking = false; checkBtn.disabled = false;
     if(input.value.trim() !== name) return;
-    if(ok === false){ checked = ''; submitBtn.disabled = true; setHelp('이미 다른 분이 쓰고 있는 닉네임이에요.', 'err'); return; }
+    if(res.error === 'nickname_banned'){ checked = ''; submitBtn.disabled = true; setHelp('쓸 수 없는 단어가 들어 있어요. 전광판에 나가니 다른 닉네임으로 해주세요.', 'err'); return; }
+    if(res.available === false){ checked = ''; submitBtn.disabled = true; setHelp('이미 다른 분이 쓰고 있는 닉네임이에요.', 'err'); return; }
     checked = name; submitBtn.disabled = false; setHelp('사용할 수 있는 닉네임이에요.', 'ok');
   }
 
@@ -5447,11 +5567,12 @@ const ROULETTE_ASSETS = {
     submitBtn.disabled = true; submitBtn.textContent = '응모하는 중…';
     const entry = { nickname:checked, source:'mission', predicted:!!LOCAL.predictions, surveyed:!!LOCAL.survey, round:window.__matchRound || '', at:Date.now() };
     // 서버가 최종 확인해요 — 중복확인 뒤 그새 다른 분이 같은 닉네임으로 응모했으면 다시 고르게 해요
-    const res = await LIVE.submit('raffle_entry', entry);
+    const res = await LIVE.submit('raffle_entry', entry, { queue:false });
     submitBtn.textContent = '응모하기';
     if(!res.ok){
       if(res.error === 'nickname_taken'){ checked = ''; setHelp('방금 다른 분이 이 닉네임으로 응모했어요. 다른 닉네임을 써주세요.', 'err'); }
       else if(res.error === 'invalid_nickname'){ checked = ''; setHelp('띄어쓰기·숫자·기호 없이 한글 또는 영문 10글자까지 쓸 수 있어요.', 'err'); }
+      else if(res.error === 'nickname_banned'){ checked = ''; setHelp('쓸 수 없는 단어가 들어 있어요. 전광판에 나가니 다른 닉네임으로 해주세요.', 'err'); }
       else { submitBtn.disabled = false; setHelp('응모가 잘 안 됐어요. 잠시 후 다시 눌러주세요.', 'err'); }
       return;
     }
@@ -5596,15 +5717,29 @@ const ROULETTE_ASSETS = {
    10. 홈 — 굿즈샵 링크 카드
    ================================================================ */
 (function initGoods(){
-  const G = CONFIG.GOODS || {};
   const link = document.getElementById('goods-link');
-  document.getElementById('goods-title').textContent = G.title || '굿즈샵';
-  document.getElementById('goods-desc').textContent = G.desc || '';
-  if(G.url){ link.href = G.url; }
-  else {
-    link.classList.add('disabled'); link.removeAttribute('href'); link.setAttribute('aria-disabled', 'true');
-    document.getElementById('goods-cta').firstChild.textContent = '링크 준비 중 ';
+  const app = document.getElementById('app-link');
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && 'ontouchend' in document);
+  function setLink(el, ctaId, url, label){
+    const cta = document.getElementById(ctaId);
+    if(url){ el.href = url; el.classList.remove('disabled'); el.removeAttribute('aria-disabled'); cta.firstChild.textContent = label + ' '; }
+    else { el.classList.add('disabled'); el.removeAttribute('href'); el.setAttribute('aria-disabled', 'true'); cta.firstChild.textContent = '링크 준비 중 '; }
   }
+  function apply(h){
+    const G = { ...(CONFIG.GOODS || {}), ...Object.fromEntries(Object.entries((h && h.goods) || {}).filter(([, v])=> v)) };
+    document.getElementById('goods-title').textContent = G.title || '굿즈샵';
+    document.getElementById('goods-desc').textContent = G.desc || '';
+    setLink(link, 'goods-cta', G.url, '굿즈샵 가기');
+    const P = { ...(CONFIG.APP || {}), ...Object.fromEntries(Object.entries((h && h.app) || {}).filter(([, v])=> v !== '' && v != null)) };
+    app.hidden = P.on === false;
+    document.getElementById('app-title').textContent = P.title || 'OK저축은행 앱 다운로드';
+    document.getElementById('app-desc').textContent = P.desc || '';
+    setLink(app, 'app-cta', isIOS ? (P.ios || P.android) : (P.android || P.ios), isIOS ? '앱스토어 바로가기' : '플레이스토어 바로가기');
+  }
+  apply(null);
+  let sig = '';
+  LIVE.on('state', st=>{ const x = JSON.stringify(st.home ? { g:st.home.goods, a:st.home.app } : null); if(x !== sig){ sig = x; apply(st.home); } });
   const figs = document.getElementById('goods-figs');
   [PLAYERS[9], PLAYERS[6]].filter(Boolean).forEach(p=>{
     const src = figureSrc(p);
