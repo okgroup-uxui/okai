@@ -3259,6 +3259,22 @@ const LIVE = (function(){
     }catch(e){}
   }
 
+  // 접속 기록 — 관리자 대시보드 '접속자'용. 브라우저를 새로 열 때마다 한 번만, 몰리지 않게 0~4초 사이에 보내요.
+  //  (서버가 기기 기준으로 중복을 걸러 '고유 접속자'를 세요)
+  (function visit(){
+    if(demo) return;
+    const KEY = 'wm_visit__' + MATCH_KEY;
+    try{ if(sessionStorage.getItem(KEY)) return; }catch(e){}
+    setTimeout(async ()=>{
+      try{
+        const r = await fetch(`${base}/live/${encodeURIComponent(MATCH_KEY)}/visit`, {
+          method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ device }),
+        });
+        if(r.ok) try{ sessionStorage.setItem(KEY, '1'); }catch(e){}
+      }catch(e){}
+    }, Math.random() * 4000);
+  })();
+
   setTimeout(refresh, 0);
   (function loop(){ setTimeout(()=>{ if(!document.hidden) refresh(); loop(); }, demo ? 60000 : 20000 + Math.random() * 10000); })();   // 4,000명이 같은 순간에 몰리지 않게 20~30초로 흩어요
   document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh(); });
@@ -3330,7 +3346,9 @@ const CONTENT = (function(){
     toConfig(cur);
     hooks.forEach(f=>{ try{ f(cur || {}); }catch(e){ console.error(e); } });
   });
-  return { get:()=> cur || {}, onChange:f=> hooks.push(f) };
+  // 지금 화면에 그린 문항의 버전 — 관리자 등록 전 기본 문항은 0
+  const ver = k => { const c = cur || {}; return Array.isArray(c[k]) && c[k].length && c[k + 'Ver'] ? Number(c[k + 'Ver'].v) || 0 : 0; };
+  return { get:()=> cur || {}, onChange:f=> hooks.push(f), ver };
 })();
 
 async function fetchData(path){
@@ -3932,7 +3950,9 @@ tabButtons.forEach(btn=>{
   const selections = {};
   const saved = LOCAL['predictions'];
 
+  let builtVer = 0;   // 이 화면에 그린 예측 문항의 버전 — 제출할 때 같이 보내요
   function build(){
+  builtVer = CONTENT.ver('predict');
   list.innerHTML = '';
   CONFIG.PREDICT_EVENTS.forEach(ev=>{
     const card = document.createElement('div');
@@ -4011,6 +4031,7 @@ tabButtons.forEach(btn=>{
       text: Object.fromEntries(CONFIG.PREDICT_EVENTS.map(ev=> [ev.id, ev.type === 'player'
         ? `#${selections[ev.id]} ${playerName(playerByNum(selections[ev.id]))}` : String(selections[ev.id])])),
       questions: CONFIG.PREDICT_EVENTS.map(ev=> ({ id:ev.id, q:ev.q })),
+      ver: builtVer,
     });
     lockPredictUI(selections);
   });
@@ -4159,11 +4180,13 @@ tabButtons.forEach(btn=>{
   const qs = CONFIG.SURVEY_QUESTIONS;          // 관리자 설문이 오면 이 배열 내용이 바뀌어요 (최대 5문항)
   let idx = 0;
   let answers = {};
+  let builtVer = 0;   // 이 화면에 그린 설문의 버전 — 제출할 때 같이 보내요
 
   if(LOCAL['survey']){ renderDone(); return; }
   build();
 
   function build(){
+    builtVer = CONTENT.ver('survey');
     body.innerHTML = '';
     idx = 0; answers = {};
     qs.forEach((q, i)=>{
@@ -4196,7 +4219,7 @@ tabButtons.forEach(btn=>{
           const list = qs.map((qq, j)=> ({ q:qq.q, a:answers[j] }));
           LOCAL['survey'] = answers; saveLocal(LOCAL);
           await postData('survey', answers);
-          LIVE.submit('survey', { answers: list });
+          LIVE.submit('survey', { answers: list, ver: builtVer });
           renderDone();
         }
         else { goTo(i+1); }

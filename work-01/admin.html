@@ -80,6 +80,28 @@
   .seg button{height:34px; padding:0 14px; border-radius:9px; font-size:14px; font-weight:600; color:var(--ink-dim);}
   .seg button.on{background:#fff; color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.06);}
   .seg button.on.live{background:var(--brand); color:#fff;}
+  .vtabs{display:flex; flex-wrap:wrap; margin-top:4px;}
+  /* 접속자 */
+  .visit{display:grid; grid-template-columns:minmax(220px, 1fr) 2fr; gap:24px; align-items:end;}
+  .visit__n{font-size:44px; line-height:52px; font-weight:800; color:var(--brand); font-variant-numeric:tabular-nums;}
+  .visit__n small{font-size:16px; font-weight:700; color:var(--ink); margin-left:2px;}
+  .visit__m{font-size:13px; line-height:20px; color:var(--ink-faint); margin-top:2px;}
+  .funnel{display:flex; flex-wrap:wrap; gap:6px; margin-top:14px;}
+  .funnel span{font-size:12px; font-weight:700; padding:4px 9px; border-radius:8px; background:var(--fill); color:var(--ink-dim);}
+  .funnel b{color:var(--ink); margin-left:3px; font-variant-numeric:tabular-nums;}
+  .hours{display:flex; align-items:flex-end; gap:4px; height:120px;}
+  .hours div{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:0;}
+  .hours i{display:block; width:100%; max-width:28px; border-radius:6px 6px 2px 2px; background:#FFB49A; min-height:2px;}
+  .hours div.peak i{background:var(--brand);}
+  .hours em{font-style:normal; font-size:11px; color:var(--ink-faint); margin-top:4px; font-variant-numeric:tabular-nums;}
+  .hours b{font-size:11px; font-weight:700; color:var(--ink-dim); margin-bottom:3px; font-variant-numeric:tabular-nums;}
+  .mtable tr[data-goto]{cursor:pointer;} .mtable tr[data-goto]:hover td{background:var(--bg);}
+  .mtable tr.cur td{background:var(--tint);}
+  .mtable .tr{display:block; height:8px; border-radius:4px; background:var(--fill); overflow:hidden; min-width:80px;}
+  .mtable .f{display:block; height:100%; background:var(--brand); border-radius:4px;}
+  @media (max-width:880px){ .visit{grid-template-columns:1fr;} }
+  .vtabs em{font-style:normal; font-size:12px; color:var(--ink-faint); margin-left:2px;}
+  .vtabs button.on em{color:var(--brand);}
 
   /* 막대 */
   .q{font-size:14px; font-weight:700; margin:16px 0 8px;}
@@ -204,6 +226,7 @@ const hm = v => v ? v.replace('T', ' ').slice(5, 16) : '';
 const mask = c => { c = String(c || ''); if(c.includes('@')){ const [a, b] = c.split('@'); return a.slice(0, 2) + '***@' + b; } const d = c.replace(/\D/g, ''); return d.length >= 8 ? `${d.slice(0, 3)}-****-${d.slice(-4)}` : c.replace(/\d/g, '*'); };
 
 let D = null, page = 'dash', timer = null, busy = false;
+let MATCHES = [];
 // 서버 주소는 고정 (관람객 화면 index.html의 LIVE_API와 같은 주소)
 const ADMIN_API = 'https://okman-live.okgroup0425.workers.dev';
 const base = () => ADMIN_API;
@@ -317,6 +340,7 @@ if(uid() && key()) start().catch(()=>{});
 async function start(){
   const { matches } = await call('GET', '_/matches');
   const ids = [...new Set([today(), ...Object.keys(matches || {})])].sort().reverse();
+  MATCHES = ids;
   const want = new URLSearchParams(location.search).get('match');
   if(want && !ids.includes(want)) ids.unshift(want);
   $('match').innerHTML = ids.map(id => `<option value="${id}">${id}${id === today() ? ' (오늘)' : ''}</option>`).join('')
@@ -345,27 +369,91 @@ async function load(quiet){
 /* ================================================================
    집계
    ================================================================ */
+/* ================================================================
+   설문 · 예측 버전 — 서버가 문항이 바뀔 때마다 v1, v2 … 를 매기고(history), 응답엔 그때 본 버전(ver)이 같이 저장돼요.
+   v0 = 관리자 등록 전 기본 문항 · '이전 응답' = 버전 기능 전에 쌓인 응답
+   ================================================================ */
+function buildVersions(kind, rows){
+  const hist = ((D.history || {})[kind]) || [];
+  const curHas = Array.isArray(CT()[kind]) && CT()[kind].length;
+  const cur = curHas ? (Number((CT()[kind + 'Ver'] || {}).v) || 0) : 0;
+  const map = new Map();
+  const add = (v, at, items) => { if(!map.has(v)) map.set(v, { v, at, items, rows:[] }); const x = map.get(v); if(items && !x.items) x.items = items; if(at && !x.at) x.at = at; return x; };
+  hist.forEach(h => add(h.v, h.at, h.items));
+  add(cur, null, null);
+  rows.forEach(r => { const d = r.data || {}; add(d.ver == null ? 'none' : Number(d.ver) || 0, null, null).rows.push(r); });
+  if(map.has(0) && !map.get(0).items) map.get(0).items = clone(kind === 'survey' ? SURV_DEF : PRED_DEF);
+  return [...map.values()].map(x => ({ ...x, current:x.v === cur }))
+    .sort((a, b) => (a.v === 'none') - (b.v === 'none') || (b.v === 'none' ? 0 : b.v - a.v));
+}
+const vLabel = v => v === 'none' ? '이전 응답' : v === 0 ? '기본 문항' : 'v' + v;
+const ansKey = (v, id) => (v === 'none' || v === 0) ? id : `v${v}_${id}`;
+function derivePredQs(rows, fallback){
+  const m = new Map();
+  for(const r of rows) for(const q of ((r.data || {}).questions) || []) if(!m.has(q.id)) m.set(q.id, { id:q.id, q:q.q });
+  if(!m.size && fallback) return fallback;
+  return [...m.values()];
+}
+function deriveSurvQs(rows){
+  const m = new Map();
+  for(const r of rows) for(const a of (r.data || {}).answers || []) if(!m.has(a.q)) m.set(a.q, { q:a.q, options:null });
+  return [...m.values()];
+}
+function vTabs(kind, list, extra){
+  const sel = DR.tab && DR.tab[kind];
+  const pick = list.some(v => String(v.v) === String(sel)) || (extra && sel === extra[0]) ? sel : String((list.find(v => v.current) || list[0] || {}).v);
+  DR.tab = { ...(DR.tab || {}), [kind]:pick };
+  return { pick, html:`<div class="seg vtabs">${list.map(v => `<button data-vtab="${kind}" data-v="${v.v}" class="${String(v.v) === pick ? 'on' : ''}">${vLabel(v.v)}${v.current ? ' · 지금' : ''} <em>${v.rows.length}</em></button>`).join('')}
+    ${extra ? `<button data-vtab="${kind}" data-v="${extra[0]}" class="${pick === extra[0] ? 'on' : ''}">${extra[1]}</button>` : ''}</div>` };
+}
+const vMeta = (v, unit) => `${vLabel(v.v)}${v.at ? ` · ${time(v.at)} 등록` : ''} · ${unit} ${fmt(v.rows.length)}명${v.current ? ' · 지금 관람객에게 나가는 문항' : ''}${v.v === 'none' ? ' · 버전 기능을 넣기 전에 쌓인 응답이에요' : ''}`;
+
+/* CSV 내려받기 — 엑셀에서 한글이 깨지지 않게 BOM을 붙여요 */
+function downloadCsv(name, rows){
+  const cell = v => { v = String(v ?? ''); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const text = '\ufeff' + rows.map(r => r.map(cell).join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type:'text/csv;charset=utf-8' }));
+  a.download = `읏배구놀이터_${name}_${mid()}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=> URL.revokeObjectURL(a.href), 4000);
+}
+const csvTime = ts => { if(!ts) return ''; const d = new Date(ts); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+function csvSurvey(){
+  const S = stats(), out = [['버전', '버전 등록 시각', '응답 시각', '기기', '문항 번호', '질문', '답변']];
+  for(const v of S.sv) for(const r of v.rows) ((r.data || {}).answers || []).forEach((a, i) => out.push([vLabel(v.v), csvTime(v.at), csvTime(r.at), String(r.device || '').slice(-6), i + 1, a.q, a.a]));
+  if(out.length === 1) return toast('아직 설문 응답이 없어요.', true);
+  downloadCsv('설문', out);
+}
+function csvPredict(){
+  const S = stats(), ans = (D.settings || {}).answers || {}, out = [['버전', '버전 등록 시각', '응답 시각', '기기', '질문', '예측', '정답', '맞힘']];
+  for(const v of S.pred.versions) for(const r of v.rows){
+    const t = (r.data || {}).text || {};
+    v.questions.forEach(q => { const a = ans[q.key] || ''; out.push([vLabel(v.v), csvTime(v.at), csvTime(r.at), String(r.device || '').slice(-6), q.q, t[q.id] || '', a, a ? (t[q.id] === a ? 'O' : 'X') : '']); });
+  }
+  if(out.length === 1) return toast('아직 예측 응답이 없어요.', true);
+  downloadCsv('경기예측', out);
+}
+
 function stats(){
   const s = D.subs || {};
-  // 경기 예측
-  const pred = { count:(s.predictions || []).length, questions:[], allCorrect:new Set() };
-  const qmap = new Map();
-  for(const r of s.predictions || []){
-    for(const q of (r.data && r.data.questions) || []) if(!qmap.has(q.id)) qmap.set(q.id, q.q);
-  }
-  for(const [id, q] of qmap){
-    const counts = {};
-    for(const r of s.predictions || []){ const v = ((r.data || {}).text || {})[id]; if(v) counts[v] = (counts[v] || 0) + 1; }
-    pred.questions.push({ id, q, counts });
-  }
+  // 경기 예측 — 버전별 (관리자가 문항을 바꿀 때마다 서버가 버전을 올려요)
   const answers = (D.settings || {}).answers || {};
-  const answered = Object.keys(answers).filter(k => answers[k]);
-  if(answered.length){
-    for(const r of s.predictions || []){
-      const t = (r.data || {}).text || {};
-      if(answered.every(k => t[k] === answers[k])) pred.allCorrect.add(r.device);
-    }
-  }
+  const pv = buildVersions('predict', s.predictions || []);
+  pv.forEach(v => {
+    const qs = v.v === 'none' || !v.items ? derivePredQs(v.rows, v.items) : v.items;
+    v.questions = qs.map(q => {
+      const counts = {};
+      for(const r of v.rows){ const x = ((r.data || {}).text || {})[q.id]; if(x) counts[x] = (counts[x] || 0) + 1; }
+      const opts = q.type === 'player' || !q.options ? null : q.options;
+      return { id:q.id, q:q.q, counts, key:ansKey(v.v, q.id), order: opts ? [...opts, ...Object.keys(counts).filter(k => !opts.includes(k))] : null };
+    });
+    const withAns = v.questions.filter(q => answers[q.key]);
+    v.answered = withAns.length;
+    v.allCorrect = new Set();
+    if(withAns.length) for(const r of v.rows){ const t = (r.data || {}).text || {}; if(withAns.every(q => t[q.id] === answers[q.key])) v.allCorrect.add(r.device); }
+  });
+  const pred = { count:(s.predictions || []).length, versions:pv, allCorrect:new Set(pv.flatMap(v => [...v.allCorrect])) };
   // MVP
   const mvp = {};
   for(const r of s.mvp || []){ const d = r.data || {}; if(d.num == null) continue; const k = String(d.num); mvp[k] = mvp[k] || { num:d.num, name:d.name || '', n:0 }; mvp[k].n++; }
@@ -375,6 +463,16 @@ function stats(){
   for(const r of s.survey || []) for(const a of (r.data || {}).answers || []){
     if(!sq.has(a.q)) sq.set(a.q, {}); const c = sq.get(a.q); if(a.a) c[a.a] = (c[a.a] || 0) + 1;
   }
+  const sv = buildVersions('survey', s.survey || []);
+  sv.forEach(v => {
+    const qs = v.items || deriveSurvQs(v.rows);
+    v.questions = qs.map(q => {
+      const counts = {};
+      for(const r of v.rows) for(const a of (r.data || {}).answers || []) if(a.q === q.q && a.a) counts[a.a] = (counts[a.a] || 0) + 1;
+      const o = q.options || null;
+      return { q:q.q, counts, order: o ? [...o, ...Object.keys(counts).filter(k => !o.includes(k))] : null };
+    });
+  });
   // 출석
   // 질문 key별로 집계 (관리자가 질문을 바꿔도 그대로 동작)
   const ck = { count:(s.checkin || []).length, by:{} };
@@ -399,7 +497,7 @@ function stats(){
              viaPredict: !!d.predicted || predDev.has(r.device) || d.source === 'predict',
              viaSurvey: !!d.surveyed || survDev.has(r.device) || d.source === 'survey' };
   });
-  return { pred, mvpRank, sq, ck, rl, raffle };
+  return { pred, mvpRank, sq, sv, ck, rl, raffle };
 }
 
 /* ================================================================
@@ -471,6 +569,103 @@ const cleanQs = list => list.map((q, i) => q.type === 'player'
   ? { id:q.id || 'q' + (i + 1), q:q.q.trim(), type:'player', ai:q.ai !== false }
   : { ...(q.id ? { id:q.id } : {}), q:q.q.trim(), options:q.options.map(x => String(x).trim()).filter(Boolean), ...('ai' in q ? { ai:q.ai !== false } : {}) });
 
+/* 예측 결과 — 버전 탭 */
+function predResults(S){
+  const list = S.pred.versions.filter(v => v.rows.length || v.current);
+  if(!S.pred.count) return `<section class="card"><p class="empty">아직 예측에 참여한 사람이 없어요.</p></section>`;
+  const ans = (D.settings || {}).answers || {};
+  const { pick, html } = vTabs('predict', list);
+  const v = list.find(x => String(x.v) === pick) || list[0];
+  return `<section class="card"><h2>예측 결과</h2>${html}<p class="desc" style="margin:12px 0 0;">${vMeta(v, '참여')}</p></section>
+    ${v.answered ? `<div class="kpis" style="grid-template-columns:1fr 1fr 1fr;"><div class="kpi hot"><span>이 버전 전부 맞힌 사람</span><b>${fmt(v.allCorrect.size)}</b></div><div class="kpi"><span>정답 입력</span><b>${v.answered} / ${v.questions.length}</b></div><div class="kpi"><span>전체 전부 맞힌 사람</span><b>${fmt(S.pred.allCorrect.size)}</b></div></div>` : ''}
+    ${v.rows.length ? v.questions.map(q => {
+      const right = ans[q.key] ? (q.counts[ans[q.key]] || 0) : null;
+      const choices = q.order || Object.keys(q.counts).sort();
+      return `<section class="card"><h2>${esc(q.q)}${right != null ? `<span class="chip ok">정답 ${right}명</span>` : ''}</h2>
+        ${bars(q.counts, { answer:ans[q.key], order:q.order || undefined })}
+        <div class="form" style="grid-template-columns:1fr auto;">
+          <div class="field" style="grid-column:auto;"><label>정답</label><select data-ans="${esc(q.key)}"><option value="">— 아직 —</option>${choices.map(c => `<option${ans[q.key] === c ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select></div>
+          <button class="btn dark" data-act="ans-save" style="grid-column:auto; align-self:end;">정답 저장</button>
+        </div></section>`; }).join('')
+    : `<section class="card"><p class="empty">이 버전에는 아직 참여한 사람이 없어요.</p></section>`}`;
+}
+/* 설문 결과 — 버전 탭 + 전체 합산 */
+function survResults(S){
+  const n = (D.subs.survey || []).length;
+  if(!n) return `<section class="card"><p class="empty">아직 설문 응답이 없어요.</p></section>`;
+  const list = S.sv.filter(v => v.rows.length || v.current);
+  const { pick, html } = vTabs('survey', list, ['all', '전체 합산']);
+  if(pick === 'all') return `<section class="card"><h2>설문 결과</h2>${html}<p class="desc" style="margin:12px 0 0;">모든 버전의 응답을 질문 문장이 같은 것끼리 합쳐서 보여줘요 · 응답 ${fmt(n)}명</p></section>
+    ${[...S.sq].map(([q, c]) => `<section class="card"><h2>${esc(q)}</h2>${bars(c)}</section>`).join('')}`;
+  const v = list.find(x => String(x.v) === pick) || list[0];
+  return `<section class="card"><h2>설문 결과</h2>${html}<p class="desc" style="margin:12px 0 0;">${vMeta(v, '응답')}</p></section>
+    ${v.rows.length ? v.questions.map((q, i) => `<section class="card"><h2>${i + 1}. ${esc(q.q)}</h2>${bars(q.counts, { order:q.order || undefined })}</section>`).join('')
+      : `<section class="card"><p class="empty">이 버전에는 아직 응답이 없어요.</p></section>`}`;
+}
+
+/* ================================================================
+   접속자 — 관람객 화면이 브라우저를 열 때마다 보내는 접속 기록을 기기 기준으로 중복 없이 세요.
+   ================================================================ */
+function visitCard(S){
+  const v = D.visits;
+  const title = mid() === today() ? '오늘 접속자' : '이 경기 접속자';
+  if(!v) return `<section class="card"><h2>${title}</h2><p class="empty">서버(okman-live)를 이번 버전으로 배포하면 집계가 시작돼요.</p></section>`;
+  const u = v.unique || 0;
+  const rate = n => u ? `${pct(n, u)}%` : '—';
+  const raffleN = S.raffle.length;
+  const hrs = Object.keys(v.hours || {}).map(Number);
+  let chart = '<p class="empty" style="padding:40px 0 0;">아직 접속 기록이 없어요.</p>';
+  if(hrs.length){
+    let lo = Math.min(...hrs), hi = Math.max(...hrs);
+    while(hi - lo < 5){ if(lo > 0) lo--; if(hi - lo < 5 && hi < 23) hi++; if(lo === 0 && hi === 23) break; }
+    const vals = []; for(let h = lo; h <= hi; h++) vals.push([h, (v.hours || {})[String(h).padStart(2, '0')] || 0]);
+    const max = Math.max(1, ...vals.map(x => x[1]));
+    chart = `<div class="hours" role="img" aria-label="시간대별 첫 접속">${vals.map(([h, n]) => `<div class="${n === max && n ? 'peak' : ''}" title="${h}시 ${n}명">${n ? `<b>${n}</b>` : ''}<i style="height:${n / max * 84}%"></i><em>${h}시</em></div>`).join('')}</div>`;
+  }
+  return `<section class="card visit">
+    <div>
+      <h2>${title}</h2>
+      <p class="visit__n">${fmt(u)}<small>명</small></p>
+      <p class="visit__m">브라우저를 연 횟수 ${fmt(v.sessions || 0)}회${v.last ? ` · 마지막 접속 ${time(v.last)}` : ''}<br>같은 휴대폰은 여러 번 들어와도 1명으로 세요.</p>
+      <div class="funnel">
+        <span>출석체크<b>${rate(S.ck.count)}</b></span><span>경기예측<b>${rate(S.pred.count)}</b></span>
+        <span>설문<b>${rate((D.subs.survey || []).length)}</b></span><span>경품응모<b>${rate(raffleN)}</b></span>
+      </div>
+    </div>
+    <div><p class="desc" style="margin-bottom:8px;">시간대별 첫 접속 (한국 시간)</p>${chart}</div>
+  </section>`;
+}
+
+/* 경기별 접속자 — 경기 목록의 각 경기를 가볍게 조회해요 (1분에 한 번만) */
+const MV = { at:0, data:{}, loading:false };
+async function loadMatchVisits(force){
+  if(MV.loading || (!force && Date.now() - MV.at < 60000)) return;
+  MV.loading = true;
+  try{
+    const ids = MATCHES.filter(id => id && id !== '__new').slice(0, 40);
+    const res = await Promise.all(ids.map(id => call('GET', encodeURIComponent(id) + '/visits').then(d => [id, d.visits]).catch(() => [id, null])));
+    MV.data = Object.fromEntries(res); MV.at = Date.now();
+  } finally { MV.loading = false; }
+  if(page === 'dash') render();
+}
+function matchVisitsCard(){
+  if(!D.visits) return '';
+  setTimeout(() => loadMatchVisits(), 0);
+  const rows = MATCHES.map(id => [id, MV.data[id]]).filter(([, v]) => v && v.unique);
+  const max = Math.max(1, ...rows.map(([, v]) => v.unique || 0));
+  return `<section class="card"><h2>경기별 접속자 <span class="muted" style="font-size:12px; font-weight:600;">${MV.at ? time(MV.at) + ' 기준 · 1분마다 갱신' : '불러오는 중…'}</span></h2>
+    ${rows.length ? `<div class="scroll"><table class="mtable"><thead><tr><th>경기</th><th>접속자</th><th></th><th>브라우저 연 횟수</th><th>첫 접속 ~ 마지막</th></tr></thead><tbody>
+      ${rows.map(([id, v]) => `<tr data-goto="${esc(id)}" class="${id === mid() ? 'cur' : ''}"><td><b>${esc(id)}</b>${id === today() ? ' <span class="chip">오늘</span>' : ''}</td>
+        <td><b>${fmt(v.unique)}</b>명</td><td style="width:40%;"><span class="tr"><span class="f" style="width:${(v.unique || 0) / max * 100}%"></span></span></td>
+        <td class="muted">${fmt(v.sessions)}회</td><td class="muted">${v.first ? time(v.first) + ' ~ ' + time(v.last) : '—'}</td></tr>`).join('')}
+    </tbody></table></div>` : `<p class="empty">${MV.at ? '아직 접속 기록이 있는 경기가 없어요.' : '불러오는 중…'}</p>`}
+  </section>`;
+}
+document.addEventListener('click', e=>{
+  const r = e.target.closest('[data-goto]'); if(!r) return;
+  $('match').value = r.dataset.goto; DR = {}; load(); scrollTo(0, 0);
+});
+
 /* 대시보드 — 오늘 운영 · 홈 미션 순서 */
 function dayCard(){
   const open = CT().open || 'auto';
@@ -502,6 +697,7 @@ const VIEWS = {
     const st = D.settings || {}, phase = st.phase || 'auto';
     const top = S.mvpRank[0];
     return `<p class="page-title">대시보드</p><p class="page-sub">${esc(mid())} 경기 · 참여 현황과 경기 진행을 한 곳에서 관리해요.</p>
+    ${visitCard(S)}
     <div class="kpis">
       <div class="kpi hot"><span>전체 응원</span><b>${fmt(D.total)}</b></div>
       <div class="kpi"><span>출석체크</span><b>${fmt(S.ck.count)}</b></div>
@@ -534,7 +730,8 @@ const VIEWS = {
         ${top ? `<div class="row"><div class="main"><p class="t">투표 1위 · #${esc(top.num)} ${esc(top.name)}</p><p class="m">${top.n}표</p></div>${st.mvp && String(st.mvp.num) === String(top.num) ? '' : `<button class="btn small" data-act="mvp-set" data-num="${esc(top.num)}" data-name="${esc(top.name)}">MVP로 확정</button>`}</div>` : ''}
       </section>
     </div>
-    ${dayCard()}`;
+    ${dayCard()}
+    ${matchVisitsCard()}`;
   },
 
   /* ---------- 현장 이벤트 ---------- */
@@ -585,8 +782,6 @@ const VIEWS = {
 
   /* ---------- 경기 예측 ---------- */
   predict: S => {
-    const ans = (D.settings || {}).answers || {};
-    const answered = Object.keys(ans).filter(k => ans[k]).length;
     const reg = Array.isArray(CT().predict) && CT().predict.length;
     if(!DR.predict) DR.predict = clone(reg ? CT().predict : PRED_DEF);
     const editor = `<section class="card">
@@ -597,18 +792,9 @@ const VIEWS = {
       <div class="edfoot">${DR.predict.length < LIMIT.predictQ ? `<button class="btn ghost" data-act="ed-add" data-ed="predict">+ 질문 추가</button>` : '<span></span>'}
         <button class="btn" data-act="pred-save">예측 등록하기</button></div>
     </section>`;
-    return `<p class="page-title">경기 예측</p><p class="page-sub">참여 ${fmt(S.pred.count)}명 · 정답을 입력하면 맞힌 사람 수와 '전부 맞힌 사람'을 바로 알려줘요. 경품 추첨에서 정답자만 골라 뽑을 수 있어요.</p>
+    return `<p class="page-title">경기 예측 <button class="btn small ghost" data-act="csv-predict" style="vertical-align:4px; margin-left:6px;">CSV 내려받기</button></p><p class="page-sub">참여 ${fmt(S.pred.count)}명 · 문항을 바꿀 때마다 버전이 따로 쌓여요. 정답은 버전마다 입력하고, '전부 맞힌 사람'은 각자 예측한 버전 기준이에요.</p>
     ${editor}
-    ${answered ? `<div class="kpis" style="grid-template-columns:1fr 1fr;"><div class="kpi hot"><span>전부 맞힌 사람</span><b>${fmt(S.pred.allCorrect.size)}</b></div><div class="kpi"><span>정답 입력</span><b>${answered} / ${S.pred.questions.length}</b></div></div>` : ''}
-    ${S.pred.questions.length ? S.pred.questions.map(q => {
-      const right = ans[q.id] ? (q.counts[ans[q.id]] || 0) : null;
-      return `<section class="card"><h2>${esc(q.q)}${right != null ? `<span class="chip ok">정답 ${right}명</span>` : ''}</h2>
-        ${bars(q.counts, { answer:ans[q.id] })}
-        <div class="form" style="grid-template-columns:1fr auto;">
-          <div class="field" style="grid-column:auto;"><label>정답</label><select data-ans="${esc(q.id)}"><option value="">— 아직 —</option>${Object.keys(q.counts).sort().map(v => `<option${ans[q.id] === v ? ' selected' : ''}>${esc(v)}</option>`).join('')}</select></div>
-          <button class="btn dark" data-act="ans-save" style="grid-column:auto; align-self:end;">정답 저장</button>
-        </div></section>`; }).join('')
-    : `<section class="card"><p class="empty">아직 예측에 참여한 사람이 없어요.</p></section>`}`;
+    ${predResults(S)}`;
   },
 
   /* ---------- MVP ---------- */
@@ -631,13 +817,13 @@ const VIEWS = {
     const n = (D.subs.survey || []).length;
     const editing = !reg || DR.surveyEdit;
     if(editing && !DR.survey) DR.survey = clone(reg ? CT().survey : SURV_DEF);
-    const results = S.sq.size ? [...S.sq].map(([q, c]) => `<section class="card"><h2>${esc(q)}</h2>${bars(c)}</section>`).join('')
-      : `<section class="card"><p class="empty">아직 설문 응답이 없어요.</p></section>`;
-    if(!editing) return `<p class="page-title">설문</p><p class="page-sub">응답 ${fmt(n)}명 · 설문을 마친 관람객은 홈의 '설문조사' 미션이 완료돼요.</p>
+    const results = survResults(S);
+    const head = `<p class="page-title">설문 <button class="btn small ghost" data-act="csv-survey" style="vertical-align:4px; margin-left:6px;">CSV 내려받기</button></p>`;
+    if(!editing) return `${head}<p class="page-sub">응답 ${fmt(n)}명 · 설문을 바꿀 때마다 버전이 따로 쌓여요. 이미 답한 관람객은 다시 답하지 않아요.</p>
       <section class="card"><h2>등록한 설문 <button class="btn small ghost" data-act="sv-rewrite">다시 작성하기</button></h2>
         ${CT().survey.map((q, i) => `<div class="row"><div class="main"><p class="t">${i + 1}. ${esc(q.q)}</p><p class="m">${q.options.map(esc).join(' · ')}</p></div></div>`).join('')}
       </section>${results}`;
-    return `<p class="page-title">설문</p><p class="page-sub">응답 ${fmt(n)}명</p>
+    return `${head}<p class="page-sub">응답 ${fmt(n)}명</p>
     <section class="card">
       <h2>설문 등록하기 ${reg ? '<span class="chip ok">다시 작성 중</span>' : '<span class="chip off">기본 설문이 나가는 중</span>'}
         <button class="btn small dark" data-act="sv-ai">AI로 설문 생성하기</button></h2>
@@ -760,7 +946,9 @@ document.addEventListener('click', e=>{
     case 'mvp-clear': return act(()=> mcall('PUT', 'settings', { mvp:null }), 'MVP 카드를 해제했어요.');
     case 'save-start': return act(()=> mcall('PUT', 'settings', { start:val('start') }), '시작 시각을 저장했어요.');
     case 'ans-save': {
-      const answers = {}; document.querySelectorAll('[data-ans]').forEach(s => answers[s.dataset.ans] = s.value);
+      // 지금 보는 버전의 정답만 바꾸고, 다른 버전 정답은 그대로 둬요
+      const answers = { ...((D.settings || {}).answers || {}) };
+      document.querySelectorAll('[data-ans]').forEach(s => { if(s.value) answers[s.dataset.ans] = s.value; else delete answers[s.dataset.ans]; });
       return act(()=> mcall('PUT', 'settings', { answers }), '정답을 저장했어요.');
     }
     case 'rf-draw': return drawRaffle();
@@ -786,7 +974,9 @@ document.addEventListener('click', e=>{
     case 'ed-noplayer': { const q = DR[b.dataset.ed][i]; delete q.type; q.options = q._opts || ['', '']; delete q._opts; return render(); }
     case 'pred-save': {
       const err = validQs(DR.predict); if(err) return toast(err, true);
-      if(Array.isArray(CT().predict) && S0().pred.count && !confirm(`이미 ${S0().pred.count}명이 예측했어요. 문항을 바꾸면 결과가 섞일 수 있어요. 등록할까요?`)) return;
+      { const cv = S0().pred.versions.find(v => v.current); const nv = Math.max(0, ...S0().pred.versions.map(v => v.v === 'none' ? 0 : v.v)) + 1;
+        if(cv && cv.rows.length && JSON.stringify(cleanQs(DR.predict)) !== JSON.stringify(CT().predict || null)
+           && !confirm(`지금 문항(${vLabel(cv.v)})에 ${cv.rows.length}명이 예측했어요.\n새로 등록하면 v${nv}로 따로 집계되고, 이미 예측한 분은 그대로예요. 등록할까요?`)) return; }
       const predict = cleanQs(DR.predict);
       return saveContent({ predict }, '예측을 등록했어요. 관람객 화면엔 20초 안에 보여요.').then(ok=>{ if(ok){ DR.predict = null; render(); } });
     }
@@ -805,6 +995,9 @@ document.addEventListener('click', e=>{
     case 'sv-cancel': DR.surveyEdit = false; DR.survey = null; return render();
     case 'sv-save': {
       const err = validQs(DR.survey); if(err) return toast(err, true);
+      { const cv = S0().sv.find(v => v.current); const nv = Math.max(0, ...S0().sv.map(v => v.v === 'none' ? 0 : v.v)) + 1;
+        if(cv && cv.rows.length && JSON.stringify(cleanQs(DR.survey)) !== JSON.stringify(CT().survey || null)
+           && !confirm(`지금 설문(${vLabel(cv.v)})에 ${cv.rows.length}명이 답했어요.\n새로 등록하면 v${nv}로 따로 집계되고, 이미 답한 분은 다시 답하지 않아요. 등록할까요?`)) return; }
       return saveContent({ survey:cleanQs(DR.survey) }, '설문을 등록했어요. 관람객 화면엔 20초 안에 보여요.').then(ok=>{ if(ok){ DR.survey = null; DR.surveyEdit = false; render(); } });
     }
 
@@ -842,6 +1035,8 @@ document.addEventListener('click', e=>{
     }
     case 'redeem': return act(()=> mcall('PUT', 'redeem', { code:b.dataset.code, redeemed:b.dataset.v === '1' }), b.dataset.v === '1' ? '교환 완료로 처리했어요.' : '교환 처리를 취소했어요.', true).then(()=>{ if($('code-result') && $('code-result').innerHTML) findCode(); });
     case 'code-find': return findCode();
+    case 'csv-survey': return csvSurvey();
+    case 'csv-predict': return csvPredict();
   }
 });
 document.addEventListener('click', e=>{
@@ -857,6 +1052,10 @@ document.addEventListener('click', e=>{
   saveContent({ open:v }, { auto:'경기 일정 기준으로 바꿨어요.', on:'오늘 운영으로 바꿨어요.', off:'미운영으로 바꿨어요.' }[v]);
 });
 document.addEventListener('keydown', e=>{ if(e.key === 'Enter' && e.target.id === 'code-q') findCode(); });
+document.addEventListener('click', e=>{
+  const t = e.target.closest('[data-vtab]'); if(!t) return;
+  DR.tab = { ...(DR.tab || {}), [t.dataset.vtab]:t.dataset.v }; render();
+});
 
 /* 편집기 입력 → 편집 중인 값(DR · MOD)에 바로 반영 */
 document.addEventListener('input', e=>{
