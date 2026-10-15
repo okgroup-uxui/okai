@@ -81,6 +81,14 @@
   .seg button.on{background:#fff; color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.06);}
   .seg button.on.live{background:var(--brand); color:#fff;}
   .vtabs{display:flex; flex-wrap:wrap; margin-top:4px;}
+  .nps-d .det i{background:#D5D9E0;} .nps-d .pas i{background:#FFB49A;} .nps-d .pro i{background:var(--brand);}
+  .gtab td,.gtab th{white-space:nowrap;} .gtab .num{text-align:right;}
+  .stack{display:flex; height:12px; border-radius:6px; overflow:hidden; background:var(--fill); min-width:120px;}
+  .stack i{display:block; height:100%; background:var(--brand);}
+  .tlist{margin-top:12px; font-size:13px;}
+  .tlist summary{cursor:pointer; font-weight:700; color:var(--ink-dim);}
+  .tlist p{display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid var(--line); line-height:20px;}
+  .tlist p span{flex-shrink:0; color:var(--ink-faint); font-size:12px;}
   /* 접속자 */
   .visit{display:grid; grid-template-columns:minmax(220px, 1fr) 2fr; gap:24px; align-items:end;}
   .visit__n{font-size:44px; line-height:52px; font-weight:800; color:var(--brand); font-variant-numeric:tabular-nums;}
@@ -260,12 +268,8 @@ const PRED_DEF = [
   { id:'first_block', q:'첫 블로킹을 성공시킬 선수는?', type:'player', ai:true },
   { id:'set_score', q:'세트 스코어를 예측해보세요', options:['3:0', '3:1', '3:2', '2:3 이하'], ai:true },
 ];
-const SURV_DEF = [
-  { q:'오늘 경기장 좌석 안내는 찾기 쉬웠나요?', options:['매우 쉬움', '쉬움', '보통', '어려움'] },
-  { q:'오늘 응원 분위기는 어땠나요?', options:['최고였어요', '좋았어요', '보통이었어요', '아쉬웠어요'] },
-  { q:'다음에도 직관하러 오실 의향이 있나요?', options:['꼭 다시 올게요', '아마도요', '잘 모르겠어요'] },
-  { q:'경기장 내 편의시설(매점·화장실 등)은 만족스러웠나요?', options:['매우 만족', '만족', '보통', '불만족'] },
-];
+// 기본 설문 = 26-27 시즌 초반 관람객 설문(261014) — index.html CONFIG.SURVEY_QUESTIONS와 같아요
+const SURV_DEF = [{"id": "1", "q": "거주 지역을 선택해 주세요.", "type": "single", "options": ["부산광역시", "김해시", "양산시", "창원시", "기타 경남", "울산광역시", "대구·경북", "서울·경기·인천", "기타"]}, {"id": "1-1", "q": "(부산 거주자) 거주하시는 구·군을 선택해 주세요.", "type": "single", "options": ["중구", "서구", "동구", "영도구", "부산진구", "동래구", "남구", "북구", "해운대구", "사하구", "금정구", "강서구", "연제구", "수영구", "사상구", "기장군"], "cond": {"id": "1", "in": ["부산광역시"]}}, {"id": "2", "q": "오늘 경기장까지 이용한 주 이동수단은 무엇인가요?", "type": "multi", "max": 3, "options": ["자차", "지하철", "버스", "택시", "KTX·기차", "도보·자전거", "기타"]}, {"id": "3", "q": "오늘 누구와 함께 오셨나요?", "type": "single", "options": ["혼자", "가족(자녀 동반)", "가족(성인만)", "연인", "친구·지인", "단체(직장·학교·동호회)"]}, {"id": "4", "q": "지난 시즌에는 홈경기 관람 몇번 했나요?", "type": "single", "options": ["0회", "1회", "2회~5회", "5회~10회", "10회 이상"]}, {"id": "4-1", "q": "지난 시즌 대비 만족도가 어떤가요?", "type": "single", "options": ["훨신 좋아졌다", "개선이 조금 된 듯 하다", "비슷하다", "더 안좋아졌다"], "cond": {"id": "4", "notIn": ["0회"]}}, {"id": "4-2", "q": "지난 시즌에 비해 가장 좋아진 것은", "type": "multi", "max": 3, "options": ["입장·매표", "좌석 편의성", "관람 시야", "응원·장내 진행", "이벤트", "MD(굿즈)", "먹거리", "화장실 청결", "특별하게 없음"], "cond": {"id": "4", "notIn": ["0회"]}}, {"id": "4-3", "q": "지난 시즌에 비해 안좋아진 부분은?", "type": "multi", "max": 3, "options": ["입장·매표", "좌석 편의성", "관람 시야", "응원·장내 진행", "이벤트", "MD(굿즈)", "먹거리", "화장실 청결", "특별하게 없음"], "cond": {"id": "4", "notIn": ["0회"]}}, {"id": "5", "q": "OK읏맨 팬이 된 시기는 언제인가요?", "type": "single", "options": ["25-26시즌 이전(안산)부터", "25-26 시즌(부산 첫 시즌)부터", "이번 26-27 시즌부터"]}, {"id": "6", "q": "오늘 경기장에 방문하게 된 가장 큰 계기는 무엇인가요? (1개)", "type": "multi", "max": 3, "options": ["부산에 배구팀이 있어서", "좋아하는 선수를 보려고", "응원 문화가 재밌어서", "배구 자체가 좋아서", "가족·지인과 여가를 보내려고", "지인의 권유", "아이의 권유(배구교실 등)", "SNS·홍보를 보고", "초대권·제휴 혜택", "기타"]}, {"id": "7", "q": "오늘 경기 정보를 처음 접한 경로는 어디인가요?", "type": "multi", "max": 3, "options": ["구단 인스타그램", "유튜브", "틱톡·릴스", "카카오톡 채널", "네이버 카페·밴드", "포털 사이트", "지하철·버스·옥외 광고", "지인", "학교·직장", "기타"]}, {"id": "8", "q": "주변에 OK읏맨 경기 직관을 추천할 의향은 얼마나 되나요?", "type": "nps", "low": "전혀 추천 안 함", "high": "적극 추천"}, {"id": "9", "q": "오늘 관람한 자리는 어디인가요?", "type": "single", "options": ["스파이크존(1층)", "블로킹존(1층)", "테이블존(1층)", "읏샤읏샤OK존(2층)", "읏맨존(2층)", "하이테이블석(2층)", "편하데이존(2층)", "스카이박스(2층)", "기읏, 니읏존(3층)", "원정석(3층)"]}, {"id": "10", "q": "오늘 관람 경험에 대해 항목별로 평가해 주세요.", "type": "grid", "rows": ["입장·매표", "좌석 편의성", "관람 시야", "응원·장내 진행", "이벤트", "MD(굿즈)", "먹거리", "화장실 청결"], "cols": ["매우 불만족", "불만족", "보통", "만족", "매우 만족"]}, {"id": "11", "q": "가장 개선되었으면 하는 점 1가지를 골라 주세요.", "type": "single", "other": true, "options": ["이벤트", "먹거리", "MD 상품", "좌석", "화장실", "주차·퇴장", "경기장 안내", "홍보", "기타"]}, {"id": "12", "q": "읏배구놀이터 이용 만족도는 어떠신가요?", "type": "nps", "low": "전혀 추천 안 함", "high": "적극 추천"}, {"id": "13", "q": "읏배구놀이터에서 가장 만족스러웠던 것은?", "type": "single", "options": ["안내(자리, 막차)", "룰렛", "AI예측이벤트", "플레이어(선수카드)"]}, {"id": "14", "q": "읏배구놀이터에서 가장 개선이 필요할 것 같은 것은?", "type": "single", "options": ["안내(자리, 막차)", "룰렛", "AI예측이벤트", "플레이어(선수카드)"], "comment": true}];
 const CK_DEF = [
   { key:'gender', q:'성별을 알려주세요', opts:['남성', '여성'].map(label => ({ label })) },
   { key:'age', q:'나이대를 골라주세요', opts:['10대 이하', '20대', '30대', '40대', '50대', '60대 이상'].map(label => ({ label })) },
@@ -273,16 +277,156 @@ const CK_DEF = [
 ];
 const MISSION_LABEL = { checkin:'출석체크', seats:'내자리찾기', fortune:'오늘의선수', survey:'설문조사', predict:'경기예측', raffle:'경품응모' };
 const MISSION_DEF = Object.keys(MISSION_LABEL);
-const LIMIT = { predictQ:5, predictO:6, surveyQ:5, surveyO:5, ckQ:3, ckO:6 };
+const LIMIT = { predictQ:5, predictO:6, surveyQ:25, surveyO:25, gridRows:15, gridCols:7, ckQ:3, ckO:6 };
+const SV_TYPE = { single:'단일 선택', multi:'복수 선택', nps:'NPS 0~10', grid:'행렬 척도' };
+// 키 순서와 상관없이 같은 내용인지 비교 (서버가 저장하며 키 순서를 바꿀 수 있어요)
+const canon = v => JSON.stringify(v, (k, x) => x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map(key => [key, x[key]])) : x);
 const clone = v => JSON.parse(JSON.stringify(v));
 const CT = () => ((D && D.settings) || {}).content || {};
 // 편집 중인 값 — 5초 새로고침에도 지워지지 않게 따로 들고 있어요 (경기를 바꾸면 비워요)
 let DR = {};
 function saveContent(patch, msg){ return act(()=> mcall('PUT', 'settings', { content:{ ...CT(), ...patch } }), msg); }
 
+/* ================================================================
+   설문 엑셀 — 불러오기(parseSurveyRows) · 양식 내려받기(surveyToRows)
+   엑셀은 SheetJS로 브라우저에서 바로 읽어요 (파일이 서버로 올라가지 않아요)
+   ================================================================ */
+/* 설문 엑셀 → 설문 문항 (관리자 '엑셀로 불러오기'와 같은 코드)
+   열: 번호 · 문항 · 응답 유형 · 선택지 · 기타   (머리글 줄은 자동으로 찾아요)
+   · 응답 유형: '단일 선택' / '복수 가능(최대 3개)' / 'NPS (0~10점)' / '척도 (5점, 행렬형)' / '단일 선택 + 기타 주관식'
+   · 선택지: 줄바꿈으로 구분. 행렬형은 '[행] 항목' 여러 줄 + '[열] 매우 불만족 / … / 매우 만족' 한 줄
+   · '기타(직접 입력)' 선택지 → 고르면 직접 입력칸이 열려요
+   · 기타 칸에 '주관식'이 있으면 → 아래에 자유 의견칸(선택)을 붙여요
+   · 번호가 '1-1', '4-2'처럼 생기면 앞 번호 문항의 답에 따라 보여줘요. 기타 칸에 그 문항의 선택지를 적으면 그걸 골랐을 때만,
+     '1회 이상'처럼 '이상'이 있으면 첫 번째 선택지(예: 0회)가 아닐 때만, '0회 제외·이외'처럼 쓰면 그 선택지가 아닐 때만.
+     비어 있으면 같은 묶음의 앞 문항 조건을 따라요. */
+function parseSurveyRows(rows){
+  const warn = [];
+  const norm = v => String(v ?? '').replace(/\r/g, '').trim();
+  const h = rows.findIndex(r => r.some(c => norm(c) === '번호') && r.some(c => norm(c).startsWith('문항')));
+  if(h < 0) throw new Error("'번호'와 '문항' 머리글이 있는 줄을 찾지 못했어요.");
+  const head = rows[h].map(c => norm(c).replace(/\s/g, ''));
+  const col = k => head.findIndex(c => c.startsWith(k));
+  const cN = col('번호'), cQ = col('문항'), cT = col('응답유형'), cO = col('선택지'), cE = col('기타');
+  const items = [];
+  for(const r of rows.slice(h + 1)){
+    const q = norm(r[cQ]);
+    if(!q) continue;
+    const id = (norm(r[cN]).replace(/\.0+$/, '') || String(items.length + 1)).replace(/[^\w-]/g, '');
+    const typeTxt = cT >= 0 ? norm(r[cT]) : '', optTxt = cO >= 0 ? norm(r[cO]) : '', note = cE >= 0 ? norm(r[cE]) : '';
+    const lines = optTxt.split('\n').map(s => s.trim()).filter(Boolean);
+    const it = { id, q };
+    if(/NPS|0\s*~\s*10/i.test(typeTxt)){
+      it.type = 'nps';
+      const m = optTxt.match(/0\s*점?\s*\(([^)]*)\)\s*~\s*10\s*점?\s*\(([^)]*)\)/);
+      it.low = m ? m[1].trim() : '전혀 아니다'; it.high = m ? m[2].trim() : '매우 그렇다';
+    } else if(/척도|행렬|그리드/.test(typeTxt) || lines.some(l => /^\[행\]/.test(l))){
+      it.type = 'grid';
+      it.rows = lines.filter(l => /^\[행\]/.test(l)).map(l => l.replace(/^\[행\]\s*/, ''));
+      const cl = lines.find(l => /^\[열\]/.test(l));
+      it.cols = cl ? cl.replace(/^\[열\]\s*/, '').split('/').map(s => s.trim()).filter(Boolean) : ['매우 불만족', '불만족', '보통', '만족', '매우 만족'];
+      if(!it.rows.length) warn.push(`${id}번: 행렬형인데 '[행]' 항목이 없어요.`);
+    } else {
+      it.type = /복수/.test(typeTxt) ? 'multi' : 'single';
+      if(it.type === 'multi'){ const m = typeTxt.match(/최대\s*(\d+)/); if(m) it.max = Number(m[1]); }
+      if(!typeTxt) warn.push(`${id}번: 응답 유형이 비어 있어서 단일 선택으로 넣었어요.`);
+      it.options = lines.map(l => { if(/^기타\s*\(\s*직접\s*입력\s*\)$/.test(l)){ it.other = true; return '기타'; } return l; });
+      if(/주관식/.test(typeTxt) && !it.other && it.options.includes('기타')) it.other = true;
+      if(/주관식/.test(note) && !it.other) it.comment = true;
+      if(it.options.length < 2) warn.push(`${id}번: 선택지가 2개보다 적어요.`);
+      if(/\(1개\)/.test(q) && it.type === 'multi') warn.push(`${id}번: 문항엔 '(1개)'인데 응답 유형은 복수 선택(최대 ${it.max || '제한 없음'})이에요. 응답 유형대로 넣었어요.`);
+    }
+    const pm = id.match(/^(\d+)-\d+$/);
+    if(pm){
+      const parent = items.find(x => x.id === pm[1]);
+      if(!parent || !parent.options) warn.push(`${id}번: 앞 문항 ${pm[1]}번을 찾지 못해 모두에게 보여요.`);
+      else {
+        const hit = parent.options.filter(o => o !== '기타' && note.includes(o));
+        if(/이상/.test(note)) it.cond = { id:parent.id, notIn:[parent.options[0]] };
+        else if(hit.length && /제외|이외|아닌|말고/.test(note)) it.cond = { id:parent.id, notIn:hit };
+        else {
+          if(hit.length) it.cond = { id:parent.id, in:hit };
+          else { const sib = [...items].reverse().find(x => x.cond && x.cond.id === parent.id); if(sib) it.cond = JSON.parse(JSON.stringify(sib.cond)); }
+        }
+        const ref = note.match(/(\d+)\s*번에서/);
+        if(ref && ref[1] !== parent.id) warn.push(`${id}번: 기타 칸엔 '${ref[1]}번에서'라고 돼 있지만, 번호가 ${id}라서 ${parent.id}번 답에 따라 보여줘요.`);
+        if(!it.cond) warn.push(`${id}번: 보여줄 조건을 찾지 못해 모두에게 보여요.`);
+      }
+    }
+    items.push(it);
+  }
+  if(!items.length) throw new Error('문항이 하나도 없어요.');
+  return { items, warn };
+}
+
+
+/* 설문 문항 → 엑셀 줄 (관리자 '엑셀 양식 내려받기'와 같은 코드) — parseSurveyRows로 다시 읽으면 같은 설문이 돼요 */
+function surveyToRows(items){
+  const rows = [['읏배구놀이터 관람 설문'], ['응답 유형: 단일 선택 · 복수 가능(최대 N개) · NPS (0~10점) · 척도 (5점, 행렬형) · 단일 선택 + 기타 주관식  |  선택지는 줄바꿈으로 구분  |  1-1처럼 번호를 붙이면 앞 문항 답에 따라 보여요'],
+                ['번호', '문항', '응답 유형', '선택지', '기타']];
+  for(const it of items){
+    let type, opts, note = [];
+    if(it.type === 'nps'){ type = 'NPS (0~10점)'; opts = `0점(${it.low || ''}) ~ 10점(${it.high || ''})`; }
+    else if(it.type === 'grid'){ type = `척도 (${it.cols.length}점, 행렬형)`; opts = [...it.rows.map(r => '[행] ' + r), '[열] ' + it.cols.join(' / ')].join('\n'); }
+    else {
+      type = it.type === 'multi' ? `복수 가능${it.max ? `(최대 ${it.max}개)` : ''}` : '단일 선택';
+      if(it.other) type += ' + 기타 주관식';
+      opts = it.options.map(o => it.other && o === '기타' ? '기타(직접 입력)' : o).join('\n');
+    }
+    if(it.cond) note.push(it.cond.in ? `${it.cond.id}번에서 ${it.cond.in.join(', ')}를 선택할 시` : `${it.cond.id}번에서 ${it.cond.notIn.join(', ')} 제외`);
+    if(it.comment) note.push('주관식 의견칸');
+    rows.push([it.id, it.q, type, opts, note.join(' / ')]);
+  }
+  return rows;
+}
+
+
+let xlsxLib = null;
+function loadXlsx(){
+  if(window.XLSX) return Promise.resolve(window.XLSX);
+  if(xlsxLib) return xlsxLib;
+  xlsxLib = new Promise((res, rej)=>{
+    const sc = document.createElement('script');
+    sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    sc.onload = ()=> res(window.XLSX); sc.onerror = ()=>{ xlsxLib = null; rej(new Error('엑셀 도구를 불러오지 못했어요. 인터넷 연결을 확인해주세요.')); };
+    document.head.appendChild(sc);
+  });
+  return xlsxLib;
+}
+async function readSurveyFile(file){
+  const X = await loadXlsx();
+  const wb = X.read(await file.arrayBuffer(), { type:'array' });
+  let lastErr = null;
+  for(const name of wb.SheetNames){            // '번호·문항' 머리글이 있는 첫 시트를 써요
+    const rows = X.utils.sheet_to_json(wb.Sheets[name], { header:1, defval:'', raw:false });
+    try{ return { sheet:name, ...parseSurveyRows(rows) }; }catch(e){ lastErr = e; }
+  }
+  throw lastErr || new Error('읽을 시트가 없어요.');
+}
+async function downloadSurveyXlsx(items){
+  const X = await loadXlsx();
+  const ws = X.utils.aoa_to_sheet(surveyToRows(items));
+  ws['!cols'] = [{ wch:7 }, { wch:46 }, { wch:24 }, { wch:34 }, { wch:30 }];
+  const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, '설문지');
+  X.writeFile(wb, `읏배구놀이터_설문_${mid()}.xlsx`);
+}
+const condText = c => !c ? '' : `${c.id}번에서 ${c.in ? `'${c.in.join("', '")}' 고르면` : `'${c.notIn.join("', '")}' 말고 고르면`} 보여요`;
+function svBadges(q){
+  const b = [`<span class="chip off">${SV_TYPE[q.type] || '단일 선택'}${q.type === 'multi' && q.max ? ` · 최대 ${q.max}개` : ''}</span>`];
+  if(q.other) b.push('<span class="chip off">기타 직접 입력</span>');
+  if(q.comment) b.push('<span class="chip off">자유 의견칸</span>');
+  if(q.cond) b.push(`<span class="chip">${esc(condText(q.cond))}</span>`);
+  return b.join('');
+}
+function svOptsText(q){
+  if(q.type === 'nps') return `0점(${q.low || ''}) ~ 10점(${q.high || ''})`;
+  if(q.type === 'grid') return `${q.rows.join(' · ')}  ▸  ${q.cols.join(' / ')}`;
+  return (q.options || []).join(' · ');
+}
+
 /* 팝업 */
 let MOD = null;
-function openModal(html, dark){ $('modal-box').className = 'modal__box' + (dark ? ' dark' : ''); $('modal-box').innerHTML = html; $('modal').hidden = false; }
+function openModal(html, dark){ $('modal-box').style.maxWidth = ''; $('modal-box').className = 'modal__box' + (dark ? ' dark' : ''); $('modal-box').innerHTML = html; $('modal').hidden = false; }
 function closeModal(){ $('modal').hidden = true; MOD = null; }
 $('modal').addEventListener('click', e=>{ if(e.target.id === 'modal' || e.target.closest('[data-act="modal-x"]')) closeModal(); });
 document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && !$('modal').hidden) closeModal(); });
@@ -302,7 +446,7 @@ const SURVEY_BANK = [
 ];
 function genSurvey(nq, na){
   const pool = SURVEY_BANK.slice(); const out = [];
-  while(out.length < nq && pool.length){ const [q, sc] = pool.splice(Math.floor(Math.random() * pool.length), 1)[0]; out.push({ q, options:SCALE[sc][na].slice() }); }
+  while(out.length < nq && pool.length){ const [q, sc] = pool.splice(Math.floor(Math.random() * pool.length), 1)[0]; out.push({ id:String(out.length + 1), q, type:'single', options:SCALE[sc][na].slice() }); }
   return out;
 }
 /* 출석 답변 이미지 — 96px로 줄여서 저장 (관람객 화면이 가볍게 받도록) */
@@ -401,8 +545,79 @@ function derivePredQs(rows, fallback){
 }
 function deriveSurvQs(rows){
   const m = new Map();
-  for(const r of rows) for(const a of (r.data || {}).answers || []) if(!m.has(a.q)) m.set(a.q, { q:a.q, options:null });
+  for(const r of rows) for(const a of (r.data || {}).answers || []) if(!m.has(a.q)) m.set(a.q, { q:a.q, type:'single', options:null });
   return [...m.values()];
+}
+const ansVals = a => Array.isArray(a.a) ? a.a.map(String) : a.a == null || a.a === '' ? [] : [typeof a.a === 'number' ? `${a.a}점` : String(a.a)];
+/* 설문 문항 하나 집계 — 유형별로 */
+function surveyAgg(it, rows){
+  const out = { ...it, n:0, etc:[], memo:[] };
+  const find = r => ((r.data || {}).answers || []);
+  if(it.type === 'grid'){
+    out.cells = it.rows.map(() => new Array(it.cols.length).fill(0));
+    for(const r of rows){
+      let any = false;
+      for(const a of find(r)){
+        if(a.group !== it.id) continue;
+        const ri = Number(String(a.id).split(':')[1]), ci = it.cols.indexOf(a.a);
+        if(out.cells[ri] && ci >= 0){ out.cells[ri][ci]++; any = true; }
+      }
+      if(any) out.n++;
+    }
+    return out;
+  }
+  const counts = {};
+  if(it.type === 'nps') out.dist = new Array(11).fill(0);
+  for(const r of rows){
+    const a = find(r).find(x => it.id != null && x.id != null ? String(x.id) === String(it.id) : x.q === it.q);
+    if(!a || a.a == null || a.a === '' || (Array.isArray(a.a) && !a.a.length)) continue;
+    out.n++;
+    if(it.type === 'nps'){ const v = Number(a.a); if(v >= 0 && v <= 10) out.dist[v]++; }
+    else for(const x of ansVals(a)) counts[x] = (counts[x] || 0) + 1;
+    if(a.etc) out.etc.push({ t:a.etc, at:r.at });
+    if(a.memo) out.memo.push({ t:a.memo, at:r.at });
+  }
+  out.counts = counts;
+  const o = it.options || null;
+  out.order = o ? [...o, ...Object.keys(counts).filter(k => !o.includes(k))] : null;
+  if(it.type === 'nps' && out.n){
+    const d = out.dist, sum = d.reduce((acc, c, i) => acc + c * i, 0);
+    const pro = d[9] + d[10], det = d.slice(0, 7).reduce((x, y) => x + y, 0);
+    out.avg = sum / out.n; out.nps = Math.round((pro - det) / out.n * 100);
+    out.pro = pro; out.det = det; out.pas = out.n - pro - det;
+  }
+  return out;
+}
+/* 설문 결과 카드 — 유형별 */
+function textList(title, list){
+  if(!list.length) return '';
+  return `<details class="tlist"><summary>${title} ${list.length}건</summary>${list.slice().sort((a, b) => (b.at || 0) - (a.at || 0)).map(x => `<p>${esc(x.t)}<span>${time(x.at)}</span></p>`).join('')}</details>`;
+}
+function surveyCard(q){
+  const head = `<h2 style="align-items:flex-start;"><span>${esc(q.id != null ? q.id + '. ' : '')}${esc(q.q)}</span><span class="muted" style="font-size:13px; font-weight:600; white-space:nowrap;">응답 ${fmt(q.n)}명</span></h2>
+    <p class="m" style="margin:2px 0 12px;">${q.type ? svBadges(q) : ''}</p>`;
+  let bodyHtml;
+  if(!q.n) bodyHtml = '<p class="empty">아직 응답이 없어요.</p>';
+  else if(q.type === 'nps'){
+    const max = Math.max(1, ...q.dist);
+    bodyHtml = `<div class="kpis" style="grid-template-columns:repeat(3,1fr); margin-bottom:12px;">
+        <div class="kpi hot"><span>NPS</span><b>${q.nps > 0 ? '+' : ''}${q.nps}</b></div>
+        <div class="kpi"><span>평균</span><b>${q.avg.toFixed(1)}점</b></div>
+        <div class="kpi"><span>추천 9~10 · 중립 7~8 · 비추천 0~6</span><b style="font-size:18px;">${pct(q.pro, q.n)}% · ${pct(q.pas, q.n)}% · ${pct(q.det, q.n)}%</b></div></div>
+      <div class="hours nps-d">${q.dist.map((c, i) => `<div class="${i >= 9 ? 'pro' : i >= 7 ? 'pas' : 'det'}" title="${i}점 ${c}명">${c ? `<b>${c}</b>` : ''}<i style="height:${c / max * 84}%"></i><em>${i}</em></div>`).join('')}</div>
+      <p class="desc" style="margin-top:8px;">NPS = 9~10점 비율 − 0~6점 비율 · 0점 ${esc(q.low || '')} / 10점 ${esc(q.high || '')}</p>`;
+  }
+  else if(q.type === 'grid'){
+    bodyHtml = `<div class="scroll"><table class="gtab"><thead><tr><th>항목</th><th>평균</th><th style="width:44%;">분포 (${q.cols.map(esc).join(' → ')})</th>${q.cols.map(c => `<th class="num">${esc(c)}</th>`).join('')}</tr></thead><tbody>
+      ${q.rows.map((row, ri) => { const c = q.cells[ri], n = c.reduce((a, b) => a + b, 0), avg = n ? c.reduce((a, x, i) => a + x * (i + 1), 0) / n : 0;
+        return `<tr><td><b>${esc(row)}</b></td><td><b>${n ? avg.toFixed(2) : '—'}</b><span class="muted"> / ${q.cols.length}</span></td>
+          <td><span class="stack">${c.map((x, i) => x ? `<i style="width:${x / n * 100}%; opacity:${(0.25 + 0.75 * i / (q.cols.length - 1)).toFixed(2)}" title="${esc(q.cols[i])} ${x}명"></i>` : '').join('')}</span></td>
+          ${c.map(x => `<td class="num muted">${x}</td>`).join('')}</tr>`; }).join('')}
+    </tbody></table></div>`;
+  }
+  else bodyHtml = bars(q.counts, { order:q.order || undefined, base:q.n, multi:q.type === 'multi' })
+    + (q.type === 'multi' ? '<p class="desc" style="margin-top:6px;">복수 선택이라 비율의 합이 100%를 넘을 수 있어요 (응답자 대비).</p>' : '');
+  return `<section class="card">${head}${bodyHtml}${textList("'기타' 직접 입력", q.etc || [])}${textList('자유 의견', q.memo || [])}</section>`;
 }
 function vTabs(kind, list, extra){
   const sel = DR.tab && DR.tab[kind];
@@ -425,8 +640,11 @@ function downloadCsv(name, rows){
 }
 const csvTime = ts => { if(!ts) return ''; const d = new Date(ts); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 function csvSurvey(){
-  const S = stats(), out = [['버전', '버전 등록 시각', '응답 시각', '기기', '문항 번호', '질문', '답변']];
-  for(const v of S.sv) for(const r of v.rows) ((r.data || {}).answers || []).forEach((a, i) => out.push([vLabel(v.v), csvTime(v.at), csvTime(r.at), String(r.device || '').slice(-6), i + 1, a.q, a.a]));
+  const S = stats(), out = [['버전', '버전 등록 시각', '응답 시각', '기기', '문항 번호', '유형', '질문', '답변', '점수', '기타 직접 입력', '자유 의견']];
+  const TY = { ...SV_TYPE, grid:'행렬 척도' };
+  for(const v of S.sv) for(const r of v.rows) ((r.data || {}).answers || []).forEach((a, i) => out.push([
+    vLabel(v.v), csvTime(v.at), csvTime(r.at), String(r.device || '').slice(-6), a.id != null ? String(a.id).replace(/:(\d+)$/, (m, n) => `-${Number(n) + 1}행`) : i + 1,
+    TY[a.type] || '', a.q, Array.isArray(a.a) ? a.a.join(' / ') : a.a, a.score ?? (typeof a.a === 'number' ? a.a : ''), a.etc || '', a.memo || '']));
   if(out.length === 1) return toast('아직 설문 응답이 없어요.', true);
   downloadCsv('설문', out);
 }
@@ -464,20 +682,14 @@ function stats(){
   for(const r of s.mvp || []){ const d = r.data || {}; if(d.num == null) continue; const k = String(d.num); mvp[k] = mvp[k] || { num:d.num, name:d.name || '', n:0 }; mvp[k].n++; }
   const mvpRank = Object.values(mvp).sort((a, b) => b.n - a.n);
   // 설문
+  // 전체 합산 — 질문 문장이 같은 것끼리 (복수 선택은 고른 것마다, NPS는 'n점')
   const sq = new Map();
   for(const r of s.survey || []) for(const a of (r.data || {}).answers || []){
-    if(!sq.has(a.q)) sq.set(a.q, {}); const c = sq.get(a.q); if(a.a) c[a.a] = (c[a.a] || 0) + 1;
+    if(!sq.has(a.q)) sq.set(a.q, {}); const c = sq.get(a.q);
+    for(const x of ansVals(a)) c[x] = (c[x] || 0) + 1;
   }
   const sv = buildVersions('survey', s.survey || []);
-  sv.forEach(v => {
-    const qs = v.items || deriveSurvQs(v.rows);
-    v.questions = qs.map(q => {
-      const counts = {};
-      for(const r of v.rows) for(const a of (r.data || {}).answers || []) if(a.q === q.q && a.a) counts[a.a] = (counts[a.a] || 0) + 1;
-      const o = q.options || null;
-      return { q:q.q, counts, order: o ? [...o, ...Object.keys(counts).filter(k => !o.includes(k))] : null };
-    });
-  });
+  sv.forEach(v => { v.questions = (v.items || deriveSurvQs(v.rows)).map(it => surveyAgg(it, v.rows)); });
   // 출석
   // 질문 key별로 집계 (관리자가 질문을 바꿔도 그대로 동작)
   const ck = { count:(s.checkin || []).length, by:{} };
@@ -534,14 +746,81 @@ $('nav').addEventListener('click', e=>{ const b = e.target.closest('[data-page]'
 const bars = (counts, opts = {}) => {
   const entries = (opts.order || Object.keys(counts)).map(k => [k, counts[k] || 0]);
   if(!opts.order) entries.sort((a, b) => b[1] - a[1]);
-  const total = entries.reduce((a, b) => a + b[1], 0), max = Math.max(1, ...entries.map(e => e[1]));
+  const total = opts.base || entries.reduce((a, b) => a + b[1], 0), max = Math.max(1, ...entries.map(e => e[1]));
   return entries.map(([k, n], i) => `<div class="bar${i === 0 && !opts.order && n ? ' top' : ''}${opts.answer === k ? ' answer' : ''}">
     <span class="l" title="${esc(k)}">${opts.answer === k ? '✓ ' : ''}${esc(k)}</span>
     <span class="tr"><span class="f" style="width:${n / max * 100}%"></span></span>
     <span class="n">${n}명 · ${pct(n, total)}%</span></div>`).join('') || '<p class="empty">아직 응답이 없어요.</p>';
 };
 
-/* ---------- 문항 편집기 (예측 · 설문) ---------- */
+/* ---------- 설문 편집기 — 단일·복수·NPS·행렬, 기타 직접 입력·자유 의견칸, 조건 ---------- */
+function chipList(i, k, list, max, min, ph){
+  return list.map((o, j) => `<span class="ochip"><input data-ed="survey" data-i="${i}" data-j="${j}" data-f="${k}" value="${esc(o)}" maxlength="40" placeholder="${ph}" aria-label="${ph} ${j + 1}"><button data-act="ed-odel" data-ed="survey" data-k="${k}" data-i="${i}" data-j="${j}" aria-label="삭제"${list.length <= min ? ' disabled' : ''}>×</button></span>`).join('')
+    + (list.length < max ? `<button class="btn small ghost" data-act="ed-oadd" data-ed="survey" data-k="${k}" data-i="${i}">추가</button>` : '');
+}
+function sEditor(){
+  const list = DR.survey;
+  return list.map((q, i) => `<div class="qed">
+    <div class="qed__head"><b>${esc(q.id || i + 1)}번</b>
+      <select class="in" style="width:auto; height:34px;" data-ed="survey" data-i="${i}" data-f="type" aria-label="응답 유형">${Object.entries(SV_TYPE).map(([k, t]) => `<option value="${k}"${q.type === k ? ' selected' : ''}>${t}</option>`).join('')}</select>
+      ${q.type === 'multi' ? `<label class="chk">최대 <input class="in" type="number" min="0" max="25" style="width:64px; height:34px;" data-ed="survey" data-i="${i}" data-f="max" value="${q.max || ''}" placeholder="제한 없음">개</label>` : ''}
+      <span style="flex:1"></span>
+      <button class="btn small ghost" data-act="ed-del" data-ed="survey" data-i="${i}"${list.length <= 1 ? ' disabled' : ''}>삭제</button></div>
+    ${q.cond ? `<p class="desc" style="margin:0 0 8px;"><span class="chip">조건</span>${esc(condText(q.cond))} <button class="btn small ghost" data-act="sv-nocond" data-i="${i}">조건 없애기</button></p>` : ''}
+    <input class="in" data-ed="survey" data-i="${i}" data-f="q" value="${esc(q.q)}" maxlength="120" placeholder="질문을 입력해주세요">
+    ${q.type === 'nps' ? `<div class="opts"><label class="chk">0점 <input class="in" style="width:160px; height:34px;" data-ed="survey" data-i="${i}" data-f="low" value="${esc(q.low || '')}" maxlength="30" placeholder="전혀 추천 안 함"></label>
+        <label class="chk">10점 <input class="in" style="width:160px; height:34px;" data-ed="survey" data-i="${i}" data-f="high" value="${esc(q.high || '')}" maxlength="30" placeholder="적극 추천"></label></div>`
+    : q.type === 'grid' ? `<p class="desc" style="margin:10px 0 0;">평가 항목 (행)</p><div class="opts" style="margin-top:6px;">${chipList(i, 'rows', q.rows, LIMIT.gridRows, 1, '평가 항목')}</div>
+        <p class="desc" style="margin:10px 0 0;">척도 (열)</p><div class="opts" style="margin-top:6px;">${chipList(i, 'cols', q.cols, LIMIT.gridCols, 2, '척도')}</div>`
+    : `<div class="opts">${chipList(i, 'options', q.options, LIMIT.surveyO, 2, '선택 항목')}</div>
+       <div class="opts"><label class="chk"><input type="checkbox" data-ed="survey" data-i="${i}" data-f="other"${q.other ? ' checked' : ''}>'기타' 고르면 직접 입력</label>
+         <label class="chk"><input type="checkbox" data-ed="survey" data-i="${i}" data-f="comment"${q.comment ? ' checked' : ''}>아래 자유 의견칸 (선택)</label></div>`}
+  </div>`).join('');
+}
+// 유형을 바꾸면 그 유형에 필요한 칸을 채워요 (원래 값은 남겨둬서 다시 돌아오면 그대로)
+function setSvType(q, t){
+  q.type = t;
+  if((t === 'single' || t === 'multi') && !(q.options || []).length) q.options = ['', ''];
+  if(t === 'grid'){ if(!(q.rows || []).length) q.rows = ['']; if(!(q.cols || []).length) q.cols = ['매우 불만족', '불만족', '보통', '만족', '매우 만족']; }
+  if(t === 'nps'){ if(q.low == null) q.low = '전혀 추천 안 함'; if(q.high == null) q.high = '적극 추천'; }
+}
+function validSurvey(list){
+  const ids = new Set();
+  for(const [i, q] of list.entries()){
+    const no = q.id || i + 1;
+    if(ids.has(String(q.id))) return `${no}번 번호가 겹쳐요.`; ids.add(String(q.id));
+    if(!String(q.q || '').trim()) return `${no}번 질문을 입력해주세요.`;
+    const uniq = (arr, what, min) => { const o = (arr || []).map(x => String(x).trim()).filter(Boolean); if(o.length < min) return `${no}번 ${what}을 ${min}개 이상 넣어주세요.`; if(new Set(o).size !== o.length) return `${no}번에 같은 ${what}이 있어요.`; return ''; };
+    let e = '';
+    if(q.type === 'grid') e = uniq(q.rows, '평가 항목', 1) || uniq(q.cols, '척도', 2);
+    else if(q.type !== 'nps') e = uniq(q.options, '선택 항목', 2);
+    if(e) return e;
+    if(q.cond){
+      const parent = list.slice(0, i).find(x => String(x.id) === String(q.cond.id));
+      if(!parent) return `${no}번 조건의 ${q.cond.id}번 문항이 앞에 없어요. '조건 없애기'를 누르거나 문항을 다시 넣어주세요.`;
+    }
+  }
+  return '';
+}
+function cleanSurvey(list){
+  const t = arr => (arr || []).map(x => String(x).trim()).filter(Boolean);
+  return list.map((q, i) => {
+    const it = { id:String(q.id || i + 1), q:q.q.trim(), type:q.type || 'single' };
+    if(it.type === 'nps'){ it.low = String(q.low || '').trim(); it.high = String(q.high || '').trim(); }
+    else if(it.type === 'grid'){ it.rows = t(q.rows); it.cols = t(q.cols); }
+    else {
+      it.options = t(q.options);
+      if(it.type === 'multi' && Number(q.max) > 0) it.max = Math.min(it.options.length, Math.floor(Number(q.max)));
+      if(q.other){ it.other = true; if(!it.options.includes('기타')) it.options.push('기타'); }
+    }
+    if(q.comment && it.type !== 'grid') it.comment = true;
+    if(q.cond) it.cond = q.cond;
+    return it;
+  });
+}
+function svNextId(){ return String(Math.max(0, ...DR.survey.map(q => parseInt(q.id, 10) || 0)) + 1); }
+
+/* ---------- 문항 편집기 (예측) ---------- */
 function qEditor(kind){
   const P = kind === 'predict';
   const list = DR[kind];
@@ -604,7 +883,7 @@ function survResults(S){
     ${[...S.sq].map(([q, c]) => `<section class="card"><h2>${esc(q)}</h2>${bars(c)}</section>`).join('')}`;
   const v = list.find(x => String(x.v) === pick) || list[0];
   return `<section class="card"><h2>설문 결과</h2>${html}<p class="desc" style="margin:12px 0 0;">${vMeta(v, '응답')}</p></section>
-    ${v.rows.length ? v.questions.map((q, i) => `<section class="card"><h2>${i + 1}. ${esc(q.q)}</h2>${bars(q.counts, { order:q.order || undefined })}</section>`).join('')
+    ${v.rows.length ? v.questions.map(surveyCard).join('')
       : `<section class="card"><p class="empty">이 버전에는 아직 응답이 없어요.</p></section>`}`;
 }
 
@@ -821,22 +1100,30 @@ const VIEWS = {
   survey: S => {
     const reg = Array.isArray(CT().survey) && CT().survey.length;
     const n = (D.subs.survey || []).length;
-    const editing = !reg || DR.surveyEdit;
-    if(editing && !DR.survey) DR.survey = clone(reg ? CT().survey : SURV_DEF);
+    const editing = DR.surveyEdit || (!reg && DR.survey);
     const results = survResults(S);
-    const head = `<p class="page-title">설문 <button class="btn small ghost" data-act="csv-survey" style="vertical-align:4px; margin-left:6px;">CSV 내려받기</button></p>`;
+    const cur = reg ? CT().survey : SURV_DEF;
+    const head = `<p class="page-title">설문 <button class="btn small ghost" data-act="csv-survey" style="vertical-align:4px; margin-left:6px;">응답 CSV 내려받기</button></p>`;
+    const xlsxBar = `<div class="opts" style="margin:0 0 4px;">
+        <label class="btn small dark" style="display:inline-flex; align-items:center; cursor:pointer;">엑셀로 불러오기<input type="file" id="sv-file" accept=".xlsx,.xls,.csv" hidden></label>
+        <button class="btn small ghost" data-act="sv-xlsx">${editing ? '편집 중인 설문' : '지금 설문'} 엑셀 양식 내려받기</button>
+        ${editing ? '' : `<button class="btn small ghost" data-act="sv-rewrite">직접 고치기</button>`}
+      </div>
+      <p class="desc" style="margin:6px 0 0;">엑셀 열: 번호 · 문항 · 응답 유형 · 선택지 · 기타 — 26-27 시즌 초반 설문 파일과 같은 양식이에요. 불러오면 미리보기를 확인하고 편집기에 채운 뒤 등록해요.</p>`;
     if(!editing) return `${head}<p class="page-sub">응답 ${fmt(n)}명 · 설문을 바꿀 때마다 버전이 따로 쌓여요. 이미 답한 관람객은 다시 답하지 않아요.</p>
-      <section class="card"><h2>등록한 설문 <button class="btn small ghost" data-act="sv-rewrite">다시 작성하기</button></h2>
-        ${CT().survey.map((q, i) => `<div class="row"><div class="main"><p class="t">${i + 1}. ${esc(q.q)}</p><p class="m">${q.options.map(esc).join(' · ')}</p></div></div>`).join('')}
+      <section class="card"><h2>${reg ? '등록한 설문' : '기본 설문이 나가는 중'} <span class="muted" style="font-size:13px; font-weight:600;">${cur.length}문항</span></h2>
+        ${xlsxBar}
+        <div style="margin-top:10px;">${cur.map(q => `<div class="row"><div class="main"><p class="t">${esc(q.id)}. ${esc(q.q)}</p><p class="m" style="margin-top:4px;">${svBadges(q)}</p><p class="m">${esc(svOptsText(q))}</p></div></div>`).join('')}</div>
       </section>${results}`;
     return `${head}<p class="page-sub">응답 ${fmt(n)}명</p>
     <section class="card">
-      <h2>설문 등록하기 ${reg ? '<span class="chip ok">다시 작성 중</span>' : '<span class="chip off">기본 설문이 나가는 중</span>'}
+      <h2>설문 편집 <span class="chip off">등록 전</span>
         <button class="btn small dark" data-act="sv-ai">AI로 설문 생성하기</button></h2>
-      <p class="desc">문항은 ${LIMIT.surveyQ}개, 답변은 문항마다 ${LIMIT.surveyO}개까지 만들 수 있어요. 등록하면 아직 답하지 않은 관람객부터 새 설문이 보여요.</p>
-      ${qEditor('survey')}
-      <div class="edfoot">${DR.survey.length < LIMIT.surveyQ ? `<button class="btn ghost" data-act="ed-add" data-ed="survey">+ 설문 추가</button>` : '<span></span>'}
-        <span style="display:flex; gap:8px;">${reg ? `<button class="btn ghost" data-act="sv-cancel">취소</button>` : ''}<button class="btn" data-act="sv-save">설문 등록하기</button></span></div>
+      ${xlsxBar}
+      <p class="desc" style="margin-top:10px;">문항은 ${LIMIT.surveyQ}개, 선택 항목은 ${LIMIT.surveyO}개까지. 조건(앞 문항 답에 따라 보이기)은 엑셀 번호를 '1-1'처럼 붙여서 만들어요. 등록하면 아직 답하지 않은 관람객부터 새 설문이 보여요.</p>
+      ${sEditor()}
+      <div class="edfoot">${DR.survey.length < LIMIT.surveyQ ? `<button class="btn ghost" data-act="ed-add" data-ed="survey">+ 문항 추가</button>` : '<span></span>'}
+        <span style="display:flex; gap:8px;"><button class="btn ghost" data-act="sv-cancel">취소</button><button class="btn" data-act="sv-save">설문 등록하기</button></span></div>
     </section>${results}`;
   },
 
@@ -977,18 +1264,21 @@ document.addEventListener('click', e=>{
     /* --- 문항 편집기 (예측 · 설문) --- */
     case 'ed-add': {
       const k = b.dataset.ed;
-      DR[k].push(k === 'predict' ? { id:'q' + Date.now().toString(36), q:'', options:['OK저축은행 읏맨', '상대팀'], ai:true } : { q:'', options:['', '', ''] });
+      DR[k].push(k === 'predict' ? { id:'q' + Date.now().toString(36), q:'', options:['OK저축은행 읏맨', '상대팀'], ai:true } : { id:svNextId(), q:'', type:'single', options:['', '', ''] });
       return render();
     }
     case 'ed-del': { const k = b.dataset.ed; if(DR[k].length > 1) DR[k].splice(i, 1); return render(); }
-    case 'ed-oadd': { DR[b.dataset.ed][i].options.push(''); render(); const ins = document.querySelectorAll(`[data-ed="${b.dataset.ed}"][data-i="${i}"][data-f="opt"]`); ins[ins.length - 1]?.focus(); return; }
-    case 'ed-odel': { const q = DR[b.dataset.ed][i]; if(q.options.length > 2) q.options.splice(Number(b.dataset.j), 1); return render(); }
+    case 'ed-oadd': { const k = b.dataset.k || 'options'; DR[b.dataset.ed][i][k].push(''); render(); const ins = document.querySelectorAll(`[data-ed="${b.dataset.ed}"][data-i="${i}"][data-f="${k === 'options' ? (b.dataset.ed === 'survey' ? 'options' : 'opt') : k}"]`); ins[ins.length - 1]?.focus(); return; }
+    case 'ed-odel': { const k = b.dataset.k || 'options', arr = DR[b.dataset.ed][i][k], min = k === 'rows' ? 1 : 2; if(arr.length > min) arr.splice(Number(b.dataset.j), 1); return render(); }
+    case 'sv-nocond': delete DR.survey[i].cond; return render();
+    case 'sv-xlsx': return downloadSurveyXlsx(DR.surveyEdit || DR.survey ? cleanSurvey(DR.survey) : (Array.isArray(CT().survey) && CT().survey.length ? CT().survey : SURV_DEF)).catch(e => toast(e.message, true));
+    case 'sv-fill': { if(!window.__svImport) return; DR.survey = clone(window.__svImport); DR.surveyEdit = true; closeModal(); render(); return toast("편집기에 채웠어요. 확인하고 '설문 등록하기'를 눌러주세요."); }
     case 'ed-player': { const q = DR[b.dataset.ed][i]; q._opts = q.options; q.type = 'player'; delete q.options; return render(); }
     case 'ed-noplayer': { const q = DR[b.dataset.ed][i]; delete q.type; q.options = q._opts || ['', '']; delete q._opts; return render(); }
     case 'pred-save': {
       const err = validQs(DR.predict); if(err) return toast(err, true);
       { const cv = S0().pred.versions.find(v => v.current); const nv = Math.max(0, ...S0().pred.versions.map(v => v.v === 'none' ? 0 : v.v)) + 1;
-        if(cv && cv.rows.length && JSON.stringify(cleanQs(DR.predict)) !== JSON.stringify(CT().predict || null)
+        if(cv && cv.rows.length && canon(cleanQs(DR.predict)) !== canon(CT().predict || null)
            && !confirm(`지금 문항(${vLabel(cv.v)})에 ${cv.rows.length}명이 예측했어요.\n새로 등록하면 v${nv}로 따로 집계되고, 이미 예측한 분은 그대로예요. 등록할까요?`)) return; }
       const predict = cleanQs(DR.predict);
       return saveContent({ predict }, '예측을 등록했어요. 관람객 화면엔 20초 안에 보여요.').then(ok=>{ if(ok){ DR.predict = null; render(); } });
@@ -1004,14 +1294,14 @@ document.addEventListener('click', e=>{
       if(!(na >= 3 && na <= 5)) return toast('답변 수는 3~5개로 넣어주세요.', true);
       DR.survey = genSurvey(nq, na); closeModal(); render(); return toast('설문을 채웠어요. 확인하고 등록해주세요.');
     }
-    case 'sv-rewrite': DR.surveyEdit = true; DR.survey = clone(CT().survey); return render();
+    case 'sv-rewrite': DR.surveyEdit = true; DR.survey = clone(Array.isArray(CT().survey) && CT().survey.length ? CT().survey : SURV_DEF); return render();
     case 'sv-cancel': DR.surveyEdit = false; DR.survey = null; return render();
     case 'sv-save': {
-      const err = validQs(DR.survey); if(err) return toast(err, true);
+      const err = validSurvey(DR.survey); if(err) return toast(err, true);
       { const cv = S0().sv.find(v => v.current); const nv = Math.max(0, ...S0().sv.map(v => v.v === 'none' ? 0 : v.v)) + 1;
-        if(cv && cv.rows.length && JSON.stringify(cleanQs(DR.survey)) !== JSON.stringify(CT().survey || null)
+        if(cv && cv.rows.length && canon(cleanSurvey(DR.survey)) !== canon(CT().survey || null)
            && !confirm(`지금 설문(${vLabel(cv.v)})에 ${cv.rows.length}명이 답했어요.\n새로 등록하면 v${nv}로 따로 집계되고, 이미 답한 분은 다시 답하지 않아요. 등록할까요?`)) return; }
-      return saveContent({ survey:cleanQs(DR.survey) }, '설문을 등록했어요. 관람객 화면엔 20초 안에 보여요.').then(ok=>{ if(ok){ DR.survey = null; DR.surveyEdit = false; render(); } });
+      return saveContent({ survey:cleanSurvey(DR.survey) }, '설문을 등록했어요. 관람객 화면엔 20초 안에 보여요.').then(ok=>{ if(ok){ DR.survey = null; DR.surveyEdit = false; render(); } });
     }
 
     /* --- 대시보드: 미션 순서 --- */
@@ -1075,15 +1365,36 @@ document.addEventListener('input', e=>{
   const t = e.target;
   if(t.dataset.ed){
     const q = DR[t.dataset.ed] && DR[t.dataset.ed][Number(t.dataset.i)]; if(!q) return;
-    if(t.dataset.f === 'q') q.q = t.value;
-    else if(t.dataset.f === 'opt') q.options[Number(t.dataset.j)] = t.value;
-    else if(t.dataset.f === 'ai') q.ai = t.checked;
+    const f = t.dataset.f;
+    if(f === 'q') q.q = t.value;
+    else if(f === 'opt') q.options[Number(t.dataset.j)] = t.value;
+    else if(['options', 'rows', 'cols'].includes(f)) q[f][Number(t.dataset.j)] = t.value;
+    else if(f === 'ai') q.ai = t.checked;
+    else if(f === 'other' || f === 'comment') q[f] = t.checked;
+    else if(f === 'low' || f === 'high') q[f] = t.value;
+    else if(f === 'max') q.max = Number(t.value) || 0;
+    else if(f === 'type'){ setSvType(q, t.value); render(); }
   } else if(t.dataset.ck && MOD){
     const q = MOD.qs[MOD.i];
     if(t.dataset.ck === 'q') q.q = t.value; else if(t.dataset.ck === 'o') q.opts[Number(t.dataset.j)].label = t.value;
   }
 });
 document.addEventListener('change', async e=>{
+  if(e.target.id === 'sv-file' && e.target.files[0]){
+    const f = e.target.files[0]; e.target.value = '';
+    try{
+      toast('엑셀을 읽는 중…');
+      const r = await readSurveyFile(f);
+      window.__svImport = r.items;
+      openModal(`<div class="modal__head"><h3>엑셀 미리보기</h3><button class="modal__x" data-act="modal-x" aria-label="닫기">×</button></div>
+        <p class="desc">${esc(f.name)} · '${esc(r.sheet)}' 시트 · ${r.items.length}문항</p>
+        ${r.warn.length ? `<div class="winbox" style="background:#FFF8E1; color:#7A5B00; margin:0 0 12px;"><b>확인해 주세요</b>${r.warn.map(w => `<p style="font-size:13px; margin-top:6px;">· ${esc(w)}</p>`).join('')}</div>` : ''}
+        <div style="max-height:52vh; overflow:auto;">${r.items.map(q => `<div class="row"><div class="main"><p class="t">${esc(q.id)}. ${esc(q.q)}</p><p class="m" style="margin-top:4px;">${svBadges(q)}</p><p class="m">${esc(svOptsText(q))}</p></div></div>`).join('')}</div>
+        <div class="modal__foot"><button class="btn ghost" data-act="modal-x">취소</button><button class="btn" data-act="sv-fill">편집기에 채우기</button></div>`);
+      $('modal-box').style.maxWidth = '640px';
+    }catch(err){ toast(err.message, true); }
+    return;
+  }
   const t = e.target; if(t.dataset.ckimg == null || !MOD || !t.files[0]) return;
   try{ MOD.qs[MOD.i].opts[Number(t.dataset.ckimg)].img = await shrinkImage(t.files[0]); ckModal(); }
   catch(err){ toast(err.message, true); }

@@ -549,6 +549,28 @@
   .survey-q .qnum{font-size:12px; font-weight:600; color:var(--brand-dark); margin-bottom:8px; line-height:18px}
   .survey-q .qtext{font-size:18px; font-weight:600; margin:0 0 18px; color:var(--ink); line-height:26px}
   .survey-nav{display:flex; gap:8px; margin-top:20px;}
+  .survey-q.active.still,.survey-q.active.still .selected{animation:none !important;}
+  .qhint{margin:-8px 0 12px; font-size:13px; line-height:20px; color:var(--ink-faint); transition:color .2s;}
+  .qhint b{color:var(--brand-dark);} .qhint.warn{color:var(--negative);}
+  .opt.multi .check{border-radius:6px;}
+  .opt.multi.selected .check::after{inset:auto; left:5px; top:2px; width:5px; height:9px; border-radius:0; background:none;
+    border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg);}
+  .sv-text{margin:12px 0 0; resize:vertical; font-family:inherit;}
+  .sv-memo{min-height:84px;}
+  /* NPS 0~10 */
+  .nps{display:grid; grid-template-columns:repeat(6, 1fr); gap:6px;}
+  .nps__b{height:48px; border-radius:12px; background:var(--surface,#F7F7F9); font-size:16px; font-weight:700; color:var(--ink);}
+  .nps__b.selected{background:var(--brand); color:#fff;}
+  .nps__l{display:flex; justify-content:space-between; gap:12px; margin-top:10px; font-size:12px; line-height:18px; color:var(--ink-faint);}
+  .nps__l span:last-child{text-align:right;}
+  @media (min-width:420px){ .nps{grid-template-columns:repeat(11, 1fr); gap:4px;} .nps__b{height:44px; font-size:15px;} }
+  /* 행렬형 척도 */
+  .sg{padding:12px 0; border-top:1px solid var(--line-1,#E9EBF0);}
+  .sg:first-of-type{border-top:0;}
+  .sg__t{margin:0 0 8px; font-size:15px; line-height:22px; font-weight:600; color:var(--ink);}
+  .sg__c{display:grid; grid-template-columns:repeat(var(--n, 5), 1fr); gap:4px;}
+  .sg__b{min-height:44px; padding:6px 2px; border-radius:10px; background:var(--surface,#F7F7F9); font-size:12px; line-height:15px; font-weight:600; color:var(--ink-dim); word-break:keep-all;}
+  .sg__b.selected{background:var(--brand); color:#fff;}
   .survey-nav .btn{flex:1;}
   .survey-done{text-align:center; padding:40px 10px;}
   .survey-done svg{width:48px; height:48px; stroke:var(--ok); margin-bottom:14px; animation:checkPop .5s var(--ease-spring);}
@@ -3009,12 +3031,11 @@ const CONFIG = {
     { id:'set_score', q:'세트 스코어를 예측해보세요', options:['3:0','3:1','3:2','2:3 이하'] },
   ],
 
-  SURVEY_QUESTIONS: [
-    { q:'오늘 경기장 좌석 안내는 찾기 쉬웠나요?', options:['매우 쉬움','쉬움','보통','어려움'] },
-    { q:'오늘 응원 분위기는 어땠나요?', options:['최고였어요','좋았어요','보통이었어요','아쉬웠어요'] },
-    { q:'다음에도 직관하러 오실 의향이 있나요?', options:['꼭 다시 올게요','아마도요','잘 모르겠어요'] },
-    { q:'경기장 내 편의시설(매점·화장실 등)은 만족스러웠나요?', options:['매우 만족','만족','보통','불만족'] },
-  ],
+  /* 관람 설문 — 26-27 시즌 초반 관람객 설문(261014) 기본값. 관리자 › 설문에서 엑셀로 바꿀 수 있어요.
+     type: single(단일) · multi(복수, max) · nps(0~10) · grid(행렬 척도: rows × cols)
+     other: '기타' 고르면 직접 입력칸 · comment: 아래 자유 의견칸(선택) · cond: { id, in:[…] | notIn:[…] } 앞 문항 답에 따라 보이기 */
+  SURVEY_QUESTIONS: [{"id": "1", "q": "거주 지역을 선택해 주세요.", "type": "single", "options": ["부산광역시", "김해시", "양산시", "창원시", "기타 경남", "울산광역시", "대구·경북", "서울·경기·인천", "기타"]}, {"id": "1-1", "q": "(부산 거주자) 거주하시는 구·군을 선택해 주세요.", "type": "single", "options": ["중구", "서구", "동구", "영도구", "부산진구", "동래구", "남구", "북구", "해운대구", "사하구", "금정구", "강서구", "연제구", "수영구", "사상구", "기장군"], "cond": {"id": "1", "in": ["부산광역시"]}}, {"id": "2", "q": "오늘 경기장까지 이용한 주 이동수단은 무엇인가요?", "type": "multi", "max": 3, "options": ["자차", "지하철", "버스", "택시", "KTX·기차", "도보·자전거", "기타"]}, {"id": "3", "q": "오늘 누구와 함께 오셨나요?", "type": "single", "options": ["혼자", "가족(자녀 동반)", "가족(성인만)", "연인", "친구·지인", "단체(직장·학교·동호회)"]}, {"id": "4", "q": "지난 시즌에는 홈경기 관람 몇번 했나요?", "type": "single", "options": ["0회", "1회", "2회~5회", "5회~10회", "10회 이상"]}, {"id": "4-1", "q": "지난 시즌 대비 만족도가 어떤가요?", "type": "single", "options": ["훨신 좋아졌다", "개선이 조금 된 듯 하다", "비슷하다", "더 안좋아졌다"], "cond": {"id": "4", "notIn": ["0회"]}}, {"id": "4-2", "q": "지난 시즌에 비해 가장 좋아진 것은", "type": "multi", "max": 3, "options": ["입장·매표", "좌석 편의성", "관람 시야", "응원·장내 진행", "이벤트", "MD(굿즈)", "먹거리", "화장실 청결", "특별하게 없음"], "cond": {"id": "4", "notIn": ["0회"]}}, {"id": "4-3", "q": "지난 시즌에 비해 안좋아진 부분은?", "type": "multi", "max": 3, "options": ["입장·매표", "좌석 편의성", "관람 시야", "응원·장내 진행", "이벤트", "MD(굿즈)", "먹거리", "화장실 청결", "특별하게 없음"], "cond": {"id": "4", "notIn": ["0회"]}}, {"id": "5", "q": "OK읏맨 팬이 된 시기는 언제인가요?", "type": "single", "options": ["25-26시즌 이전(안산)부터", "25-26 시즌(부산 첫 시즌)부터", "이번 26-27 시즌부터"]}, {"id": "6", "q": "오늘 경기장에 방문하게 된 가장 큰 계기는 무엇인가요? (1개)", "type": "multi", "max": 3, "options": ["부산에 배구팀이 있어서", "좋아하는 선수를 보려고", "응원 문화가 재밌어서", "배구 자체가 좋아서", "가족·지인과 여가를 보내려고", "지인의 권유", "아이의 권유(배구교실 등)", "SNS·홍보를 보고", "초대권·제휴 혜택", "기타"]}, {"id": "7", "q": "오늘 경기 정보를 처음 접한 경로는 어디인가요?", "type": "multi", "max": 3, "options": ["구단 인스타그램", "유튜브", "틱톡·릴스", "카카오톡 채널", "네이버 카페·밴드", "포털 사이트", "지하철·버스·옥외 광고", "지인", "학교·직장", "기타"]}, {"id": "8", "q": "주변에 OK읏맨 경기 직관을 추천할 의향은 얼마나 되나요?", "type": "nps", "low": "전혀 추천 안 함", "high": "적극 추천"}, {"id": "9", "q": "오늘 관람한 자리는 어디인가요?", "type": "single", "options": ["스파이크존(1층)", "블로킹존(1층)", "테이블존(1층)", "읏샤읏샤OK존(2층)", "읏맨존(2층)", "하이테이블석(2층)", "편하데이존(2층)", "스카이박스(2층)", "기읏, 니읏존(3층)", "원정석(3층)"]}, {"id": "10", "q": "오늘 관람 경험에 대해 항목별로 평가해 주세요.", "type": "grid", "rows": ["입장·매표", "좌석 편의성", "관람 시야", "응원·장내 진행", "이벤트", "MD(굿즈)", "먹거리", "화장실 청결"], "cols": ["매우 불만족", "불만족", "보통", "만족", "매우 만족"]}, {"id": "11", "q": "가장 개선되었으면 하는 점 1가지를 골라 주세요.", "type": "single", "other": true, "options": ["이벤트", "먹거리", "MD 상품", "좌석", "화장실", "주차·퇴장", "경기장 안내", "홍보", "기타"]}, {"id": "12", "q": "읏배구놀이터 이용 만족도는 어떠신가요?", "type": "nps", "low": "전혀 추천 안 함", "high": "적극 추천"}, {"id": "13", "q": "읏배구놀이터에서 가장 만족스러웠던 것은?", "type": "single", "options": ["안내(자리, 막차)", "룰렛", "AI예측이벤트", "플레이어(선수카드)"]}, {"id": "14", "q": "읏배구놀이터에서 가장 개선이 필요할 것 같은 것은?", "type": "single", "options": ["안내(자리, 막차)", "룰렛", "AI예측이벤트", "플레이어(선수카드)"], "comment": true}],
+
 
   /* ---------------------------------------------------------------
      하단 탭 라벨 — NAV_LANG: 'ko'(기본) | 'en'. 주소 뒤에 ?nav=en을 붙이면 바로 비교해볼 수 있어요.
@@ -3337,7 +3358,8 @@ const CONTENT = (function(){
     })).filter(x=> x.q && (x.type === 'player' || x.options.length >= 2)) : null;
     swap(CONFIG.PREDICT_EVENTS, pq && pq.length ? pq : DEF.predict);
     const sq = Array.isArray(c.survey) && c.survey.length
-      ? c.survey.map(x=> ({ q:x.q, options:(x.options || []).filter(Boolean) })).filter(x=> x.q && x.options.length >= 2).slice(0, 5) : null;
+      ? c.survey.map((x, i)=> ({ ...x, id:x.id || String(i + 1), type:x.type || 'single', options:x.options ? x.options.filter(Boolean) : x.options }))
+          .filter(x=> x.q && (x.type === 'nps' || (x.type === 'grid' ? (x.rows || []).length && (x.cols || []).length >= 2 : (x.options || []).length >= 2))).slice(0, 25) : null;
     swap(CONFIG.SURVEY_QUESTIONS, sq && sq.length ? sq : DEF.survey);
   }
   toConfig(cur);
@@ -4210,69 +4232,164 @@ function fmtMatchDate(d, withTime){
 (function initSurvey(){
   const body = document.getElementById('survey-body');
   const progress = document.getElementById('survey-progress');
-  const qs = CONFIG.SURVEY_QUESTIONS;          // 관리자 설문이 오면 이 배열 내용이 바뀌어요 (최대 5문항)
-  let idx = 0;
-  let answers = {};
-  let builtVer = 0;   // 이 화면에 그린 설문의 버전 — 제출할 때 같이 보내요
+  const sub = document.querySelector('#view-survey .pagesub');
+  const qs = CONFIG.SURVEY_QUESTIONS;   // 관리자 설문이 오면 이 배열 내용이 바뀌어요
+  const TXT_MAX = 200;
+  let pos = 0, builtVer = 0;
+  let A = {}, OTHER = {}, MEMO = {};    // 답 · 기타 직접 입력 · 자유 의견
 
-  if(LOCAL['survey']){ renderDone(); return; }
-  build();
-
-  function build(){
+  /* 시작 — 같은 버전 설문을 하다 나갔으면 이어서 해요 */
+  function start(){
     builtVer = CONTENT.ver('survey');
-    body.innerHTML = '';
-    idx = 0; answers = {};
-    qs.forEach((q, i)=>{
-      const el = document.createElement('div');
-      el.className = 'survey-q' + (i===0 ? ' active' : '');
-      el.dataset.idx = i;
-      const optsHtml = q.options.map(opt=>`<div class="opt" data-opt="${escHtml(opt)}"><span>${escHtml(opt)}</span><span class="check"></span></div>`).join('');
-      el.innerHTML = `<div class="qnum">${i+1} / ${qs.length}</div><p class="qtext">${escHtml(q.q)}</p><div class="opt-grid">${optsHtml}</div>
-        <div class="survey-nav">
-          ${i>0 ? '<button class="btn ghost prev">이전</button>' : ''}
-          <button class="btn next" disabled>${i === qs.length-1 ? '제출하기' : '다음'}</button>
-        </div>`;
-      body.appendChild(el);
+    const d = LOCAL.survey_draft;
+    if(d && d.ver === builtVer && d.n === qs.length){ A = d.A || {}; OTHER = d.OTHER || {}; MEMO = d.MEMO || {}; pos = d.pos || 0; }
+    else { A = {}; OTHER = {}; MEMO = {}; pos = 0; }
+    if(sub) sub.textContent = `오늘 직관은 어떠셨나요? ${qs.length > 8 ? '2~3분' : '1분'}이면 충분해요.`;
+    render();
+  }
+  function saveDraft(){ LOCAL.survey_draft = { ver:builtVer, n:qs.length, A, OTHER, MEMO, pos }; saveLocal(LOCAL); }
 
-      const nextBtn = el.querySelector('.next');
-      el.querySelectorAll('.opt').forEach(optEl=>{
-        optEl.addEventListener('click', ()=>{
-          hapticTick();
-          el.querySelectorAll('.opt').forEach(o=>o.classList.remove('selected'));
-          optEl.classList.add('selected');
-          optEl.classList.remove('pulse'); void optEl.offsetWidth; optEl.classList.add('pulse');
-          answers[i] = optEl.dataset.opt;
-          nextBtn.removeAttribute('disabled');
-        });
-      });
-      const prevBtn = el.querySelector('.prev');
-      if(prevBtn) prevBtn.addEventListener('click', ()=> goTo(i-1));
-      nextBtn.addEventListener('click', async ()=>{
-        if(i === qs.length-1){
-          const list = qs.map((qq, j)=> ({ q:qq.q, a:answers[j] }));
-          LOCAL['survey'] = answers; saveLocal(LOCAL);
-          await postData('survey', answers);
-          LIVE.submit('survey', { answers: list, ver: builtVer });
-          renderDone();
-        }
-        else { goTo(i+1); }
-      });
+  // 앞 문항 답에 따라 보이는 문항만
+  function condOk(c){
+    if(!c) return true;
+    const a = A[c.id]; if(a == null || a === '' || (Array.isArray(a) && !a.length)) return false;
+    const vals = Array.isArray(a) ? a : [String(a)];
+    if(c.in) return vals.some(v=> c.in.includes(v));
+    if(c.notIn) return !vals.every(v=> c.notIn.includes(v));
+    return true;
+  }
+  const visible = ()=> qs.filter(q=> condOk(q.cond));
+  function answered(q){
+    const a = A[q.id];
+    if(q.type === 'multi') return Array.isArray(a) && a.length > 0;
+    if(q.type === 'grid') return !!a && (q.rows || []).every((_, r)=> a[r] != null);
+    if(q.type === 'nps') return typeof a === 'number';
+    return a != null && a !== '';
+  }
+
+  function optHtml(q){
+    const a = A[q.id];
+    if(q.type === 'nps'){
+      return `<div class="nps" role="radiogroup" aria-label="${escHtml(q.q)}">${Array.from({ length:11 }, (_, n)=>
+        `<button type="button" class="nps__b${a === n ? ' selected' : ''}" data-n="${n}" role="radio" aria-checked="${a === n}">${n}</button>`).join('')}</div>
+        <div class="nps__l"><span>0 ${escHtml(q.low || '')}</span><span>10 ${escHtml(q.high || '')}</span></div>`;
+    }
+    if(q.type === 'grid'){
+      const done = (q.rows || []).filter((_, r)=> a && a[r] != null).length;
+      return `<p class="qhint">항목마다 하나씩 골라주세요 <b>${done}/${q.rows.length}</b></p>` + q.rows.map((row, r)=> `
+        <div class="sg">
+          <p class="sg__t">${escHtml(row)}</p>
+          <div class="sg__c" role="radiogroup" aria-label="${escHtml(row)}" style="--n:${q.cols.length}">${q.cols.map((c, ci)=>
+            `<button type="button" class="sg__b${a && a[r] === ci ? ' selected' : ''}" data-r="${r}" data-c="${ci}" role="radio" aria-checked="${!!(a && a[r] === ci)}">${escHtml(c)}</button>`).join('')}</div>
+        </div>`).join('');
+    }
+    const multi = q.type === 'multi';
+    const sel = multi ? (a || []) : [a];
+    let h = multi ? `<p class="qhint">${q.max ? `최대 ${q.max}개까지` : '여러 개'} 고를 수 있어요${q.max ? ` <b>${sel.length}/${q.max}</b>` : ''}</p>` : '';
+    h += `<div class="opt-grid">${q.options.map(o=> `<div class="opt${multi ? ' multi' : ''}${sel.includes(o) ? ' selected' : ''}" data-opt="${escHtml(o)}" role="${multi ? 'checkbox' : 'radio'}" aria-checked="${sel.includes(o)}" tabindex="0"><span>${escHtml(o)}</span><span class="check"></span></div>`).join('')}</div>`;
+    if(q.other && sel.includes('기타')) h += `<input class="glass-input sv-text" data-other maxlength="${TXT_MAX}" placeholder="기타 내용을 적어주세요" value="${escHtml(OTHER[q.id] || '')}">`;
+    if(q.comment) h += `<textarea class="glass-input sv-text sv-memo" data-memo maxlength="${TXT_MAX}" rows="3" placeholder="더 하고 싶은 말이 있으면 적어주세요 (선택)">${escHtml(MEMO[q.id] || '')}</textarea>`;
+    return h;
+  }
+
+  // still: 같은 문항에서 답만 바꿀 때 — 화면 등장 애니메이션을 다시 틀지 않아요
+  function render(focus, still, tapped){
+    const list = visible();
+    if(pos >= list.length) pos = list.length - 1;
+    const q = list[pos];
+    const last = pos === list.length - 1;
+    body.innerHTML = `<div class="survey-q active${still ? ' still' : ''}" data-id="${escHtml(q.id)}">
+      <div class="qnum">${pos + 1} / ${list.length}</div>
+      <p class="qtext">${escHtml(q.q)}</p>
+      ${optHtml(q)}
+      <div class="survey-nav">
+        ${pos > 0 ? '<button class="btn ghost" data-nav="prev">이전</button>' : ''}
+        <button class="btn" data-nav="next"${answered(q) ? '' : ' disabled'}>${last ? '제출하기' : '다음'}</button>
+      </div>
+    </div>`;
+    progress.style.width = `${Math.round((pos / list.length) * 100)}%`;
+    if(focus){ const el = body.querySelector(focus); if(el){ el.focus(); const v = el.value; el.value = ''; el.value = v; } }
+    if(tapped){ const el = body.querySelector(tapped); if(el && el.classList.contains('selected')) el.style.animation = 'optPulse .4s var(--ease-spring)'; }
+  }
+  function flashHint(text){
+    const h = body.querySelector('.qhint'); if(!h) return;
+    const keep = h.innerHTML; h.textContent = text; h.classList.add('warn');
+    setTimeout(()=>{ if(h.isConnected){ h.innerHTML = keep; h.classList.remove('warn'); } }, 1600);
+  }
+
+  body.addEventListener('click', async e=>{
+    const wrap = body.querySelector('.survey-q'); if(!wrap) return;
+    const q = qs.find(x=> x.id === wrap.dataset.id); if(!q) return;
+    const nav = e.target.closest('[data-nav]');
+    if(nav){
+      if(nav.dataset.nav === 'prev'){ hapticTick(); pos = Math.max(0, pos - 1); saveDraft(); render(); window.scrollTo({ top:0 }); return; }
+      if(!answered(q)) return;
+      const list = visible();
+      if(pos < list.length - 1){ hapticTick(); pos++; saveDraft(); render(); window.scrollTo({ top:0 }); return; }
+      return submit(list);
+    }
+    const o = e.target.closest('.opt'), n = e.target.closest('.nps__b'), g = e.target.closest('.sg__b');
+    if(o){
+      const v = o.dataset.opt;
+      if(q.type === 'multi'){
+        const cur = A[q.id] || [];
+        if(cur.includes(v)) A[q.id] = cur.filter(x=> x !== v);
+        else if(q.max && cur.length >= q.max){ flashHint(`최대 ${q.max}개까지 고를 수 있어요`); if(navigator.vibrate) navigator.vibrate([10, 30, 10]); return; }
+        else A[q.id] = [...cur, v];
+      } else A[q.id] = v;
+      hapticTick();
+    } else if(n){ A[q.id] = Number(n.dataset.n); hapticTick(); }
+    else if(g){ A[q.id] = { ...(A[q.id] || {}), [g.dataset.r]:Number(g.dataset.c) }; hapticTick(); }
+    else return;
+    // 답을 바꿔서 뒤 문항 조건이 안 맞게 되면 그 답은 지워요
+    qs.forEach(x=>{ if(x.cond && !condOk(x.cond)) { delete A[x.id]; delete OTHER[x.id]; delete MEMO[x.id]; } });
+    saveDraft();
+    const pickedOther = o && q.other && o.dataset.opt === '기타' && (A[q.id] === '기타' || (Array.isArray(A[q.id]) && A[q.id].includes('기타')));
+    const tapped = o ? `.opt[data-opt="${CSS.escape(o.dataset.opt)}"]` : n ? `.nps__b[data-n="${n.dataset.n}"]` : `.sg__b[data-r="${g.dataset.r}"][data-c="${g.dataset.c}"]`;
+    render(pickedOther ? '[data-other]' : null, true, tapped);
+  });
+  body.addEventListener('input', e=>{
+    const wrap = body.querySelector('.survey-q'); if(!wrap) return;
+    const id = wrap.dataset.id;
+    if(e.target.matches('[data-other]')) OTHER[id] = e.target.value.slice(0, TXT_MAX);
+    else if(e.target.matches('[data-memo]')) MEMO[id] = e.target.value.slice(0, TXT_MAX);
+    else return;
+    clearTimeout(body._t); body._t = setTimeout(saveDraft, 400);
+  });
+  body.addEventListener('keydown', e=>{
+    if((e.key === 'Enter' || e.key === ' ') && e.target.matches('.opt')){ e.preventDefault(); e.target.click(); }
+  });
+
+  /* 제출 — 보이는 문항만, 행렬형은 행마다 한 줄로 */
+  async function submit(list){
+    const out = [];
+    list.forEach(q=>{
+      const a = A[q.id];
+      if(q.type === 'grid') q.rows.forEach((row, r)=> out.push({ id:`${q.id}:${r}`, group:q.id, type:'grid', q:`${q.q} · ${row}`, a:q.cols[a[r]], score:a[r] + 1 }));
+      else {
+        const x = { id:q.id, type:q.type, q:q.q, a };
+        const other = (OTHER[q.id] || '').trim(), memo = (MEMO[q.id] || '').trim();
+        if(other && (a === '기타' || (Array.isArray(a) && a.includes('기타')))) x.etc = other;
+        if(memo) x.memo = memo;
+        out.push(x);
+      }
     });
-    updateProgress();
+    const btn = body.querySelector('[data-nav="next"]'); if(btn){ btn.disabled = true; btn.textContent = '보내는 중…'; }
+    LOCAL['survey'] = A; delete LOCAL.survey_draft; saveLocal(LOCAL);
+    await postData('survey', A).catch(()=>{});
+    LIVE.submit('survey', { answers: out, ver: builtVer });
+    renderDone();
   }
 
   // 관리자가 설문을 새로 등록하면 — 아직 답을 하나도 안 골랐을 때만 새 설문으로 바꿔요
   CONTENT.onChange(()=>{
-    if(LOCAL['survey'] || Object.keys(answers).length) return;
-    build();
+    if(LOCAL['survey'] || Object.keys(A).length) return;
+    start();
   });
 
-  function goTo(newIdx){
-    idx = newIdx;
-    document.querySelectorAll('.survey-q').forEach(el=> el.classList.toggle('active', +el.dataset.idx === idx));
-    updateProgress();
-  }
-  function updateProgress(){ progress.style.width = `${Math.round((idx / qs.length) * 100)}%`; }
+  // 함수·상수가 모두 준비된 뒤에 시작해요
+  if(LOCAL['survey']) renderDone(); else start();
+
   function renderDone(){
     progress.style.width = '100%';
     body.innerHTML = `<div class="survey-done">
