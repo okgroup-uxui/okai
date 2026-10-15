@@ -559,6 +559,8 @@
   .bar-track{height:6px; box-shadow:none; border-radius:100px; overflow:hidden;}
   .bar-fill{height:100%; border-radius:100px; transition:width .7s var(--ease-spring); width:0%;}
   
+  .mvp-voted .pick-player{pointer-events:none; opacity:.42;}
+  .mvp-voted .pick-player.mine{opacity:1;}
   .mvp-note{font-size:12px; color:var(--ink-faint); margin-top:14px; line-height:18px}
 
   .clock-card{text-align:center; padding:26px 16px; margin-bottom:16px;}
@@ -2104,6 +2106,58 @@
   }
 
   .ck__grid.cols-2{grid-template-columns:repeat(2, 1fr); gap:12px;}
+  .ck__later{display:block; margin:24px auto 0; padding:10px 16px; font-size:14px; line-height:20px; font-weight:600; color:var(--ink-faint); text-decoration:underline; text-underline-offset:3px;}
+
+  /* 미션 — 경품응모 잠금 · 안내 문구 */
+  .mission-item.locked .mission-item__icon{opacity:.35; filter:grayscale(1);}
+  .mission-item.locked .mission-item__label{color:var(--ink-faint);}
+  .mission-item__lock{position:absolute; top:6px; right:6px; width:16px; height:16px; border-radius:50%; background:var(--fill-1); color:var(--ink-faint); display:flex; align-items:center; justify-content:center;}
+  .mission-item__lock svg{width:10px; height:10px;}
+  .mission-hint{height:0; margin:0; overflow:hidden; opacity:0; font-size:12px; line-height:18px; font-weight:600; color:var(--ink-dim); text-align:center; transition:opacity .2s, height .2s, margin .2s;}
+  .mission-hint.show{height:18px; margin-top:12px; opacity:1;}
+
+  /* 예측 — 선수 운세 보고 오기 */
+  .fortune-link{display:inline-flex; align-items:center; gap:2px; margin-top:12px; padding:4px 0; font-size:13px; line-height:20px; font-weight:600; color:var(--brand-dark);}
+  .fortune-link svg{width:14px; height:14px; stroke:currentColor;}
+
+  /* 홈 경기가 없는 날 */
+  .no-game-card{display:flex; flex-direction:column; align-items:center; text-align:center; padding:32px 20px 28px; border-radius:20px; background:var(--surface); margin-bottom:16px;}
+  .no-game-card[hidden],.no-game-card__next[hidden]{display:none;}
+  .no-game-card__ic svg{width:56px; height:56px;}
+  .no-game-card__t{margin:14px 0 0; font-size:18px; line-height:26px; font-weight:700; color:var(--ink);}
+  .no-game-card__d{margin:4px 0 0; font-size:14px; line-height:20px; color:var(--ink-faint);}
+  .no-game-card__next{margin:16px 0 0; padding:8px 14px; border-radius:100px; background:#fff; font-size:13px; line-height:20px; font-weight:600; color:var(--brand-dark);}
+  body.no-game #mission-card, body.no-game .rl-stage, body.no-game #live-events, body.no-game #cheer-win-link,
+  body.no-game .cheer-fab, body.no-game .cheer-phrase,
+  body.no-game .tabbar__btn[data-view="guide"], body.no-game .tabbar__btn[data-view="pick"], body.no-game .tabbar__btn[data-view="survey"]{display:none !important;}
+
+  /* 경품 응모 — 바텀시트 */
+  .sheet-dim{position:fixed; inset:0; z-index:145; display:flex; align-items:flex-end; justify-content:center; background:rgba(22,28,38,.45);
+    opacity:0; visibility:hidden; transition:opacity .25s, visibility .25s;}
+  .sheet-dim.show{opacity:1; visibility:visible;}
+  .sheet{width:100%; max-width:480px; padding:10px 20px calc(16px + var(--court-b)); border-radius:24px 24px 0 0; background:#fff;
+    transform:translateY(100%); transition:transform .35s var(--ease-out);}
+  .sheet-dim.show .sheet{transform:none;}
+  .sheet__grab{display:block; width:40px; height:4px; border-radius:4px; background:var(--line-1); margin:0 auto 18px;}
+  .sheet__title{margin:0; font-size:20px; line-height:28px; font-weight:700; color:var(--ink);}
+  .sheet__desc{margin:6px 0 18px; font-size:14px; line-height:22px; color:var(--ink-dim);}
+  .nick-row{display:flex; gap:8px;}
+  .nick-row .glass-input{flex:1; min-width:0; margin:0;}
+  .nick-row .glass-input{height:52px; font-size:16px;}
+  .nick-row .btn{flex-shrink:0; width:auto; height:52px; padding:0 16px; border-radius:12px; font-size:15px;}
+  .nick-help{margin:8px 0 18px; min-height:18px; font-size:12px; line-height:18px; color:var(--ink-faint);}
+  .nick-help.ok{color:var(--positive-text);} .nick-help.err{color:var(--negative);}
+  .sheet__later{display:block; margin:8px auto 0; padding:10px 16px; font-size:14px; line-height:20px; font-weight:600; color:var(--ink-faint);}
+  @media (prefers-reduced-motion: reduce){ .sheet,.sheet-dim{transition:none;} }
+
+  /* 경품 응모 — 직관인증 카드 */
+  .pop.rfc{max-width:360px; padding:16px 16px 18px; text-align:center;}
+  .rfc__bar{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+  .rfc__title{margin:0 0 0 4px; font-size:17px; line-height:24px; font-weight:700; color:var(--ink);}
+  .rfc__close{width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:10px;}
+  .rfc__close svg{width:22px; height:22px; stroke:var(--ink);}
+  .rfc__img{display:block; width:100%; aspect-ratio:320/440; border-radius:18px; background:var(--fill-1); box-shadow:0 10px 28px rgba(22,28,38,.18);}
+  .rfc__note{margin:14px 0 4px; font-size:12px; line-height:18px; color:var(--ink-faint);}
   .ck__grid.cols-2 .ck__opt{padding:28px 8px 20px;}
   .ck__grid.cols-2 .ck__opt img{width:96px; height:96px;}
   .ck__grid.cols-2 .ck__opt span{font-size:17px;}
@@ -2172,6 +2226,14 @@
       <div id="live-event-list"></div>
     </section>
     <button class="cheer-win-link" id="cheer-win-link" hidden></button>
+
+    <!-- 홈 경기가 없는 날 — 관리자 '오늘 운영'(자동이면 경기 일정 기준) -->
+    <section class="no-game-card" id="no-game" hidden>
+      <span class="no-game-card__ic" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><rect x="3" y="5" width="26" height="24" rx="6" fill="#E9EBF0"/><rect x="8" y="2" width="2.6" height="6" rx="1.3" fill="#FF571F"/><rect x="21.4" y="2" width="2.6" height="6" rx="1.3" fill="#FF571F"/><circle cx="16" cy="18" r="6.2" fill="#fff" stroke="#FF571F" stroke-width="1.8"/><path d="M11.2 15.6c3 .4 6.6 2.4 8.4 6.6M16 11.8c-1.6 2.6-1.8 6.6.2 10.4M21.6 17.2c-3 1.2-7.2 1.2-10.2-.4" stroke="#FF571F" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+      <p class="no-game-card__t">오늘은 홈 경기가 없어요</p>
+      <p class="no-game-card__d">다음에 경기장에서 만나요</p>
+      <p class="no-game-card__next" id="no-game-next" hidden></p>
+    </section>
 
     <div class="mission-card" id="mission-card">
       <div class="mission-card__head">
@@ -2560,6 +2622,7 @@
     </div>
 
     <button class="btn full" id="pc-mvp" style="margin-top:18px;">이 선수에게 MVP 투표하기</button>
+    <button class="btn full" id="pc-event" style="margin-top:18px;" hidden>이벤트 투표하러 가기</button>
   </div>
 </div>
 
@@ -2591,6 +2654,35 @@
     <p class="rl-lose__title" id="rll-title">아쉽게도 꽝!</p>
     <p class="rl-lose__desc">다음 기회에서 행운을<br>잡아보세요!</p>
     <button class="rl-lose__close" id="rll-close">닫기</button>
+  </div>
+</div>
+
+<!-- ============ 경품 응모 — 닉네임 입력 바텀시트 ============ -->
+<div class="sheet-dim" id="rf-sheet" role="dialog" aria-modal="true" aria-labelledby="rf-title">
+  <div class="sheet">
+    <span class="sheet__grab" aria-hidden="true"></span>
+    <p class="sheet__title" id="rf-title">경품 응모</p>
+    <p class="sheet__desc">응모 결과는 닉네임으로 전광판에 안내돼요.<br>닉네임으로 응모한 뒤 카드를 저장해주세요.</p>
+    <div class="nick-row">
+      <input class="glass-input" id="rf-nick" maxlength="10" placeholder="닉네임 입력" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-describedby="rf-help">
+      <button class="btn ghost" id="rf-check" type="button">중복확인</button>
+    </div>
+    <p class="nick-help" id="rf-help" aria-live="polite">한글 또는 영문으로 10글자까지 입력할 수 있어요</p>
+    <button class="btn full" id="rf-submit" disabled>응모하기</button>
+    <button class="sheet__later" id="rf-later" type="button">다음에 할게요</button>
+  </div>
+</div>
+
+<!-- ============ 경품 응모 — 직관인증 카드 ============ -->
+<div class="pop-dim" id="rf-card" role="dialog" aria-modal="true" aria-labelledby="rfc-title">
+  <div class="pop rfc">
+    <div class="rfc__bar">
+      <p class="rfc__title" id="rfc-title">응모 완료!</p>
+      <button class="rfc__close" id="rfc-close" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <img class="rfc__img" id="rfc-img" alt="">
+    <p class="rfc__note">경기가 끝나면 당첨자를 전광판에 닉네임으로 안내해요.<br>경품 수령처에서 이 카드를 보여주세요.</p>
+    <button class="btn full" id="rfc-save">내 카드 저장하기</button>
   </div>
 </div>
 
@@ -3028,7 +3120,7 @@ const CONFIG = {
 
   SUBWAY: {
     station: '체육공원역',
-    alertAfter: '21:30',
+    alertAfter: '22:00',   // 기획서: 경기가 밤 10시를 넘기면 토스트
     lines: [
       { tag:'3호선', dir:'구포·연산·수영 방면', last:'23:41' },
       { tag:'3호선', dir:'대저 방면', last:'24:36' },
@@ -3079,7 +3171,7 @@ const LIVE = (function(){
         state = { events:(CONFIG.LIVE_DEMO || {}).events || [], total:Number(localStorage.getItem(DEMO_TOTAL)) || 0, phase:'auto', mvp:undefined, start:'' };
       } else {
         const d = await (await fetch(`${base}/live/${encodeURIComponent(MATCH_KEY)}`)).json();
-        state = { events:d.events || [], total:(d.cheer || {}).total || 0, phase:d.phase || 'auto', mvp:d.mvp || null, start:d.start || '' };
+        state = { events:d.events || [], total:(d.cheer || {}).total || 0, phase:d.phase || 'auto', mvp:d.mvp || null, start:d.start || '', content:d.content || null };
       }
       emit('state', state);
     }catch(e){}
@@ -3146,13 +3238,16 @@ const LIVE = (function(){
   }});
 
   // 참여 기록 보내기 — 관리자 페이지에서 집계해요 (predictions·survey·mvp·raffle_entry·roulette·checkin)
+  // 결과를 돌려줘요 — { ok:true } / { error:'nickname_taken' 등 } / { error:'network' }
   async function submit(type, data){
-    if(demo) return;
+    if(demo) return { ok:true };
     try{
-      await fetch(`${base}/live/${encodeURIComponent(MATCH_KEY)}/submit/${type}`, {
+      const r = await fetch(`${base}/live/${encodeURIComponent(MATCH_KEY)}/submit/${type}`, {
         method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ device, data }),
       });
-    }catch(e){}
+      const d = await r.json().catch(()=> ({}));
+      return r.ok ? { ok:true, ...d } : { ok:false, error:d.error || 'http_' + r.status };
+    }catch(e){ return { ok:false, error:'network' }; }
   }
 
   async function checkin(ans){
@@ -3167,7 +3262,18 @@ const LIVE = (function(){
   setTimeout(refresh, 0);
   (function loop(){ setTimeout(()=>{ if(!document.hidden) refresh(); loop(); }, demo ? 60000 : 20000 + Math.random() * 10000); })();   // 4,000명이 같은 순간에 몰리지 않게 20~30초로 흩어요
   document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refresh(); });
-  return { on, tap, checkin, submit, refresh, get state(){ return state; }, demo };
+  // 경품 응모 닉네임 중복확인 — 서버가 아직 이 기능을 모르면(404 등) null을 돌려줘요
+  async function nickCheck(name){
+    if(demo) return null;
+    try{
+      const r = await fetch(`${base}/live/${encodeURIComponent(MATCH_KEY)}/nick?name=${encodeURIComponent(name)}`);
+      if(!r.ok) return null;
+      const d = await r.json();
+      return typeof d.available === 'boolean' ? d.available : null;
+    }catch(e){ return null; }
+  }
+
+  return { on, tap, checkin, submit, refresh, nickCheck, get state(){ return state; }, get device(){ return device; }, demo };
 })();
 
 // 관리자 대시보드가 "지금까지 데이터가 쌓인 경기 목록"을 찾을 수 있도록
@@ -3186,6 +3292,47 @@ function touchMatchRegistry(){
 }
 touchMatchRegistry();
 
+/* ================================================================
+   관리자 콘텐츠 — 관리자 페이지에서 등록한 예측 문항 · 설문 · 출석 질문 · 미션 순서 · 오늘 운영 여부
+   · 서버(GET /live/:경기)의 content 값을 받아 CONFIG 기본값 위에 덮어써요.
+   · 마지막으로 받은 값을 이 기기에 저장해두고, 다음 접속 땐 화면을 그리기 전에 바로 적용해요.
+   · 관람객이 이미 답을 고르기 시작했으면 그 화면은 바꾸지 않아요(고르던 답이 사라지지 않게).
+   ================================================================ */
+const CONTENT = (function(){
+  const KEY = 'wm_content__' + MATCH_KEY;
+  const DEF = {
+    predict: JSON.parse(JSON.stringify(CONFIG.PREDICT_EVENTS)),
+    survey: JSON.parse(JSON.stringify(CONFIG.SURVEY_QUESTIONS)),
+  };
+  let cur = null, sig = '';
+  try{ cur = JSON.parse(localStorage.getItem(KEY)) || null; sig = JSON.stringify(cur); }catch(e){}
+  const swap = (arr, next)=> arr.splice(0, arr.length, ...next);
+  function toConfig(c){
+    c = c || {};
+    const pq = Array.isArray(c.predict) && c.predict.length ? c.predict.map((x, i)=> ({
+      id: x.id || 'q' + (i + 1), q: x.q, type: x.type === 'player' ? 'player' : undefined,
+      options: x.type === 'player' ? undefined : (x.options || []).filter(Boolean),
+      candidates: x.candidates || null, ai: x.ai !== false,
+    })).filter(x=> x.q && (x.type === 'player' || x.options.length >= 2)) : null;
+    swap(CONFIG.PREDICT_EVENTS, pq && pq.length ? pq : DEF.predict);
+    const sq = Array.isArray(c.survey) && c.survey.length
+      ? c.survey.map(x=> ({ q:x.q, options:(x.options || []).filter(Boolean) })).filter(x=> x.q && x.options.length >= 2).slice(0, 5) : null;
+    swap(CONFIG.SURVEY_QUESTIONS, sq && sq.length ? sq : DEF.survey);
+  }
+  toConfig(cur);
+  const hooks = [];
+  LIVE.on('state', st=>{
+    if(!('content' in st)) return;
+    const next = st.content || null, s2 = JSON.stringify(next);
+    if(s2 === sig) return;
+    sig = s2; cur = next;
+    try{ next ? localStorage.setItem(KEY, s2) : localStorage.removeItem(KEY); }catch(e){}
+    toConfig(cur);
+    hooks.forEach(f=>{ try{ f(cur || {}); }catch(e){ console.error(e); } });
+  });
+  return { get:()=> cur || {}, onChange:f=> hooks.push(f) };
+})();
+
 async function fetchData(path){
   if(CONFIG.DATA_MODE === 'api'){ const res = await fetch(`${CONFIG.API_BASE}/matches/${MATCH_KEY}/${path}`); return res.json(); }
   return LOCAL[path] ?? null;
@@ -3202,54 +3349,45 @@ async function postData(path, body){
 function hapticTick(){ if(navigator.vibrate) navigator.vibrate(8); }
 
 /* ================================================================
-   추첨 응모 — 설문/예측 완료 뒤에 노출되는 공통 컴포넌트
-   이메일 또는 휴대폰번호 중 하나만, 명시적 동의를 받은 뒤에만 저장합니다.
+   경품 응모 — 기획서 v0.2: 직관 미션 5개를 채우면 홈의 '경품응모' 미션이 열리고,
+   닉네임(한글·영문 10자)으로 응모해요. 연락처 같은 개인정보는 받지 않고, 결과는 전광판에 닉네임으로 안내해요.
+   예측·설문 화면에는 응모 상태만 보여주고 홈으로 안내해요.
    ================================================================ */
-const RAFFLE_KEY = 'raffle_entries';
-function getRaffleEntries(){ return LOCAL[RAFFLE_KEY] || []; }
-function hasEnteredRaffle(){ return getRaffleEntries().some(e=> e.deviceEntry); }
-
-function raffleDoneHtml(){
-  return `<p class="raffle-done">
-    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-    추첨에 응모됐어요. 당첨 시 남겨주신 연락처로 안내드려요.
-  </p>`;
-}
+const RAFFLE_KEY = 'raffle_nick';
+function hasEnteredRaffle(){ return !!(LOCAL[RAFFLE_KEY] && LOCAL[RAFFLE_KEY].nickname); }
 
 function renderRaffleBox(container, source){
-  if(hasEnteredRaffle()){
-    container.innerHTML = raffleDoneHtml();
-    return;
+  const paint = ()=>{
+    if(!container.isConnected) return;
+    const st = window.__raffleState ? window.__raffleState() : { need:5, done:0, open:false };
+    if(hasEnteredRaffle()){
+      container.innerHTML = `<p class="raffle-title"><span class="tab-ic" aria-hidden="true">${UI_ICON.gift}</span>경품 응모 완료</p>
+        <p class="raffle-desc"><b>${escHtml(LOCAL[RAFFLE_KEY].nickname)}</b> 닉네임으로 응모했어요. 당첨 결과는 경기가 끝나면 전광판에 닉네임으로 안내해요.</p>
+        <button class="btn ghost full" data-raffle="card">내 응모 카드 보기</button>`;
+    } else if(st.open){
+      container.innerHTML = `<p class="raffle-title"><span class="tab-ic" aria-hidden="true">${UI_ICON.gift}</span>경품 응모가 열렸어요</p>
+        <p class="raffle-desc">닉네임만 정하면 바로 응모돼요. 연락처는 받지 않아요.</p>
+        <button class="btn full" data-raffle="open">닉네임으로 응모하기</button>`;
+    } else {
+      container.innerHTML = `<p class="raffle-title"><span class="tab-ic" aria-hidden="true">${UI_ICON.gift}</span>경품 응모는 홈 미션에서</p>
+        <p class="raffle-desc">오늘의 직관 미션을 ${st.need}개 채우면 홈에서 닉네임으로 경품에 응모할 수 있어요. 지금 ${st.done}/${st.need}개 했어요.</p>
+        <button class="btn ghost full" data-raffle="home">미션 보러 가기</button>`;
+    }
+  };
+  if(!container.dataset.raffleBound){
+    container.dataset.raffleBound = '1';
+    container.addEventListener('click', e=>{
+      const b = e.target.closest('[data-raffle]'); if(!b) return;
+      hapticTick();
+      if(b.dataset.raffle === 'home') navigate('home');
+      else if(b.dataset.raffle === 'open') window.__openRaffle && window.__openRaffle();
+      else if(b.dataset.raffle === 'card') window.__showRaffleCard && window.__showRaffleCard();
+    });
+    const iv = setInterval(()=>{ if(!container.isConnected) return clearInterval(iv); paint(); }, 2000);
   }
-  container.innerHTML = `
-    <p class="raffle-title"><span class="tab-ic" aria-hidden="true">${UI_ICON.gift}</span>경품 추첨에 응모하시겠어요?</p>
-    <p class="raffle-desc">당첨자 안내 용도로만 사용하고, 추첨이 끝나면 삭제해요. 이메일 또는 휴대폰번호 중 하나만 남겨주세요.</p>
-    <input class="glass-input" type="text" id="raffle-contact-${source}" placeholder="이메일 또는 휴대폰번호" style="margin-bottom:10px;">
-    <label class="raffle-consent">
-      <input type="checkbox" id="raffle-consent-${source}">
-      <span>추첨 목적의 개인정보 수집·이용에 동의해요</span>
-    </label>
-    <button class="btn full" id="raffle-submit-${source}" style="margin-top:12px;">응모하기</button>
-    <p class="raffle-error" id="raffle-error-${source}"></p>
-  `;
-  document.getElementById(`raffle-submit-${source}`).addEventListener('click', async ()=>{
-    const contactEl = document.getElementById(`raffle-contact-${source}`);
-    const consentEl = document.getElementById(`raffle-consent-${source}`);
-    const errEl = document.getElementById(`raffle-error-${source}`);
-    const contact = contactEl.value.trim();
-    if(!contact){ errEl.textContent = '이메일 또는 휴대폰번호를 입력해주세요.'; return; }
-    if(!consentEl.checked){ errEl.textContent = '개인정보 수집·이용에 동의해주셔야 응모할 수 있어요.'; return; }
-    errEl.textContent = '';
-    const entry = { contact, source, deviceEntry: true, consentAt: new Date().toISOString() };
-    const entries = getRaffleEntries();
-    entries.push(entry);
-    LOCAL[RAFFLE_KEY] = entries;
-    saveLocal(LOCAL);
-    await postData('raffle_entry', entry);
-    LIVE.submit('raffle_entry', entry);
-    container.innerHTML = raffleDoneHtml();
-  });
+  paint();
 }
+function escHtml(v){ return String(v ?? '').replace(/[&<>"']/g, c=> ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
 
 /* ================================================================
    선수 데이터 헬퍼 — 얼굴 아바타 · 이름 · 포지션 · 종합 능력치
@@ -3794,6 +3932,8 @@ tabButtons.forEach(btn=>{
   const selections = {};
   const saved = LOCAL['predictions'];
 
+  function build(){
+  list.innerHTML = '';
   CONFIG.PREDICT_EVENTS.forEach(ev=>{
     const card = document.createElement('div');
     card.className = 'card predict-card';
@@ -3811,7 +3951,16 @@ tabButtons.forEach(btn=>{
     } else {
       optsHtml = `<div class="opt-grid">${ev.options.map(opt=> `<div class="opt" data-opt="${opt}"><span>${opt}</span><span class="check"></span></div>`).join('')}</div>`;
     }
-    card.innerHTML = `<p class="q">${ev.q}</p>${optsHtml}`;
+    card.innerHTML = `<p class="q">${ev.q}</p>${optsHtml}`
+      + (ev.type === 'player' ? `<button class="fortune-link" type="button" data-fortune>선수 운세 보고 오기<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>` : '');
+    const fl = card.querySelector('[data-fortune]');
+    if(fl) fl.addEventListener('click', ()=>{
+      hapticTick();
+      const sel = selections[ev.id] || (card.querySelector('.ai-rec') || {}).dataset?.opt;
+      const cands = ev.candidates && ev.candidates.length ? PLAYERS.filter(p=> ev.candidates.includes(p.num)) : PLAYERS.filter(p=> p.pos !== 'L');
+      const num = sel ? Number(sel) : (cands[0] || {}).num;
+      window.__openPlayerCard && window.__openPlayerCard(num, cands, { back:true });
+    });
     card.querySelectorAll('[data-opt]').forEach(optEl=>{
       optEl.addEventListener('click', ()=>{
         if(LOCAL['predictions']) return;
@@ -3824,8 +3973,29 @@ tabButtons.forEach(btn=>{
     });
     list.appendChild(card);
   });
+  }
+  build();
 
   if(saved) lockPredictUI(saved);
+
+  // 관리자가 문항을 바꾸면 — 아직 아무것도 안 골랐을 때만 새 문항으로 다시 그려요
+  CONTENT.onChange(()=>{
+    if(LOCAL['predictions'] || Object.keys(selections).length) return;
+    build();
+    window.__aiPredictRefresh && window.__aiPredictRefresh();
+  });
+  // 선수 카드 뒷면(운세)의 '이벤트 투표하러 가기' — 첫 번째 선수 문항에 그 선수를 골라둬요
+  window.__predictPreselect = num=>{
+    if(LOCAL['predictions']) return;
+    const i = CONFIG.PREDICT_EVENTS.findIndex(ev=> ev.type === 'player');
+    if(i < 0) return;
+    const card = list.querySelectorAll('.predict-card')[i];
+    const el = card && card.querySelector(`[data-opt="${num}"]`);
+    if(el){
+      if(!el.classList.contains('selected')) el.click();
+      setTimeout(()=> card.scrollIntoView({ behavior:'smooth', block:'center' }), 120);
+    }
+  };
 
   submitBtn.addEventListener('click', async ()=>{
     if(Object.keys(selections).length < CONFIG.PREDICT_EVENTS.length){
@@ -3889,6 +4059,7 @@ tabButtons.forEach(btn=>{
   const livePhase = ()=>{ const p = (LIVE.state || {}).phase; return p === 'before' || p === 'live' ? p : ''; };
   let adminStart = false;
   const phase = ()=> forced || livePhase() || (start && Date.now() >= start.getTime() ? 'live' : 'before');
+  window.__matchPhase = phase;
   LIVE.on('state', st=>{
     if(st.start && !CONFIG.MATCH.start){ const d = new Date(st.start); if(!isNaN(d)){ start = d; adminStart = true; } }
     current = null; apply();
@@ -3918,6 +4089,7 @@ tabButtons.forEach(btn=>{
     current = ph;
     const before = ph === 'before';
     cdEl.textContent = before ? '경기 시작 전' : '예측 마감';
+    if(before) setTimeout(()=> typeof tick === 'function' && tick(), 0);
     cdEl.classList.toggle('blink', before);
     mvpBtn.classList.toggle('locked', before);
     mvpBtn.setAttribute('aria-disabled', before);
@@ -3934,8 +4106,31 @@ tabButtons.forEach(btn=>{
   apply();
   setInterval(apply, 15000);
 
+  // 예측 마감까지 HH : mm : ss — 시작 시각을 알 때만 초 단위로 줄어들어요
+  const p2 = n => String(n).padStart(2, '0');
+  function tick(){
+    if(phase() !== 'before') return;
+    if(!start || isNaN(start)){ cdEl.textContent = '경기 시작 전'; return; }
+    const left = Math.max(0, Math.floor((start.getTime() - Date.now()) / 1000));
+    if(left >= 86400){ cdEl.textContent = `D-${Math.floor(left / 86400)}`; return; }
+    cdEl.textContent = `${p2(Math.floor(left / 3600))} : ${p2(Math.floor(left % 3600 / 60))} : ${p2(left % 60)}`;
+    if(left === 0) apply();
+  }
+  tick();
+  setInterval(tick, 1000);
+
   // 기록 API가 일정을 주면 호출돼요 → 시작 시각·상단 경기 정보 자동 채움
   window.__applySchedule = (games)=>{
+    if(games && games.length){
+      // 오늘 홈 경기가 있는지 — 없으면 홈은 '다음 경기 안내' 화면, 하단 메뉴는 홈·기록만 (관리자 '오늘 운영'이 자동일 때)
+      const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+      const todayG = games.find(x=> new Date(x.date + 'T00:00:00').getTime() === t0.getTime());
+      window.__homeToday = !!(todayG && todayG.home);
+      window.__matchRound = todayG && todayG.round ? todayG.round : '';
+      const nh = games.filter(x=> x.home && new Date(x.date + 'T00:00:00') > t0).sort((a, b)=> a.date < b.date ? -1 : 1)[0];
+      window.__nextHome = nh || null;
+      window.__applyDayMode && window.__applyDayMode();
+    }
     if(!games || !games.length || CONFIG.MATCH.start) return;
     const keepStart = adminStart;
     const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -3961,46 +4156,60 @@ tabButtons.forEach(btn=>{
 (function initSurvey(){
   const body = document.getElementById('survey-body');
   const progress = document.getElementById('survey-progress');
-  const qs = CONFIG.SURVEY_QUESTIONS;
+  const qs = CONFIG.SURVEY_QUESTIONS;          // 관리자 설문이 오면 이 배열 내용이 바뀌어요 (최대 5문항)
   let idx = 0;
-  const answers = {};
-  const saved = LOCAL['survey'];
+  let answers = {};
 
-  if(saved){ renderDone(); return; }
+  if(LOCAL['survey']){ renderDone(); return; }
+  build();
 
-  qs.forEach((q, i)=>{
-    const el = document.createElement('div');
-    el.className = 'survey-q' + (i===0 ? ' active' : '');
-    el.dataset.idx = i;
-    const optsHtml = q.options.map(opt=>`<div class="opt" data-opt="${opt}"><span>${opt}</span><span class="check"></span></div>`).join('');
-    el.innerHTML = `<div class="qnum">${i+1} / ${qs.length}</div><p class="qtext">${q.q}</p><div class="opt-grid">${optsHtml}</div>
-      <div class="survey-nav">
-        ${i>0 ? '<button class="btn ghost prev">이전</button>' : ''}
-        <button class="btn next" disabled>다음</button>
-      </div>`;
-    body.appendChild(el);
+  function build(){
+    body.innerHTML = '';
+    idx = 0; answers = {};
+    qs.forEach((q, i)=>{
+      const el = document.createElement('div');
+      el.className = 'survey-q' + (i===0 ? ' active' : '');
+      el.dataset.idx = i;
+      const optsHtml = q.options.map(opt=>`<div class="opt" data-opt="${escHtml(opt)}"><span>${escHtml(opt)}</span><span class="check"></span></div>`).join('');
+      el.innerHTML = `<div class="qnum">${i+1} / ${qs.length}</div><p class="qtext">${escHtml(q.q)}</p><div class="opt-grid">${optsHtml}</div>
+        <div class="survey-nav">
+          ${i>0 ? '<button class="btn ghost prev">이전</button>' : ''}
+          <button class="btn next" disabled>${i === qs.length-1 ? '제출하기' : '다음'}</button>
+        </div>`;
+      body.appendChild(el);
 
-    const nextBtn = el.querySelector('.next');
-    el.querySelectorAll('.opt').forEach(optEl=>{
-      optEl.addEventListener('click', ()=>{
-        hapticTick();
-        el.querySelectorAll('.opt').forEach(o=>o.classList.remove('selected'));
-        optEl.classList.add('selected');
-        optEl.classList.remove('pulse'); void optEl.offsetWidth; optEl.classList.add('pulse');
-        answers[i] = optEl.dataset.opt;
-        nextBtn.removeAttribute('disabled');
-        nextBtn.textContent = (i === qs.length-1) ? '제출하기' : '다음';
+      const nextBtn = el.querySelector('.next');
+      el.querySelectorAll('.opt').forEach(optEl=>{
+        optEl.addEventListener('click', ()=>{
+          hapticTick();
+          el.querySelectorAll('.opt').forEach(o=>o.classList.remove('selected'));
+          optEl.classList.add('selected');
+          optEl.classList.remove('pulse'); void optEl.offsetWidth; optEl.classList.add('pulse');
+          answers[i] = optEl.dataset.opt;
+          nextBtn.removeAttribute('disabled');
+        });
+      });
+      const prevBtn = el.querySelector('.prev');
+      if(prevBtn) prevBtn.addEventListener('click', ()=> goTo(i-1));
+      nextBtn.addEventListener('click', async ()=>{
+        if(i === qs.length-1){
+          const list = qs.map((qq, j)=> ({ q:qq.q, a:answers[j] }));
+          LOCAL['survey'] = answers; saveLocal(LOCAL);
+          await postData('survey', answers);
+          LIVE.submit('survey', { answers: list });
+          renderDone();
+        }
+        else { goTo(i+1); }
       });
     });
-    const prevBtn = el.querySelector('.prev');
-    if(prevBtn) prevBtn.addEventListener('click', ()=> goTo(i-1));
-    nextBtn.addEventListener('click', async ()=>{
-      if(i === qs.length-1){ await postData('survey', answers); LIVE.submit('survey', { answers: qs.map((qq, j)=> ({ q:qq.q, a:answers[j] })) }); renderDone(); }
-      else { goTo(i+1); }
-    });
-  });
+    updateProgress();
+  }
 
-  updateProgress();
+  // 관리자가 설문을 새로 등록하면 — 아직 답을 하나도 안 골랐을 때만 새 설문으로 바꿔요
+  CONTENT.onChange(()=>{
+    if(LOCAL['survey'] || Object.keys(answers).length) return;
+    build();
+  });
 
   function goTo(newIdx){
     idx = newIdx;
@@ -4014,8 +4223,10 @@ tabButtons.forEach(btn=>{
       <span class="result-ic"><svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg"><g><g><g><circle cx="28" cy="28" r="28" fill="#FF571F"/><path d="M16 28.5L25 37L40 22" stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></g></g></g></svg></span>
       <h3>설문에 참여해주셔서 감사해요</h3>
       <p>다음 경기에서 더 나은 직관 경험으로 찾아올게요.</p>
+      <button class="btn full" id="survey-home" style="margin-top:20px;">홈 화면으로 이동</button>
     </div>
     <div class="card raffle-card" id="survey-raffle"></div>`;
+    document.getElementById('survey-home').addEventListener('click', ()=>{ hapticTick(); navigate('home'); });
     renderRaffleBox(document.getElementById('survey-raffle'), 'survey');
   }
 })();
@@ -4055,7 +4266,7 @@ tabButtons.forEach(btn=>{
       <button class="btn full mvp-confirm" id="mvp-confirm" ${picked ? '' : 'disabled'}>
         ${picked ? `${playerName(playerByNum(picked))}에게 투표하기` : '선수를 골라주세요'}
       </button>`;
-    note.textContent = '선수 한 명에게만 투표할 수 있어요.';
+    note.textContent = 'MVP 투표는 3세트 시작 전까지 가능해요. 선수 한 명에게만 투표할 수 있어요.';
     watchBar(document.getElementById('mvp-confirm'));
 
     list.querySelectorAll('.pick-player').forEach(btn=>{
@@ -4112,32 +4323,19 @@ tabButtons.forEach(btn=>{
     barIO.observe(el);
   }
 
+  // 투표 후 — 기획서: 내가 투표한 선수만 표시하고, 득표 수·비율은 보여주지 않아요
   function renderResult(){
     watchBar(null);
-    const total = Object.values(counts).reduce((a, b)=> a + b, 0);
-    const ranked = candidates()
-      .map(p=> ({ p, c: counts[p.num] || 0 }))
-      .sort((a, b)=> b.c - a.c || a.p.num - b.p.num);
-    list.innerHTML = `<div class="card">${ranked.map((r, i)=>{
-      const pct = total ? Math.round(r.c / total * 100) : 0;
-      return `<div class="mvp-rank${i < 3 && r.c ? ' top' : ''}${r.p.num === voted ? ' mine' : ''}">
-        <span class="mvp-rank__pos">${i + 1}</span>
-        ${faceHtml(r.p)}
-        <div class="mvp-rank__body">
-          <div class="mvp-rank__name"><span>${playerName(r.p)}${r.p.num === voted ? ' <span class="mine-badge">내 투표</span>' : ''}</span><em><span class="pct-num">0%</span> · ${r.c}표</em></div>
-          <div class="bar-track"><div class="bar-fill" data-target="${pct}"></div></div>
-        </div>
-      </div>`;
-    }).join('')}</div>`;
-    requestAnimationFrame(()=>{
-      list.querySelectorAll('.mvp-rank').forEach(row=>{
-        const bar = row.querySelector('.bar-fill');
-        const pct = +bar.dataset.target;
-        bar.style.width = pct + '%';
-        countUp(row.querySelector('.pct-num'), pct);
-      });
-    });
-    note.textContent = '투표해주셔서 감사해요. 지금은 이 기기 기준 데모 집계예요 — 서버 연동 후 전체 관람객 결과로 바뀌어요.';
+    list.innerHTML = `
+      <div class="mvp-grid mvp-voted">${candidates().map(p=> `
+        <div class="pick-player${p.num === voted ? ' selected mine' : ''}" aria-label="${playerName(p)}${p.num === voted ? ' (내 투표)' : ''}">
+          ${faceHtml(p)}
+          <span class="pick-player__n">${playerName(p)}</span>
+          <span class="pick-player__p">${p.num === voted ? '<span class="mine-badge">내 투표</span>' : `#${p.num} · ${POS[p.pos] ? POS[p.pos].chip : p.pos}`}</span>
+        </div>`).join('')}
+      </div>
+      <button class="btn full mvp-confirm" disabled>투표 완료</button>`;
+    note.textContent = `${playerName(playerByNum(voted))} 선수에게 투표했어요. MVP는 경기가 끝나면 발표해요.`;
   }
 
   function render(){ voted ? renderResult() : renderPicker(); }
@@ -4514,14 +4712,29 @@ tabButtons.forEach(btn=>{
     survey:`<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><g><g clip-path="url(#ci_survey_pencil)"><g><rect x="21.0725" y="4.3833" width="9.28941" height="22.6429" transform="rotate(45 21.0725 4.3833)" fill="#8FC069"/><rect x="21.0725" y="4.3833" width="2.90294" height="22.6429" transform="rotate(45 21.0725 4.3833)" fill="#53B368"/><rect x="25.5884" y="8.90039" width="2.90294" height="22.6429" transform="rotate(45 25.5884 8.90039)" fill="#53B368"/><path d="M21.0725 4.3833L27.6411 10.9519L29.2658 9.3272C30.1824 8.41063 30.1824 6.92458 29.2658 6.00801L26.0164 2.75859C25.0998 1.84202 23.6138 1.84202 22.6972 2.75859L21.0725 4.3833Z" fill="#FF571F"/><path d="M4.99453 28.985C3.79702 29.3495 2.67761 28.2301 3.04207 27.0326L5.06163 20.3969L11.6302 26.9655L4.99453 28.985Z" fill="#FFC5A4"/><path d="M4.99418 28.9871C3.79667 29.3516 2.67726 28.2322 3.04172 27.0347L4.05371 23.7095L8.3193 27.9751L4.99418 28.9871Z" fill="#545964"/></g></g></g><defs><clipPath id="ci_survey_pencil"><rect width="32" height="32" fill="white"/></clipPath></defs></svg>`,
     mvp:`<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><g><g clip-path="url(#ci_mvp_trophy)"><mask id="mi_mvp_trophy" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><rect width="32" height="32" fill="#D9D9D9"/></mask><g mask="url(#mi_mvp_trophy)"><g><path d="M21.1113 12H22.8281C25.8379 11.9998 28.1143 9.27538 27.5791 6.31348L27.5518 6.16406L22.96 5.99902L22.8545 5.99512L22.75 5.98047L21.5488 5.80957C19.6755 5.54315 18.0003 6.99658 18 8.88867C18 10.5532 19.3073 11.913 20.9512 11.9961L21.1113 12Z" stroke="#FFC815" stroke-width="4"/><path d="M10.8887 12H9.17188C6.16205 11.9998 3.88569 9.27538 4.4209 6.31348L4.44824 6.16406L9.04004 5.99902L9.14551 5.99512L9.25 5.98047L10.4512 5.80957C12.3245 5.54315 13.9997 6.99658 14 8.88867C14 10.5532 12.6927 11.913 11.0488 11.9961L10.8887 12Z" stroke="#FFC815" stroke-width="4"/><rect x="14" y="16" width="4" height="9" fill="#FFC815"/><path d="M6.02264 2.89332C6.04711 1.83022 6.92207 1 7.98546 1H24.0145C25.0779 1 25.9529 1.83022 25.9774 2.89332C26.0371 5.49035 26.027 10.113 25.3209 12.5556C24.5949 15.067 22.202 17.2788 20.44 18.6255C19.1732 19.5938 17.5944 20 16 20C14.4056 20 12.8268 19.5938 11.56 18.6255C9.798 17.2788 7.40514 15.067 6.6791 12.5556C5.97296 10.113 5.96287 5.49035 6.02264 2.89332Z" fill="#FFD92F"/><path d="M9.02366 24.6258C9.20334 23.6825 10.0281 23 10.9883 23H21.0117C21.9719 23 22.7967 23.6825 22.9763 24.6258L23.5478 27.6258C23.7825 28.8582 22.8377 30 21.5831 30H10.4169C9.1623 30 8.21748 28.8582 8.45223 27.6258L9.02366 24.6258Z" fill="#AD7E04"/></g></g></g></g><defs><clipPath id="ci_mvp_trophy"><rect width="32" height="32" fill="white"/></clipPath></defs></svg>`
   };
-    const MISSIONS = [
-    { id:'checkin',    icon:MISSION_ICON.checkin, label:'출석체크' },
-    { id:'seats',      icon:MISSION_ICON.seats, label:'자리안내 확인' },
-    { id:'predict',    icon:MISSION_ICON.predict, label:'예측투표' },
-    { id:'survey',     icon:MISSION_ICON.survey, label:'설문조사' },
-    { id:'mvp',        icon:MISSION_ICON.mvp, label:'MVP투표' },
-  ];
-  const JUMP = { seats:['guide','seat'], predict:['pick','predict'], survey:['survey'], mvp:['pick','mvp'] };
+  MISSION_ICON.fortune = `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="2.5" width="22" height="27" rx="5" fill="#FFD6C7"/><rect x="8.5" y="6" width="15" height="20" rx="3.2" fill="#FF571F"/><path d="M16 9.6l1.75 3.55 3.92.57-2.84 2.77.67 3.9L16 18.55l-3.5 1.84.67-3.9-2.84-2.77 3.92-.57L16 9.6Z" fill="#FFD339"/><circle cx="23.5" cy="6.5" r="1.4" fill="#fff"/></svg>`;
+  MISSION_ICON.raffle = UI_ICON.gift;
+  // 기획서 v0.2 — 총 6가지. 경품응모는 나머지 5개를 채우면 열려요. 노출 순서는 관리자 대시보드에서 바꿀 수 있어요.
+  const MISSION_DEF = {
+    checkin: { icon:MISSION_ICON.checkin, label:'출석체크' },
+    seats:   { icon:MISSION_ICON.seats,   label:'내자리찾기' },
+    fortune: { icon:MISSION_ICON.fortune, label:'오늘의선수' },
+    survey:  { icon:MISSION_ICON.survey,  label:'설문조사' },
+    predict: { icon:MISSION_ICON.predict, label:'경기예측' },
+    raffle:  { icon:MISSION_ICON.raffle,  label:'경품응모' },
+  };
+  const DEFAULT_ORDER = ['checkin','seats','fortune','survey','predict','raffle'];
+  const RAFFLE_NEED = 5;
+  function missionOrder(){
+    const want = (CONTENT.get().missions || []).filter(id=> MISSION_DEF[id]);
+    return [...new Set([...want, ...DEFAULT_ORDER])].map(id=> ({ id, ...MISSION_DEF[id] }));
+  }
+  let MISSIONS = missionOrder();
+  CONTENT.onChange(()=>{ MISSIONS = missionOrder(); render(); });
+  const JUMP = { seats:['guide','seat'], predict:['pick','predict'], survey:['survey'] };
+  const LOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+  // 경기가 시작되면 경기예측이 마감되니, 그때부턴 MVP 투표로 같은 미션을 채울 수 있어요
+  const isLive = ()=> window.__matchPhase && window.__matchPhase() === 'live';
   const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
   const CIRC = 2 * Math.PI * 17;
   ringFg.style.strokeDasharray = `${CIRC}`;
@@ -4530,7 +4743,9 @@ tabButtons.forEach(btn=>{
     switch(id){
       case 'checkin':    return !!(LOCAL.checkin && LOCAL.checkin.done);
       case 'seats':      return !!LOCAL.visited_seats;
-      case 'predict':    return !!LOCAL.predictions;
+      case 'fortune':    return !!LOCAL.fortune_seen;
+      case 'raffle':     return hasEnteredRaffle();
+      case 'predict':    return !!LOCAL.predictions || !!LOCAL.mvp_voted;
       case 'survey':     return !!LOCAL.survey;
       case 'mvp':        return !!LOCAL.mvp_voted;
       default:           return false;
@@ -4571,17 +4786,30 @@ tabButtons.forEach(btn=>{
     setTimeout(()=>{ banner.classList.remove('show'); setTimeout(()=> banner.remove(), 350); }, 3600);
   }
 
+  const baseDone = ()=> MISSIONS.filter(m=> m.id !== 'raffle' && isDone(m.id)).length;
+  window.__raffleState = ()=>{ const d = baseDone(); return { need:RAFFLE_NEED, done:Math.min(RAFFLE_NEED, d), open:d >= RAFFLE_NEED }; };
+
+  let lastHtml = '';
   function render(){
     const doneList = MISSIONS.map(m=> isDone(m.id));
     const doneCount = doneList.filter(Boolean).length;
+    const raffleOpen = baseDone() >= RAFFLE_NEED;
 
-    listEl.innerHTML = MISSIONS.map((m, i)=> `
-      <li class="mission-item ${doneList[i] ? 'done' : ''}" data-mission="${m.id}">
+    const html = MISSIONS.map((m, i)=>{
+      const locked = m.id === 'raffle' && !doneList[i] && !raffleOpen;
+      const live = m.id === 'predict' && isLive() && !LOCAL.predictions;
+      const label = live ? 'MVP투표' : m.label;
+      const icon = live ? MISSION_ICON.mvp : m.icon;
+      return `
+      <li class="mission-item ${doneList[i] ? 'done' : ''}${locked ? ' locked' : ''}" data-mission="${m.id}" role="button" tabindex="0"
+          aria-label="${label}${doneList[i] ? ' 완료' : locked ? ' — 미션 ' + RAFFLE_NEED + '개를 채우면 열려요' : ''}">
         ${doneList[i] ? `<span class="mission-item__check">${CHECK_SVG}</span>` : ''}
-        <span class="mission-item__icon">${m.icon}</span>
-        <span class="mission-item__label">${m.label}</span>
-      </li>
-    `).join('');
+        ${locked ? `<span class="mission-item__lock" aria-hidden="true">${LOCK_SVG}</span>` : ''}
+        <span class="mission-item__icon">${icon}</span>
+        <span class="mission-item__label">${label}</span>
+      </li>`;
+    }).join('');
+    if(html !== lastHtml){ listEl.innerHTML = html; lastHtml = html; }
 
     subEl.textContent = `${doneCount}/${MISSIONS.length} 완료`;
     ringFg.style.strokeDashoffset = `${CIRC * (1 - doneCount / MISSIONS.length)}`;
@@ -4593,12 +4821,39 @@ tabButtons.forEach(btn=>{
     }
   }
 
-  listEl.addEventListener('click', (e)=>{
-    const item = e.target.closest('.mission-item');
-    if(!item || item.classList.contains('done')) return;
+  let hintTimer = 0;
+  function flashHint(text){
+    let el = cardEl.querySelector('.mission-hint');
+    if(!el){ el = document.createElement('p'); el.className = 'mission-hint'; el.setAttribute('role', 'status'); cardEl.appendChild(el); }
+    el.textContent = text; el.classList.add('show');
+    clearTimeout(hintTimer); hintTimer = setTimeout(()=> el.classList.remove('show'), 2400);
+  }
+  function runMission(item){
     const id = item.dataset.mission;
-    if(id === 'checkin'){ hapticTick(); openCheckin(); return; }
-    if(JUMP[id]){ hapticTick(); navigate(...JUMP[id]); }
+    if(item.classList.contains('done')){
+      // 완료한 미션은 이동하지 않아요 — 경품응모만 내 응모 카드를 다시 보여줘요
+      if(id === 'raffle'){ hapticTick(); window.__showRaffleCard && window.__showRaffleCard(); }
+      return;
+    }
+    hapticTick();
+    if(item.classList.contains('locked')){ flashHint(`미션 ${RAFFLE_NEED}개를 채우면 경품응모가 열려요 (지금 ${Math.min(RAFFLE_NEED, baseDone())}/${RAFFLE_NEED})`); return; }
+    if(id === 'checkin'){ openCheckin(); return; }
+    if(id === 'raffle'){ window.__openRaffle && window.__openRaffle(); return; }
+    if(id === 'fortune'){
+      // 오늘의 선수 — 오늘 운세 점수가 가장 높은 선수의 카드를 뒷면(운세)으로 열어요
+      const ranked = PLAYERS.map(p=> ({ p, f:FORTUNE.of(p) })).filter(x=> x.f).sort((a, b)=> b.f.luck - a.f.luck);
+      const top = (ranked[0] || { p:PLAYERS[0] }).p;
+      navigate('players', 'squad');
+      window.__openPlayerCard && window.__openPlayerCard(top.num, PLAYERS, { back:true });
+      return;
+    }
+    if(id === 'predict' && isLive() && !LOCAL.predictions){ navigate('pick', 'mvp'); return; }
+    if(JUMP[id]) navigate(...JUMP[id]);
+  }
+  listEl.addEventListener('click', e=>{ const item = e.target.closest('.mission-item'); if(item) runMission(item); });
+  listEl.addEventListener('keydown', e=>{
+    if(e.key !== 'Enter' && e.key !== ' ') return;
+    const item = e.target.closest('.mission-item'); if(item){ e.preventDefault(); runMission(item); }
   });
 
   /* ---------- 출석체크 — 3D 아이콘을 눌러 한 단계씩 ----------
@@ -4614,7 +4869,7 @@ tabButtons.forEach(btn=>{
     volleyball:'data:image/webp;base64,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',
     party:'data:image/webp;base64,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'
   };
-  const CK_STEPS = [
+  const CK_DEFAULT = [
     { key:'gender',  q:'성별을 알려주세요',   sub:'오늘 오신 분 통계에만 쓰여요',
       cols:2, opts:[['남성','man'], ['여성','woman']] },
     { key:'age',     q:'나이대를 골라주세요', sub:'가장 가까운 걸 골라주세요',
@@ -4622,6 +4877,21 @@ tabButtons.forEach(btn=>{
     { key:'company', q:'오늘 누구와 왔나요?', sub:'함께 온 분을 골라주세요',
       opts:[['혼자','headphone'], ['친구','hug'], ['연인','heart'], ['가족','house'], ['동료','briefcase'], ['기타','volleyball']] },
   ];
+  // 관리자 '출석체크 > 편집하기'에서 바꾼 질문(최대 3개). 답변 이미지가 없으면 같은 이름의 기본 아이콘을 써요.
+  const KNOWN_IC = { '남성':'man', '여성':'woman', '혼자':'headphone', '친구':'hug', '연인':'heart', '가족':'house', '동료':'briefcase', '기타':'volleyball',
+                     '10대 이하':'num:10', '20대':'num:20', '30대':'num:30', '40대':'num:40', '50대':'num:50', '60대 이상':'num:60' };
+  function ckSteps(){
+    const c = CONTENT.get().checkin;
+    if(!Array.isArray(c) || !c.length) return CK_DEFAULT;
+    const steps = c.slice(0, 3).map((x, i)=>{
+      const opts = (x.opts || []).filter(o=> o && o.label).map(o=> [o.label, o.img || KNOWN_IC[o.label] || 'volleyball']);
+      const def = CK_DEFAULT.find(d=> d.key === x.key);
+      return { key:x.key || 'q' + (i + 1), q:x.q, sub:x.sub || (def ? def.sub : '가장 가까운 걸 골라주세요'), cols: opts.length === 2 ? 2 : 3, opts };
+    }).filter(x=> x.q && x.opts.length >= 2);
+    return steps.length ? steps : CK_DEFAULT;
+  }
+  let CK_STEPS = ckSteps();
+  CONTENT.onChange(()=>{ if(!document.getElementById('ck').classList.contains('show')) CK_STEPS = ckSteps(); });
   const ck = document.getElementById('ck');
   const ckBody = document.getElementById('ck-body');
   const ckProg = document.getElementById('ck-prog');
@@ -4633,17 +4903,24 @@ tabButtons.forEach(btn=>{
     ckProg.style.width = `${(ckStep + 1) / CK_STEPS.length * 100}%`;
     ckBack.style.visibility = ckStep ? 'visible' : 'hidden';
     ckBody.innerHTML = `<div class="ck__step ${dir < 0 ? 'from-left' : ''}">
-      <p class="ck__q" id="ck-q">${st.q}</p>
-      <p class="ck__sub">${st.sub}</p>
+      <p class="ck__q" id="ck-q">${escHtml(st.q)}</p>
+      <p class="ck__sub">${escHtml(st.sub)}</p>
       <div class="ck__grid${st.cols === 2 ? ' cols-2' : ''}">${st.opts.map(([label, ic], i)=> `
-        <button class="ck__opt${ckAns[st.key] === label ? ' on' : ''}" data-v="${label}" style="--i:${i}">
-          ${ic.startsWith('num:') ? `<b class="ck__num" aria-hidden="true">${ic.slice(4)}</b>` : `<img src="${CK_ICON[ic]}" alt="" draggable="false">`}<span>${label}</span>
+        <button class="ck__opt${ckAns[st.key] === label ? ' on' : ''}" data-v="${escHtml(label)}" style="--i:${i}">
+          ${ic.startsWith('num:') ? `<b class="ck__num" aria-hidden="true">${ic.slice(4)}</b>` : `<img src="${CK_ICON[ic] || escHtml(ic)}" alt="" draggable="false">`}<span>${escHtml(label)}</span>
         </button>`).join('')}
       </div>
+      <button class="ck__later" id="ck-later" type="button">다음에 할게요</button>
     </div>`;
   }
   function openCheckin(){
-    ckStep = 0; ckAns = {}; ckBusy = false;
+    // 중간에 나갔다 다시 오면 고른 답을 그대로 두고 이어서 해요
+    CK_STEPS = ckSteps();
+    const d = LOCAL.checkin_draft || {};
+    ckAns = {}; CK_STEPS.forEach(st=>{ if(d[st.key] && st.opts.some(o=> o[0] === d[st.key])) ckAns[st.key] = d[st.key]; });
+    ckStep = Math.max(0, CK_STEPS.findIndex(st=> !ckAns[st.key]));
+    if(ckStep < 0) ckStep = CK_STEPS.length - 1;
+    ckBusy = false;
     ckRender(1);
     ck.classList.add('show'); document.body.classList.add('modal-open');
   }
@@ -4654,9 +4931,11 @@ tabButtons.forEach(btn=>{
 
   ckBody.addEventListener('click', e=>{
     const ok = e.target.closest('#ck-ok'); if(ok){ closeCheckin(); return; }
+    if(e.target.closest('#ck-later')){ hapticTick(); closeCheckin(); return; }
     const o = e.target.closest('.ck__opt'); if(!o || ckBusy) return;
     ckBusy = true; hapticTick();
     ckAns[CK_STEPS[ckStep].key] = o.dataset.v;
+    LOCAL.checkin_draft = { ...ckAns }; saveLocal(LOCAL);
     ckBody.querySelectorAll('.ck__opt').forEach(x=> x.classList.toggle('on', x === o));
     setTimeout(()=>{
       ckBusy = false;
@@ -4666,7 +4945,7 @@ tabButtons.forEach(btn=>{
   });
 
   function ckFinish(){
-    LOCAL.checkin = { done:true, ts:Date.now(), ...ckAns }; saveLocal(LOCAL);
+    LOCAL.checkin = { done:true, ts:Date.now(), ...ckAns }; delete LOCAL.checkin_draft; saveLocal(LOCAL);
     LIVE.submit('checkin', { ...ckAns });
     postData('checkin', LOCAL.checkin).catch(()=>{});
     if(navigator.vibrate) navigator.vibrate([20, 40, 20]);
@@ -4914,6 +5193,208 @@ const ROULETTE_ASSETS = {
 
   renderChances();
   setInterval(()=>{ if(!spinning) renderChances(); }, 1500);
+})();
+
+/* ================================================================
+   9-1. 홈 — 경품 응모 (기획서 v0.2 신규)
+   · 직관 미션 5개 완료 → '경품응모' 미션 열림 → 닉네임 바텀시트(한글·영문 10자, 중복확인 후 응모)
+   · 응모하면 경기일·라운드·닉네임이 들어간 직관인증 카드를 보여주고, 사진첩에 저장할 수 있어요.
+   · 개인정보(연락처)는 받지 않아요. 결과는 경기 후 전광판에 닉네임으로 안내해요.
+   ================================================================ */
+(function initRaffleEntry(){
+  const sheet = document.getElementById('rf-sheet');
+  const input = document.getElementById('rf-nick');
+  const checkBtn = document.getElementById('rf-check');
+  const help = document.getElementById('rf-help');
+  const submitBtn = document.getElementById('rf-submit');
+  const cardPop = document.getElementById('rf-card');
+  const cardImg = document.getElementById('rfc-img');
+  const NICK_RE = /^[가-힣a-zA-Z]{1,10}$/;
+  const HELP = '한글 또는 영문으로 10글자까지 입력할 수 있어요';
+  let checked = '', checking = false, cardBlob = null;
+
+  function setHelp(text, cls){ help.textContent = text; help.className = 'nick-help' + (cls ? ' ' + cls : ''); }
+  function open(){
+    if(hasEnteredRaffle()){ showCard(); return; }
+    const st = window.__raffleState ? window.__raffleState() : { open:true };
+    if(!st.open) return;
+    sheet.classList.add('show'); document.documentElement.style.overflow = 'hidden';
+    setTimeout(()=> input.focus({ preventScroll:true }), 320);
+  }
+  function close(){ sheet.classList.remove('show'); document.documentElement.style.overflow = ''; input.blur(); }
+  window.__openRaffle = open;
+  window.__showRaffleCard = ()=> hasEnteredRaffle() && showCard();
+
+  sheet.addEventListener('click', e=>{ if(e.target === sheet) close(); });
+  document.getElementById('rf-later').addEventListener('click', ()=>{ hapticTick(); close(); });
+  input.addEventListener('input', ()=>{
+    // 중복확인 뒤에 글자를 바꾸면 다시 확인해야 해요
+    if(checked && input.value.trim() !== checked){ checked = ''; submitBtn.disabled = true; setHelp(HELP); }
+  });
+  input.addEventListener('keydown', e=>{ if(e.key === 'Enter' && !e.isComposing){ e.preventDefault(); checked ? submit() : check(); } });
+  checkBtn.addEventListener('click', ()=>{ hapticTick(); check(); });
+  submitBtn.addEventListener('click', ()=>{ hapticTick(); submit(); });
+
+  async function check(){
+    const name = input.value.trim();
+    if(checking) return;
+    if(!name){ setHelp('닉네임을 입력해주세요.', 'err'); return; }
+    if(!NICK_RE.test(name)){ setHelp('띄어쓰기·숫자·기호 없이 한글 또는 영문 10글자까지 쓸 수 있어요.', 'err'); return; }
+    checking = true; checkBtn.disabled = true; setHelp('확인하고 있어요…');
+    const ok = await LIVE.nickCheck(name);   // true / false / null(서버가 아직 중복확인을 지원하지 않음)
+    checking = false; checkBtn.disabled = false;
+    if(input.value.trim() !== name) return;
+    if(ok === false){ checked = ''; submitBtn.disabled = true; setHelp('이미 다른 분이 쓰고 있는 닉네임이에요.', 'err'); return; }
+    checked = name; submitBtn.disabled = false; setHelp('사용할 수 있는 닉네임이에요.', 'ok');
+  }
+
+  async function submit(){
+    if(!checked || hasEnteredRaffle()) return;
+    submitBtn.disabled = true; submitBtn.textContent = '응모하는 중…';
+    const entry = { nickname:checked, source:'mission', predicted:!!LOCAL.predictions, surveyed:!!LOCAL.survey, round:window.__matchRound || '', at:Date.now() };
+    // 서버가 최종 확인해요 — 중복확인 뒤 그새 다른 분이 같은 닉네임으로 응모했으면 다시 고르게 해요
+    const res = await LIVE.submit('raffle_entry', entry);
+    submitBtn.textContent = '응모하기';
+    if(!res.ok){
+      if(res.error === 'nickname_taken'){ checked = ''; setHelp('방금 다른 분이 이 닉네임으로 응모했어요. 다른 닉네임을 써주세요.', 'err'); }
+      else if(res.error === 'invalid_nickname'){ checked = ''; setHelp('띄어쓰기·숫자·기호 없이 한글 또는 영문 10글자까지 쓸 수 있어요.', 'err'); }
+      else { submitBtn.disabled = false; setHelp('응모가 잘 안 됐어요. 잠시 후 다시 눌러주세요.', 'err'); }
+      return;
+    }
+    LOCAL[RAFFLE_KEY] = entry; saveLocal(LOCAL);
+    postData('raffle_entry', entry).catch(()=>{});
+    if(navigator.vibrate) navigator.vibrate([20, 40, 20]);
+    close();
+    setTimeout(()=> showCard(true), 280);
+  }
+
+  /* ---- 직관인증 카드 — 캔버스로 그려 화면에도 보여주고 그대로 저장해요 ---- */
+  const loadImg = src => new Promise(res=>{ if(!src) return res(null); const i = new Image(); i.onload = ()=> res(i); i.onerror = ()=> res(null); i.src = src; });
+  function hash(str){ let h = 2166136261; for(const c of str){ h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function cardStats(nick){
+    const m = window.__missionState ? window.__missionState() : { done:0, total:6 };
+    const cheers = Number(LOCAL.cheer_count) || 0;
+    return [
+      ['팬심', Math.min(99, 60 + Math.round(39 * m.done / Math.max(1, m.total)))],
+      ['응원', Math.min(99, 50 + Math.floor(cheers / 4))],
+      ['함성', 70 + hash(nick + MATCH_KEY) % 30],
+    ];
+  }
+  async function drawCard(){
+    const e = LOCAL[RAFFLE_KEY];
+    const S = 2, W = 320, H = 440;
+    const cv = document.createElement('canvas'); cv.width = W * S; cv.height = H * S;
+    const g = cv.getContext('2d'); g.scale(S, S);
+    if(document.fonts && document.fonts.load) await Promise.all([500, 600, 700, 800].map(w=> document.fonts.load(`${w} 16px Pretendard`))).catch(()=>{});
+    const font = (w, sz)=> `${w} ${sz}px Pretendard, sans-serif`;
+    const rr = (x, y, w, h, r)=>{ g.beginPath(); g.roundRect(x, y, w, h, r); };
+    // 바탕 — 주황 그라데이션 + 코트 라인
+    rr(0, 0, W, H, 24); g.save(); g.clip();
+    const bg = g.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#FF7A4E'); bg.addColorStop(.55, '#FF571F'); bg.addColorStop(1, '#E64813');
+    g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    g.strokeStyle = 'rgba(255,255,255,.16)'; g.lineWidth = 2;
+    g.strokeRect(20, 96, W - 40, 236); g.beginPath(); g.moveTo(20, 214); g.lineTo(W - 20, 214); g.stroke();
+    g.beginPath(); g.moveTo(20, 175); g.lineTo(W - 20, 175); g.moveTo(20, 253); g.lineTo(W - 20, 253); g.stroke();
+    // 상단 — 경기일 · 직관인증 · 라운드
+    const d = new Date(e.at || Date.now());
+    const ymd = `${d.getFullYear()} ${String(d.getMonth() + 1).padStart(2, '0')} ${String(d.getDate()).padStart(2, '0')}`;
+    g.fillStyle = '#fff'; g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+    g.font = font(600, 13); g.globalAlpha = .85; g.fillText(ymd, 22, 36); g.globalAlpha = 1;
+    g.font = font(800, 24); g.fillText('직관인증', 22, 66);
+    const round = e.round || window.__matchRound;
+    if(round){
+      const t = `${round}ROUND`; g.font = font(800, 13); const tw = g.measureText(t).width + 20;
+      g.fillStyle = '#161C26'; rr(W - 22 - tw, 22, tw, 26, 13); g.fill();
+      g.fillStyle = '#FFD339'; g.textAlign = 'center'; g.fillText(t, W - 22 - tw / 2, 40);
+    }
+    // 마스코트
+    const mascot = await loadImg(typeof ROULETTE_ASSETS !== 'undefined' ? ROULETTE_ASSETS.mascot : '');
+    g.fillStyle = 'rgba(255,255,255,.14)'; g.beginPath(); g.arc(W / 2, 212, 92, 0, Math.PI * 2); g.fill();
+    if(mascot){
+      const r = Math.min(170 / mascot.width, 170 / mascot.height);
+      g.drawImage(mascot, W / 2 - mascot.width * r / 2, 212 - mascot.height * r / 2, mascot.width * r, mascot.height * r);
+    } else { g.font = font(800, 40); g.textAlign = 'center'; g.fillStyle = '#fff'; g.fillText('읏맨', W / 2, 226); }
+    // 닉네임 판
+    g.fillStyle = '#fff'; rr(20, 318, W - 40, 58, 16); g.fill();
+    g.fillStyle = '#8C94A2'; g.textAlign = 'center'; g.font = font(600, 11); g.fillText('닉네임', W / 2, 336);
+    g.fillStyle = '#161C26'; let sz = 24; g.font = font(800, sz);
+    while(g.measureText(e.nickname).width > W - 72 && sz > 14){ sz -= 1; g.font = font(800, sz); }
+    g.fillText(e.nickname, W / 2, 364);
+    // 능력치 3개
+    cardStats(e.nickname).forEach(([label, v], i)=>{
+      const cx = 20 + (W - 40) / 6 * (i * 2 + 1);
+      g.fillStyle = '#fff'; g.font = font(800, 22); g.fillText(String(v), cx, 410);
+      g.globalAlpha = .85; g.font = font(600, 11); g.fillText(label, cx, 426); g.globalAlpha = 1;
+    });
+    g.restore();
+    return cv;
+  }
+  async function showCard(first){
+    document.getElementById('rfc-title').textContent = first === true ? '응모 완료!' : '내 응모 카드';
+    cardPop.classList.add('show'); document.documentElement.style.overflow = 'hidden';
+    const cv = await drawCard();
+    cardImg.src = cv.toDataURL('image/png');
+    cardImg.alt = `직관인증 카드 — 닉네임 ${LOCAL[RAFFLE_KEY].nickname}`;
+    cardBlob = await new Promise(r=> cv.toBlob(r, 'image/png'));
+  }
+  function closeCard(){ cardPop.classList.remove('show'); document.documentElement.style.overflow = ''; }
+  document.getElementById('rfc-close').addEventListener('click', closeCard);
+  cardPop.addEventListener('click', e=>{ if(e.target === cardPop) closeCard(); });
+  document.addEventListener('keydown', e=>{
+    if(e.key !== 'Escape') return;
+    if(cardPop.classList.contains('show')) closeCard();
+    else if(sheet.classList.contains('show')) close();
+  });
+  document.getElementById('rfc-save').addEventListener('click', async ()=>{
+    hapticTick();
+    if(!cardBlob) return;
+    const fname = `읏맨_직관인증_${LOCAL[RAFFLE_KEY].nickname}.png`;
+    try{
+      const file = new File([cardBlob], fname, { type:'image/png' });
+      if(navigator.canShare && navigator.canShare({ files:[file] })){ await navigator.share({ files:[file], title:'읏맨 직관인증 카드' }); return; }
+    }catch(err){ if(err && err.name === 'AbortError') return; }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(cardBlob); a.download = fname;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=> URL.revokeObjectURL(a.href), 4000);
+  });
+})();
+
+/* ================================================================
+   9-2. 홈 경기가 없는 날 — 홈은 '다음 경기 안내', 하단 메뉴는 홈 · 기록만
+   · 관리자 대시보드 '오늘 운영'이 자동이면 경기 일정(오늘 홈 경기 여부)으로 정해요. 일정을 모르면 운영으로 봐요.
+   · 테스트: 주소 뒤에 ?day=off / ?day=on
+   ================================================================ */
+(function initDayMode(){
+  const card = document.getElementById('no-game');
+  const nextEl = document.getElementById('no-game-next');
+  const sub = document.querySelector('#view-home .pagesub');
+  const subText = sub ? sub.textContent : '';
+  const urlDay = new URLSearchParams(location.search).get('day');
+  function isOpen(){
+    if(urlDay === 'on' || urlDay === 'off') return urlDay === 'on';
+    const m = CONTENT.get().open || 'auto';
+    if(m === 'on' || m === 'off') return m === 'on';
+    return window.__homeToday !== false;
+  }
+  window.__applyDayMode = ()=>{
+    const open = isOpen();
+    document.body.classList.toggle('no-game', !open);
+    card.hidden = open;
+    if(sub) sub.textContent = open ? subText : '선수 기록과 리그 순위는 언제든 볼 수 있어요.';
+    const nh = window.__nextHome;
+    nextEl.hidden = open || !nh;
+    if(nh){
+      const d = new Date(nh.date + 'T00:00:00');
+      nextEl.textContent = `다음 홈 경기 · ${d.getMonth() + 1}.${d.getDate()} (${'일월화수목금토'[d.getDay()]})${nh.time ? ' ' + nh.time : ''} vs ${nh.opponent}`;
+    }
+    if(!open){
+      const v = document.querySelector('.view.active');
+      if(v && v.id !== 'view-home' && v.id !== 'view-players') navigate('home');
+    }
+  };
+  CONTENT.onChange(window.__applyDayMode);
+  window.__applyDayMode();
 })();
 
 /* ================================================================
@@ -5366,11 +5847,13 @@ if('ResizeObserver' in window){ const ro = new ResizeObserver(es=> es.forEach(e=
   function blockPicks(ev){
     const cands = ev.candidates && ev.candidates.length ? PLAYERS.filter(p=> ev.candidates.includes(p.num)) : PLAYERS.filter(p=> p.pos !== 'L');
     const maxG = Math.max(1, ...cands.map(p=> (p.season && p.season.g) || 0));
-    const POSW = { MB:1, OP:0.75, OH:0.55, S:0.45, L:0 };
+    // 블로킹 문항이 아니면(예: 첫 득점 선수) 공격 능력치·공격 성공률 기준으로 계산해요
+    const isBlock = /블로킹|블록/.test(ev.q || '') || ev.id === 'first_block';
+    const POSW = isBlock ? { MB:1, OP:0.75, OH:0.55, S:0.45, L:0 } : { OP:1, OH:0.9, MB:0.6, S:0.25, L:0 };
     const rows = cands.map(p=>{
       const ab = playerAbilityToday(p), s = p.season || {};
-      const blk = (ab.blk || 0) / 100;
-      const perSet = typeof s.blk === 'number' ? s.blk : 0.15;
+      const blk = ((isBlock ? ab.blk : ab.atk) || 0) / 100;
+      const perSet = isBlock ? (typeof s.blk === 'number' ? s.blk : 0.15) : (typeof s.atk === 'number' ? s.atk / 100 : 0.45);
       const play = 0.35 + 0.65 * (((s.g || 0) / maxG));                                // 출전이 많을수록 코트에 있을 확률↑
       const f = FORTUNE.of(p);
       const luck = f ? 1 + (f.luck - 75) / 250 : 1;                                     // 오늘의 운세 ±10%
@@ -5404,7 +5887,8 @@ if('ResizeObserver' in window){ const ro = new ResizeObserver(es=> es.forEach(e=
       const card = list.querySelectorAll('.predict-card')[i];
       if(!card) return;
       let pick = null, tip = '';
-      if(ev.type === 'player'){
+      if(ev.ai === false){ /* 관리자가 이 문항은 AI 추천을 끈 경우 */ }
+      else if(ev.type === 'player'){
         const top = blockPicks(ev).slice(0, 3);
         if(top.length){
           pick = String(top[0].p.num);
@@ -5531,10 +6015,22 @@ if('ResizeObserver' in window){ const ro = new ResizeObserver(es=> es.forEach(e=
       </div>
       <p class="fb__note">재미로 보는 운세예요</p>`;
   }
-  function setFlip(on){
+  function setFlip(on, quiet){
     flip = on ? 180 : 0;
     card.setAttribute('aria-pressed', on ? 'true' : 'false');
-    if(navigator.vibrate) navigator.vibrate(10);
+    if(!quiet && navigator.vibrate) navigator.vibrate(10);
+    // 뒷면(오늘의 운세)을 보면 '오늘의선수' 미션 완료
+    if(on && FORTUNE.of(list[idx]) && !LOCAL.fortune_seen){ LOCAL.fortune_seen = true; saveLocal(LOCAL); }
+    syncCta();
+  }
+  // 앞면: 'MVP 투표하기' · 뒷면: '이벤트 투표하러 가기'(경기 예측에서 이 선수를 골라둬요)
+  function syncCta(){
+    const back = flip === 180;
+    const live = window.__matchPhase && window.__matchPhase() === 'live';
+    const mvpBtn = document.getElementById('pc-mvp'), evBtn = document.getElementById('pc-event');
+    mvpBtn.hidden = back || !!LOCAL.mvp_voted;
+    evBtn.hidden = !back || (live ? !!LOCAL.mvp_voted : !!LOCAL.predictions) || !CONFIG.PREDICT_EVENTS.some(ev=> ev.type === 'player') && !live;
+    evBtn.textContent = live ? '이 선수에게 MVP 투표하기' : '이벤트 투표하러 가기';
   }
 
   let mvLoaded = false;
@@ -5583,10 +6079,10 @@ if('ResizeObserver' in window){ const ro = new ResizeObserver(es=> es.forEach(e=
     document.getElementById('pc-count').textContent = `${idx + 1} / ${list.length}`;
     document.getElementById('pc-radar').innerHTML = radarSvg(abToday);
     document.getElementById('pc-season').innerHTML = seasonHtml(p);
-    document.getElementById('pc-mvp').style.display = LOCAL.mvp_voted ? 'none' : '';
     buildStage(p);
     ry = 0; vel = 0; rx = 0; t0 = performance.now();
     flip = 0; fa = 0; card.classList.remove('is-back'); card.setAttribute('aria-pressed', 'false');
+    syncCta();
     // 등장 애니메이션 — '동작 줄이기'면 애니메이션이 없어서 animationend가 안 와요.
     //  그러면 reveal이 계속 남아 카드 회전이 멈추고, 뒤집은 뒷면 글자가 거울처럼 뒤집혀 보였어요.
     card.classList.remove('reveal');
@@ -5654,10 +6150,11 @@ if('ResizeObserver' in window){ const ro = new ResizeObserver(es=> es.forEach(e=
   });
   card.addEventListener('pointercancel', endDrag);
 
-  function open(num, sourceList){
+  function open(num, sourceList, opts){
     list = (sourceList && sourceList.length) ? sourceList : PLAYERS;
     idx = Math.max(0, list.findIndex(p=> p.num === num));
     render();
+    if(opts && opts.back) setTimeout(()=> setFlip(true, true), reduce ? 0 : 1150);   // 운세(뒷면)로 바로 보여주기
     modal.classList.add('show');
     document.documentElement.style.overflow = 'hidden';
     t0 = performance.now();
@@ -5680,6 +6177,13 @@ if('ResizeObserver' in window){ const ro = new ResizeObserver(es=> es.forEach(e=
     if(e.key === 'Escape') close();
     if(e.key === 'ArrowLeft') step(-1);
     if(e.key === 'ArrowRight') step(1);
+  });
+  document.getElementById('pc-event').addEventListener('click', ()=>{
+    const num = list[idx].num;
+    const live = window.__matchPhase && window.__matchPhase() === 'live';
+    close();
+    if(live){ navigate('pick', 'mvp'); window.__mvpPreselect && window.__mvpPreselect(num); }
+    else { navigate('pick', 'predict'); window.__predictPreselect && window.__predictPreselect(num); }
   });
   document.getElementById('pc-mvp').addEventListener('click', ()=>{
     const num = list[idx].num;
