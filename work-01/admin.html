@@ -85,6 +85,7 @@
   .gtab td,.gtab th{white-space:nowrap;} .gtab .num{text-align:right;}
   .stack{display:flex; height:12px; border-radius:6px; overflow:hidden; background:var(--fill); min-width:120px;}
   .stack i{display:block; height:100%; background:var(--brand);}
+  .row .acts{display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px; max-width:60%;}
   .tlist{margin-top:12px; font-size:13px;}
   .tlist summary{cursor:pointer; font-weight:700; color:var(--ink-dim);}
   .tlist p{display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid var(--line); line-height:20px;}
@@ -268,8 +269,8 @@ const PRED_DEF = [
   { id:'first_block', q:'첫 블로킹을 성공시킬 선수는?', type:'player', ai:true },
   { id:'set_score', q:'세트 스코어를 예측해보세요', options:['3:0', '3:1', '3:2', '2:3 이하'], ai:true },
 ];
-// 기본 설문 = 26-27 시즌 초반 관람객 설문(261014) — index.html CONFIG.SURVEY_QUESTIONS와 같아요
-const SURV_DEF = [{"id": "1", "q": "거주 지역을 선택해 주세요.", "type": "single", "options": ["부산광역시", "김해시", "양산시", "창원시", "기타 경남", "울산광역시", "대구·경북", "서울·경기·인천", "기타"]}, {"id": "1-1", "q": "(부산 거주자) 거주하시는 구·군을 선택해 주세요.", "type": "single", "options": ["중구", "서구", "동구", "영도구", "부산진구", "동래구", "남구", "북구", "해운대구", "사하구", "금정구", "강서구", "연제구", "수영구", "사상구", "기장군"], "cond": {"id": "1", "in": ["부산광역시"]}}, {"id": "2", "q": "오늘 경기장까지 이용한 주 이동수단은 무엇인가요?", "type": "multi", "max": 3, "options": ["자차", "지하철", "버스", "택시", "KTX·기차", "도보·자전거", "기타"]}, {"id": "3", "q": "오늘 누구와 함께 오셨나요?", "type": "single", "options": ["혼자", "가족(자녀 동반)", "가족(성인만)", "연인", "친구·지인", "단체(직장·학교·동호회)"]}, {"id": "4", "q": "지난 시즌에는 홈경기 관람 몇번 했나요?", "type": "single", "options": ["0회", "1회", "2회~5회", "5회~10회", "10회 이상"]}, {"id": "4-1", "q": "지난 시즌 대비 만족도가 어떤가요?", "type": "single", "options": ["훨신 좋아졌다", "개선이 조금 된 듯 하다", "비슷하다", "더 안좋아졌다"], "cond": {"id": "4", "notIn": ["0회"]}}, {"id": "4-2", "q": "지난 시즌에 비해 가장 좋아진 것은", "type": "multi", "max": 3, "options": ["입장·매표", "좌석 편의성", "관람 시야", "응원·장내 진행", "이벤트", "MD(굿즈)", "먹거리", "화장실 청결", "특별하게 없음"], "cond": {"id": "4", "notIn": ["0회"]}}, {"id": "4-3", "q": "지난 시즌에 비해 안좋아진 부분은?", "type": "multi", "max": 3, "options": ["입장·매표", "좌석 편의성", "관람 시야", "응원·장내 진행", "이벤트", "MD(굿즈)", "먹거리", "화장실 청결", "특별하게 없음"], "cond": {"id": "4", "notIn": ["0회"]}}, {"id": "5", "q": "OK읏맨 팬이 된 시기는 언제인가요?", "type": "single", "options": ["25-26시즌 이전(안산)부터", "25-26 시즌(부산 첫 시즌)부터", "이번 26-27 시즌부터"]}, {"id": "6", "q": "오늘 경기장에 방문하게 된 가장 큰 계기는 무엇인가요? (1개)", "type": "multi", "max": 3, "options": ["부산에 배구팀이 있어서", "좋아하는 선수를 보려고", "응원 문화가 재밌어서", "배구 자체가 좋아서", "가족·지인과 여가를 보내려고", "지인의 권유", "아이의 권유(배구교실 등)", "SNS·홍보를 보고", "초대권·제휴 혜택", "기타"]}, {"id": "7", "q": "오늘 경기 정보를 처음 접한 경로는 어디인가요?", "type": "multi", "max": 3, "options": ["구단 인스타그램", "유튜브", "틱톡·릴스", "카카오톡 채널", "네이버 카페·밴드", "포털 사이트", "지하철·버스·옥외 광고", "지인", "학교·직장", "기타"]}, {"id": "8", "q": "주변에 OK읏맨 경기 직관을 추천할 의향은 얼마나 되나요?", "type": "nps", "low": "전혀 추천 안 함", "high": "적극 추천"}, {"id": "9", "q": "오늘 관람한 자리는 어디인가요?", "type": "single", "options": ["스파이크존(1층)", "블로킹존(1층)", "테이블존(1층)", "읏샤읏샤OK존(2층)", "읏맨존(2층)", "하이테이블석(2층)", "편하데이존(2층)", "스카이박스(2층)", "기읏, 니읏존(3층)", "원정석(3층)"]}, {"id": "10", "q": "오늘 관람 경험에 대해 항목별로 평가해 주세요.", "type": "grid", "rows": ["입장·매표", "좌석 편의성", "관람 시야", "응원·장내 진행", "이벤트", "MD(굿즈)", "먹거리", "화장실 청결"], "cols": ["매우 불만족", "불만족", "보통", "만족", "매우 만족"]}, {"id": "11", "q": "가장 개선되었으면 하는 점 1가지를 골라 주세요.", "type": "single", "other": true, "options": ["이벤트", "먹거리", "MD 상품", "좌석", "화장실", "주차·퇴장", "경기장 안내", "홍보", "기타"]}, {"id": "12", "q": "읏배구놀이터 이용 만족도는 어떠신가요?", "type": "nps", "low": "전혀 추천 안 함", "high": "적극 추천"}, {"id": "13", "q": "읏배구놀이터에서 가장 만족스러웠던 것은?", "type": "single", "options": ["안내(자리, 막차)", "룰렛", "AI예측이벤트", "플레이어(선수카드)"]}, {"id": "14", "q": "읏배구놀이터에서 가장 개선이 필요할 것 같은 것은?", "type": "single", "options": ["안내(자리, 막차)", "룰렛", "AI예측이벤트", "플레이어(선수카드)"], "comment": true}];
+// v0 = 보관함이 비었을 때 관람객 화면이 쓰는 비상용 기본 문항 (index.html CONFIG와 같아요)
+const SURV_DEF = [{"id": "1", "q": "오늘 경기장 좌석 안내는 찾기 쉬웠나요?", "type": "single", "options": ["매우 쉬움", "쉬움", "보통", "어려움"]}, {"id": "2", "q": "오늘 응원 분위기는 어땠나요?", "type": "single", "options": ["최고였어요", "좋았어요", "보통이었어요", "아쉬웠어요"]}, {"id": "3", "q": "다음에도 직관하러 오실 의향이 있나요?", "type": "single", "options": ["꼭 다시 올게요", "아마도요", "잘 모르겠어요"]}, {"id": "4", "q": "경기장 내 편의시설(매점·화장실 등)은 만족스러웠나요?", "type": "single", "options": ["매우 만족", "만족", "보통", "불만족"]}];
 const CK_DEF = [
   { key:'gender', q:'성별을 알려주세요', opts:['남성', '여성'].map(label => ({ label })) },
   { key:'age', q:'나이대를 골라주세요', opts:['10대 이하', '20대', '30대', '40대', '50대', '60대 이상'].map(label => ({ label })) },
@@ -403,12 +404,12 @@ async function readSurveyFile(file){
   }
   throw lastErr || new Error('읽을 시트가 없어요.');
 }
-async function downloadSurveyXlsx(items){
+async function downloadSurveyXlsx(items, title){
   const X = await loadXlsx();
   const ws = X.utils.aoa_to_sheet(surveyToRows(items));
   ws['!cols'] = [{ wch:7 }, { wch:46 }, { wch:24 }, { wch:34 }, { wch:30 }];
   const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, '설문지');
-  X.writeFile(wb, `읏배구놀이터_설문_${mid()}.xlsx`);
+  X.writeFile(wb, `읏배구놀이터_설문_${String(title || mid()).replace(/[\\/:*?"<>|]/g, '_')}.xlsx`);
 }
 const condText = c => !c ? '' : `${c.id}번에서 ${c.in ? `'${c.in.join("', '")}' 고르면` : `'${c.notIn.join("', '")}' 말고 고르면`} 보여요`;
 function svBadges(q){
@@ -524,11 +525,12 @@ async function load(quiet){
    ================================================================ */
 function buildVersions(kind, rows){
   const hist = ((D.history || {})[kind]) || [];
-  const curHas = Array.isArray(CT()[kind]) && CT()[kind].length;
-  const cur = curHas ? (Number((CT()[kind + 'Ver'] || {}).v) || 0) : 0;
+  const live = kind === 'survey' ? D.survey : null;
+  const curHas = kind === 'survey' ? !!live : Array.isArray(CT()[kind]) && CT()[kind].length;
+  const cur = kind === 'survey' ? (live ? live.v : 0) : curHas ? (Number((CT()[kind + 'Ver'] || {}).v) || 0) : 0;
   const map = new Map();
-  const add = (v, at, items) => { if(!map.has(v)) map.set(v, { v, at, items, rows:[] }); const x = map.get(v); if(items && !x.items) x.items = items; if(at && !x.at) x.at = at; return x; };
-  hist.forEach(h => add(h.v, h.at, h.items));
+  const add = (v, at, items, title) => { if(!map.has(v)) map.set(v, { v, at, items, title:'', rows:[] }); const x = map.get(v); if(items && !x.items) x.items = items; if(at && !x.at) x.at = at; if(title && !x.title) x.title = title; return x; };
+  hist.forEach(h => add(h.v, h.at, h.items, h.title));
   add(cur, null, null);
   rows.forEach(r => { const d = r.data || {}; add(d.ver == null ? 'none' : Number(d.ver) || 0, null, null).rows.push(r); });
   if(map.has(0) && !map.get(0).items) map.get(0).items = clone(kind === 'survey' ? SURV_DEF : PRED_DEF);
@@ -623,10 +625,10 @@ function vTabs(kind, list, extra){
   const sel = DR.tab && DR.tab[kind];
   const pick = list.some(v => String(v.v) === String(sel)) || (extra && sel === extra[0]) ? sel : String((list.find(v => v.current) || list[0] || {}).v);
   DR.tab = { ...(DR.tab || {}), [kind]:pick };
-  return { pick, html:`<div class="seg vtabs">${list.map(v => `<button data-vtab="${kind}" data-v="${v.v}" class="${String(v.v) === pick ? 'on' : ''}">${vLabel(v.v)}${v.current ? ' · 지금' : ''} <em>${v.rows.length}</em></button>`).join('')}
+  return { pick, html:`<div class="seg vtabs">${list.map(v => `<button data-vtab="${kind}" data-v="${v.v}" class="${String(v.v) === pick ? 'on' : ''}">${vLabel(v.v)}${v.title ? ' ' + esc(v.title.length > 14 ? v.title.slice(0, 13) + '…' : v.title) : ''}${v.current ? ' · 지금' : ''} <em>${v.rows.length}</em></button>`).join('')}
     ${extra ? `<button data-vtab="${kind}" data-v="${extra[0]}" class="${pick === extra[0] ? 'on' : ''}">${extra[1]}</button>` : ''}</div>` };
 }
-const vMeta = (v, unit) => `${vLabel(v.v)}${v.at ? ` · ${time(v.at)} 등록` : ''} · ${unit} ${fmt(v.rows.length)}명${v.current ? ' · 지금 관람객에게 나가는 문항' : ''}${v.v === 'none' ? ' · 버전 기능을 넣기 전에 쌓인 응답이에요' : ''}`;
+const vMeta = (v, unit) => `${vLabel(v.v)}${v.title ? ` '${esc(v.title)}'` : ''}${v.at ? ` · ${time(v.at)} 등록` : ''} · ${unit} ${fmt(v.rows.length)}명${v.current ? ' · 지금 관람객에게 나가는 문항' : ''}${v.v === 'none' ? ' · 버전 기능을 넣기 전에 쌓인 응답이에요' : ''}`;
 
 /* CSV 내려받기 — 엑셀에서 한글이 깨지지 않게 BOM을 붙여요 */
 function downloadCsv(name, rows){
@@ -640,10 +642,10 @@ function downloadCsv(name, rows){
 }
 const csvTime = ts => { if(!ts) return ''; const d = new Date(ts); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 function csvSurvey(){
-  const S = stats(), out = [['버전', '버전 등록 시각', '응답 시각', '기기', '문항 번호', '유형', '질문', '답변', '점수', '기타 직접 입력', '자유 의견']];
+  const S = stats(), out = [['버전', '설문 제목', '버전 등록 시각', '응답 시각', '기기', '문항 번호', '유형', '질문', '답변', '점수', '기타 직접 입력', '자유 의견']];
   const TY = { ...SV_TYPE, grid:'행렬 척도' };
   for(const v of S.sv) for(const r of v.rows) ((r.data || {}).answers || []).forEach((a, i) => out.push([
-    vLabel(v.v), csvTime(v.at), csvTime(r.at), String(r.device || '').slice(-6), a.id != null ? String(a.id).replace(/:(\d+)$/, (m, n) => `-${Number(n) + 1}행`) : i + 1,
+    vLabel(v.v), v.title || '', csvTime(v.at), csvTime(r.at), String(r.device || '').slice(-6), a.id != null ? String(a.id).replace(/:(\d+)$/, (m, n) => `-${Number(n) + 1}행`) : i + 1,
     TY[a.type] || '', a.q, Array.isArray(a.a) ? a.a.join(' / ') : a.a, a.score ?? (typeof a.a === 'number' ? a.a : ''), a.etc || '', a.memo || '']));
   if(out.length === 1) return toast('아직 설문 응답이 없어요.', true);
   downloadCsv('설문', out);
@@ -818,6 +820,22 @@ function cleanSurvey(list){
     return it;
   });
 }
+/* ---------- 설문 보관함 (시즌 전체 공통 · 서버 레지스트리에 저장) ---------- */
+const LIB = { surveys:[], defaultId:'', at:0, loading:false };
+async function loadLib(){
+  if(LIB.loading) return; LIB.loading = true;
+  try{ const d = await call('GET', '_/surveys'); LIB.surveys = d.surveys || []; LIB.defaultId = d.defaultId || ''; LIB.at = Date.now(); }
+  catch(e){ LIB.err = e.message; LIB.at = Date.now(); }
+  finally{ LIB.loading = false; }
+  if(page === 'survey') render();
+}
+function saveLib(next, msg){
+  return act(()=> call('PUT', '_/surveys', next), msg).then(ok =>{ if(ok){ LIB.surveys = next.surveys; LIB.defaultId = next.defaultId; loadLib(); } return ok; });
+}
+const libById = id => LIB.surveys.find(x => x.id === id);
+const libIdx = i => LIB.surveys[i];
+function svList(items){ return items.map(q => `<div class="row"><div class="main"><p class="t">${esc(q.id)}. ${esc(q.q)}</p><p class="m" style="margin-top:4px;">${svBadges(q)}</p><p class="m">${esc(svOptsText(q))}</p></div></div>`).join(''); }
+
 function svNextId(){ return String(Math.max(0, ...DR.survey.map(q => parseInt(q.id, 10) || 0)) + 1); }
 
 /* ---------- 문항 편집기 (예측) ---------- */
@@ -1098,33 +1116,55 @@ const VIEWS = {
 
   /* ---------- 설문 ---------- */
   survey: S => {
-    const reg = Array.isArray(CT().survey) && CT().survey.length;
+    if(!LIB.at) loadLib();
     const n = (D.subs.survey || []).length;
-    const editing = DR.surveyEdit || (!reg && DR.survey);
+    const live = D.survey;
     const results = survResults(S);
-    const cur = reg ? CT().survey : SURV_DEF;
     const head = `<p class="page-title">설문 <button class="btn small ghost" data-act="csv-survey" style="vertical-align:4px; margin-left:6px;">응답 CSV 내려받기</button></p>`;
-    const xlsxBar = `<div class="opts" style="margin:0 0 4px;">
+
+    // 편집 중 — 보관함의 설문 하나를 고치거나 새로 만들어요
+    if(DR.svEdit) return `${head}<p class="page-sub">설문 보관함 › ${DR.svEdit.id ? '고치기' : '새 설문'}</p>
+      <section class="card">
+        <h2>설문 편집 <span style="display:flex; gap:8px;"><button class="btn small ghost" data-act="sv-xlsx">엑셀 양식으로 내려받기</button><button class="btn small dark" data-act="sv-ai">AI로 설문 생성하기</button></span></h2>
+        <div class="field"><label for="sv-title">설문 제목 (보관함·버전에 보이는 이름)</label><input class="in" id="sv-title" maxlength="60" value="${esc(DR.svEdit.title || '')}" placeholder="예: 26-27 시즌초반 관람객설문"></div>
+        <p class="desc" style="margin-top:10px;">문항은 ${LIMIT.surveyQ}개, 선택 항목은 ${LIMIT.surveyO}개까지. 조건(앞 문항 답에 따라 보이기)은 엑셀 번호를 '1-1'처럼 붙여서 만들어요.</p>
+        ${sEditor()}
+        <div class="edfoot">${DR.survey.length < LIMIT.surveyQ ? `<button class="btn ghost" data-act="ed-add" data-ed="survey">+ 문항 추가</button>` : '<span></span>'}
+          <span style="display:flex; gap:8px;"><button class="btn ghost" data-act="sv-cancel">취소</button><button class="btn" data-act="sv-save">보관함에 저장</button></span></div>
+      </section>`;
+
+    const liveCard = live
+      ? `<section class="card"><h2><span>${esc(live.title || '제목 없는 설문')} <span class="chip">${vLabel(live.v)}</span> <span class="chip ${live.source === 'match' ? '' : 'ok'}">${live.source === 'match' ? '이 경기만 따로 지정' : '보관함 기본 설문'}</span></span>
+          ${live.source === 'match' ? `<button class="btn small ghost" data-act="lib-match-reset">보관함 기본 설문으로 되돌리기</button>` : ''}</h2>
+          <p class="desc">${esc(mid())} 경기 관람객에게 지금 나가는 설문이에요 · ${live.items.length}문항 · 응답 ${fmt(n)}명 · 같은 설문이 다시 나가면 같은 버전으로 묶여요.</p>
+          <details class="tlist"><summary>문항 ${live.items.length}개 보기</summary>${svList(live.items)}</details></section>`
+      : `<section class="card"><h2>지금 나가는 설문 <span class="chip off">비상용 기본 문항</span></h2>
+          <p class="desc">보관함에 기본 설문이 없어서 짧은 기본 문항 ${SURV_DEF.length}개가 나가고 있어요. 아래 보관함에서 엑셀로 불러오고 '기본으로 지정'을 눌러주세요.</p></section>`;
+
+    const rows = LIB.surveys.map((e, i) => {
+      const isDef = e.id === LIB.defaultId, isLive = live && live.lib === e.id && canon(live.items) === canon(e.items);
+      return `<div class="row"><div class="main">
+          <p class="t">${esc(e.title)} ${isDef ? '<span class="chip ok">기본</span>' : ''} ${isLive ? '<span class="chip">지금 이 경기에 나가는 중</span>' : ''}</p>
+          <p class="m">${e.items.length}문항 · ${time(e.updatedAt || e.at)} 수정</p></div>
+        <div class="acts">
+          <button class="btn small ghost" data-act="lib-preview" data-i="${i}">미리보기</button>
+          ${isDef ? '' : `<button class="btn small ghost" data-act="lib-default" data-i="${i}">기본으로 지정</button>`}
+          ${isLive ? '' : `<button class="btn small ghost" data-act="lib-use" data-i="${i}">이 경기에만 내보내기</button>`}
+          <button class="btn small ghost" data-act="lib-edit" data-i="${i}">고치기</button>
+          <button class="btn small ghost" data-act="lib-xlsx" data-i="${i}">엑셀</button>
+          <button class="btn small danger" data-act="lib-del" data-i="${i}">삭제</button>
+        </div></div>`; }).join('');
+    const libCard = `<section class="card">
+      <h2>설문 보관함 <span class="muted" style="font-size:12px; font-weight:600;">시즌 전체 공통</span></h2>
+      <div class="opts" style="margin:0 0 6px;">
         <label class="btn small dark" style="display:inline-flex; align-items:center; cursor:pointer;">엑셀로 불러오기<input type="file" id="sv-file" accept=".xlsx,.xls,.csv" hidden></label>
-        <button class="btn small ghost" data-act="sv-xlsx">${editing ? '편집 중인 설문' : '지금 설문'} 엑셀 양식 내려받기</button>
-        ${editing ? '' : `<button class="btn small ghost" data-act="sv-rewrite">직접 고치기</button>`}
+        <button class="btn small ghost" data-act="lib-new">새 설문 만들기</button>
       </div>
-      <p class="desc" style="margin:6px 0 0;">엑셀 열: 번호 · 문항 · 응답 유형 · 선택지 · 기타 — 26-27 시즌 초반 설문 파일과 같은 양식이에요. 불러오면 미리보기를 확인하고 편집기에 채운 뒤 등록해요.</p>`;
-    if(!editing) return `${head}<p class="page-sub">응답 ${fmt(n)}명 · 설문을 바꿀 때마다 버전이 따로 쌓여요. 이미 답한 관람객은 다시 답하지 않아요.</p>
-      <section class="card"><h2>${reg ? '등록한 설문' : '기본 설문이 나가는 중'} <span class="muted" style="font-size:13px; font-weight:600;">${cur.length}문항</span></h2>
-        ${xlsxBar}
-        <div style="margin-top:10px;">${cur.map(q => `<div class="row"><div class="main"><p class="t">${esc(q.id)}. ${esc(q.q)}</p><p class="m" style="margin-top:4px;">${svBadges(q)}</p><p class="m">${esc(svOptsText(q))}</p></div></div>`).join('')}</div>
-      </section>${results}`;
-    return `${head}<p class="page-sub">응답 ${fmt(n)}명</p>
-    <section class="card">
-      <h2>설문 편집 <span class="chip off">등록 전</span>
-        <button class="btn small dark" data-act="sv-ai">AI로 설문 생성하기</button></h2>
-      ${xlsxBar}
-      <p class="desc" style="margin-top:10px;">문항은 ${LIMIT.surveyQ}개, 선택 항목은 ${LIMIT.surveyO}개까지. 조건(앞 문항 답에 따라 보이기)은 엑셀 번호를 '1-1'처럼 붙여서 만들어요. 등록하면 아직 답하지 않은 관람객부터 새 설문이 보여요.</p>
-      ${sEditor()}
-      <div class="edfoot">${DR.survey.length < LIMIT.surveyQ ? `<button class="btn ghost" data-act="ed-add" data-ed="survey">+ 문항 추가</button>` : '<span></span>'}
-        <span style="display:flex; gap:8px;"><button class="btn ghost" data-act="sv-cancel">취소</button><button class="btn" data-act="sv-save">설문 등록하기</button></span></div>
-    </section>${results}`;
+      <p class="desc">'기본'으로 지정한 설문이 모든 경기에 나가요(경기에 따로 내보낸 설문이 있으면 그게 먼저). 엑셀 열: 번호 · 문항 · 응답 유형 · 선택지 · 기타.</p>
+      ${!LIB.at ? '<p class="empty">불러오는 중…</p>' : LIB.err && !LIB.surveys.length ? `<p class="empty">보관함을 불러오지 못했어요 — 서버(okman-live)를 이번 버전으로 배포했는지 확인해주세요.</p>` : rows || '<p class="empty">보관함이 비어 있어요. 엑셀로 불러오기부터 해주세요.</p>'}
+    </section>`;
+    return `${head}<p class="page-sub">응답 ${fmt(n)}명 · 설문은 보관함에 여러 개 넣어두고 골라서 내보내요. 나간 설문은 경기마다 버전으로 따로 집계돼요.</p>
+      ${liveCard}${libCard}${results}`;
   },
 
   /* ---------- 경품 응모 · 추첨 ---------- */
@@ -1271,8 +1311,40 @@ document.addEventListener('click', e=>{
     case 'ed-oadd': { const k = b.dataset.k || 'options'; DR[b.dataset.ed][i][k].push(''); render(); const ins = document.querySelectorAll(`[data-ed="${b.dataset.ed}"][data-i="${i}"][data-f="${k === 'options' ? (b.dataset.ed === 'survey' ? 'options' : 'opt') : k}"]`); ins[ins.length - 1]?.focus(); return; }
     case 'ed-odel': { const k = b.dataset.k || 'options', arr = DR[b.dataset.ed][i][k], min = k === 'rows' ? 1 : 2; if(arr.length > min) arr.splice(Number(b.dataset.j), 1); return render(); }
     case 'sv-nocond': delete DR.survey[i].cond; return render();
-    case 'sv-xlsx': return downloadSurveyXlsx(DR.surveyEdit || DR.survey ? cleanSurvey(DR.survey) : (Array.isArray(CT().survey) && CT().survey.length ? CT().survey : SURV_DEF)).catch(e => toast(e.message, true));
-    case 'sv-fill': { if(!window.__svImport) return; DR.survey = clone(window.__svImport); DR.surveyEdit = true; closeModal(); render(); return toast("편집기에 채웠어요. 확인하고 '설문 등록하기'를 눌러주세요."); }
+    case 'sv-xlsx': return downloadSurveyXlsx(cleanSurvey(DR.survey), (DR.svEdit || {}).title).catch(e => toast(e.message, true));
+
+    /* --- 설문 보관함 --- */
+    case 'lib-add': case 'lib-add-edit': {
+      const imp = window.__svImport; if(!imp) return;
+      const title = (val('imp-title') || '').trim() || imp.title;
+      if(b.dataset.act === 'lib-add-edit'){ closeModal(); DR.svEdit = { id:'', title, makeDefault:$('imp-def') && $('imp-def').checked }; DR.survey = clone(imp.items); return render(); }
+      const e = { id:'s' + Date.now().toString(36), title, items:imp.items, at:Date.now(), updatedAt:Date.now() };
+      const makeDef = $('imp-def') && $('imp-def').checked;
+      closeModal();
+      return saveLib({ surveys:[...LIB.surveys, e], defaultId:makeDef ? e.id : LIB.defaultId }, makeDef ? `'${title}'을 보관함에 넣고 기본 설문으로 지정했어요. 관람객 화면엔 1분 안에 보여요.` : `'${title}'을 보관함에 넣었어요.`);
+    }
+    case 'lib-new': DR.svEdit = { id:'', title:'' }; DR.survey = [{ id:'1', q:'', type:'single', options:['', '', ''] }]; return render();
+    case 'lib-edit': { const e = libIdx(i); if(!e) return; DR.svEdit = { id:e.id, title:e.title }; DR.survey = clone(e.items); scrollTo(0, 0); return render(); }
+    case 'lib-preview': { const e = libIdx(i); if(!e) return;
+      openModal(`<div class="modal__head"><h3>${esc(e.title)}</h3><button class="modal__x" data-act="modal-x" aria-label="닫기">×</button></div>
+        <p class="desc">${e.items.length}문항</p><div style="max-height:60vh; overflow:auto;">${svList(e.items)}</div>`); $('modal-box').style.maxWidth = '640px'; return; }
+    case 'lib-xlsx': { const e = libIdx(i); if(e) downloadSurveyXlsx(e.items, e.title).catch(err => toast(err.message, true)); return; }
+    case 'lib-default': { const e = libIdx(i); if(!e) return;
+      if(!confirm(`'${e.title}'을 기본 설문으로 지정할까요?
+따로 설문을 내보낸 경기를 빼고, 모든 경기 관람객에게 1분 안에 이 설문이 나가요.
+이미 답한 관람객은 다시 답하지 않아요.`)) return;
+      return saveLib({ surveys:LIB.surveys, defaultId:e.id }, `'${e.title}'을 기본 설문으로 지정했어요.`); }
+    case 'lib-use': { const e = libIdx(i); if(!e) return;
+      const cv = S0().sv.find(v => v.current);
+      if(!confirm(`'${e.title}'을 ${mid()} 경기에만 내보낼까요?${cv && cv.rows.length ? `
+지금 설문에 ${cv.rows.length}명이 답했어요. 새 설문은 따로 집계되고, 이미 답한 분은 다시 답하지 않아요.` : ''}`)) return;
+      return saveContent({ survey:e.items, surveyTitle:e.title, surveyLib:e.id }, `'${e.title}'을 이 경기에 내보냈어요. 관람객 화면엔 20초 안에 보여요.`); }
+    case 'lib-match-reset': if(!confirm('이 경기에 따로 내보낸 설문을 빼고 보관함 기본 설문으로 되돌릴까요?')) return;
+      return saveContent({ survey:undefined, surveyTitle:undefined, surveyLib:undefined }, '보관함 기본 설문으로 되돌렸어요.');
+    case 'lib-del': { const e = libIdx(i); if(!e) return;
+      if(!confirm(`'${e.title}'을 보관함에서 삭제할까요?${e.id === LIB.defaultId ? '\n기본 설문이라, 지우면 따로 지정하지 않은 경기엔 비상용 기본 문항이 나가요.' : ''}
+이미 받은 응답과 버전 기록은 그대로 남아요.`)) return;
+      return saveLib({ surveys:LIB.surveys.filter(x => x.id !== e.id), defaultId:e.id === LIB.defaultId ? '' : LIB.defaultId }, '보관함에서 삭제했어요.'); }
     case 'ed-player': { const q = DR[b.dataset.ed][i]; q._opts = q.options; q.type = 'player'; delete q.options; return render(); }
     case 'ed-noplayer': { const q = DR[b.dataset.ed][i]; delete q.type; q.options = q._opts || ['', '']; delete q._opts; return render(); }
     case 'pred-save': {
@@ -1292,16 +1364,25 @@ document.addEventListener('click', e=>{
       const nq = Math.round(Number(val('ai-nq'))), na = Math.round(Number(val('ai-na')));
       if(!(nq >= 1 && nq <= 5)) return toast('문항 수는 1~5개로 넣어주세요.', true);
       if(!(na >= 3 && na <= 5)) return toast('답변 수는 3~5개로 넣어주세요.', true);
-      DR.survey = genSurvey(nq, na); closeModal(); render(); return toast('설문을 채웠어요. 확인하고 등록해주세요.');
+      DR.survey = genSurvey(nq, na); DR.svEdit = { ...(DR.svEdit || { id:'' }), title:(DR.svEdit && DR.svEdit.title) || 'AI 생성 설문' }; closeModal(); render(); return toast('설문을 채웠어요. 확인하고 보관함에 저장해주세요.');
     }
-    case 'sv-rewrite': DR.surveyEdit = true; DR.survey = clone(Array.isArray(CT().survey) && CT().survey.length ? CT().survey : SURV_DEF); return render();
-    case 'sv-cancel': DR.surveyEdit = false; DR.survey = null; return render();
+    case 'sv-cancel': DR.svEdit = null; DR.survey = null; return render();
     case 'sv-save': {
+      const title = (DR.svEdit.title || '').trim();
+      if(!title) return toast('설문 제목을 넣어주세요.', true);
       const err = validSurvey(DR.survey); if(err) return toast(err, true);
-      { const cv = S0().sv.find(v => v.current); const nv = Math.max(0, ...S0().sv.map(v => v.v === 'none' ? 0 : v.v)) + 1;
-        if(cv && cv.rows.length && canon(cleanSurvey(DR.survey)) !== canon(CT().survey || null)
-           && !confirm(`지금 설문(${vLabel(cv.v)})에 ${cv.rows.length}명이 답했어요.\n새로 등록하면 v${nv}로 따로 집계되고, 이미 답한 분은 다시 답하지 않아요. 등록할까요?`)) return; }
-      return saveContent({ survey:cleanSurvey(DR.survey) }, '설문을 등록했어요. 관람객 화면엔 20초 안에 보여요.').then(ok=>{ if(ok){ DR.survey = null; DR.surveyEdit = false; render(); } });
+      const items = cleanSurvey(DR.survey), id = DR.svEdit.id;
+      const surveys = id ? LIB.surveys.map(x => x.id === id ? { ...x, title, items, updatedAt:Date.now() } : x)
+                         : [...LIB.surveys, { id:'s' + Date.now().toString(36), title, items, at:Date.now(), updatedAt:Date.now() }];
+      const newId = id || surveys[surveys.length - 1].id;
+      const defaultId = DR.svEdit.makeDefault ? newId : LIB.defaultId;
+      const live = D.survey, pushMatch = live && live.source === 'match' && live.lib === id && id;
+      const msg = id === LIB.defaultId && id ? `저장했어요. 기본 설문이라 모든 경기에 1분 안에 바뀐 설문(새 버전)이 나가요.` : '보관함에 저장했어요.';
+      return saveLib({ surveys, defaultId }, msg).then(async ok =>{
+        if(!ok) return;
+        if(pushMatch && confirm('이 경기에 따로 내보낸 설문이에요. 이 경기에도 고친 설문을 바로 내보낼까요?')) await saveContent({ survey:items, surveyTitle:title, surveyLib:id }, '이 경기에도 내보냈어요.');
+        DR.svEdit = null; DR.survey = null; render();
+      });
     }
 
     /* --- 대시보드: 미션 순서 --- */
@@ -1374,6 +1455,7 @@ document.addEventListener('input', e=>{
     else if(f === 'low' || f === 'high') q[f] = t.value;
     else if(f === 'max') q.max = Number(t.value) || 0;
     else if(f === 'type'){ setSvType(q, t.value); render(); }
+  } else if(t.id === 'sv-title' && DR.svEdit){ DR.svEdit.title = t.value;
   } else if(t.dataset.ck && MOD){
     const q = MOD.qs[MOD.i];
     if(t.dataset.ck === 'q') q.q = t.value; else if(t.dataset.ck === 'o') q.opts[Number(t.dataset.j)].label = t.value;
@@ -1385,12 +1467,14 @@ document.addEventListener('change', async e=>{
     try{
       toast('엑셀을 읽는 중…');
       const r = await readSurveyFile(f);
-      window.__svImport = r.items;
+      window.__svImport = { items:r.items, title:f.name.replace(/\.(xlsx|xls|csv)$/i, '').replace(/_/g, ' ').trim() };
       openModal(`<div class="modal__head"><h3>엑셀 미리보기</h3><button class="modal__x" data-act="modal-x" aria-label="닫기">×</button></div>
         <p class="desc">${esc(f.name)} · '${esc(r.sheet)}' 시트 · ${r.items.length}문항</p>
         ${r.warn.length ? `<div class="winbox" style="background:#FFF8E1; color:#7A5B00; margin:0 0 12px;"><b>확인해 주세요</b>${r.warn.map(w => `<p style="font-size:13px; margin-top:6px;">· ${esc(w)}</p>`).join('')}</div>` : ''}
         <div style="max-height:52vh; overflow:auto;">${r.items.map(q => `<div class="row"><div class="main"><p class="t">${esc(q.id)}. ${esc(q.q)}</p><p class="m" style="margin-top:4px;">${svBadges(q)}</p><p class="m">${esc(svOptsText(q))}</p></div></div>`).join('')}</div>
-        <div class="modal__foot"><button class="btn ghost" data-act="modal-x">취소</button><button class="btn" data-act="sv-fill">편집기에 채우기</button></div>`);
+        <div class="field" style="margin-top:14px;"><label for="imp-title">설문 제목</label><input class="in" id="imp-title" maxlength="60" value="${esc(window.__svImport.title)}"></div>
+        <label class="chk" style="margin-top:10px;"><input type="checkbox" id="imp-def"${LIB.defaultId ? '' : ' checked'}>기본 설문으로 지정 (모든 경기에 나가요)</label>
+        <div class="modal__foot"><button class="btn ghost" data-act="lib-add-edit">고쳐서 넣기</button><button class="btn" data-act="lib-add">보관함에 넣기</button></div>`);
       $('modal-box').style.maxWidth = '640px';
     }catch(err){ toast(err.message, true); }
     return;
