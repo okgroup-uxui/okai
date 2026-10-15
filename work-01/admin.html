@@ -259,6 +259,12 @@ const mid = () => $('match').value || today();
 
 function toast(msg, err){ const t = $('toast'); t.textContent = msg; t.className = 'toast show' + (err ? ' err' : ''); clearTimeout(t._t); t._t = setTimeout(()=> t.className = 'toast', 2200); }
 
+const ERR_TEXT = {
+  nothing_to_reset:'지울 항목을 골라주세요.', busy:'서버가 잠시 바빠요. 조금 뒤 다시 눌러주세요.', content_too_large:'등록하려는 내용이 너무 커요. 출석 이미지 수를 줄여주세요.',
+  library_too_large:'보관함이 너무 커요. 안 쓰는 설문을 지워주세요.', code_required:'코드를 입력해주세요.',
+};
+// 이 관리자 화면이 기대하는 서버 버전 (index.js의 SERVER_VERSION)
+const SERVER_NEED = '2026-10-15.reset';
 async function call(method, path, body){
   const res = await fetch(`${base()}/admin/${path}`, {
     method, headers:{ 'Content-Type':'application/json', 'X-Admin-Id': uid(), 'X-Admin-Key': key() },
@@ -266,7 +272,9 @@ async function call(method, path, body){
   });
   const d = await res.json().catch(() => ({}));
   if(res.status === 401) throw new Error('아이디 또는 비밀번호가 맞지 않아요.');
-  if(!res.ok) throw new Error(d.error || `서버 오류 (${res.status})`);
+  // 서버가 모르는 주소 — 대부분 okman-live를 최신 index.js로 다시 배포하지 않은 경우예요
+  if(res.status === 404 && d.error === 'not_found') throw new Error('서버(okman-live)가 아직 이 기능을 몰라요. Cloudflare에 최신 index.js를 다시 배포해 주세요.');
+  if(!res.ok) throw new Error(ERR_TEXT[d.error] || d.error || `서버 오류 (${res.status})`);
   return d;
 }
 const mcall = (method, action, body) => call(method, encodeURIComponent(mid()) + (action ? '/' + action : ''), body);
@@ -753,7 +761,10 @@ function render(){
   const count = { cheer:fmt(D.total), predict:S.pred.count, mvp:S.mvpRank.reduce((a, b) => a + b.n, 0), survey:(D.subs.survey || []).length,
                   raffle:S.raffle.length, codes:S.rl.wins.length + (D.winners || []).length, checkin:S.ck.count, events:(D.events || []).filter(e => e.active !== false).length };
   $('nav').innerHTML = PAGES.map(([k, t]) => `${k === 'settings' ? '<hr class="navsep">' : ''}<button class="${k === page ? 'on' : ''}" data-page="${k}">${t}${count[k] != null ? `<em>${count[k]}</em>` : ''}</button>`).join('');
-  $('main').innerHTML = (VIEWS[page] || VIEWS.dash)(S);
+  const oldServer = D.serverVersion !== SERVER_NEED;
+  $('main').innerHTML = (oldServer ? `<div class="winbox" style="background:#FFF1EC; color:#C2410C; margin:0 0 16px;"><b>서버(okman-live)가 최신 버전이 아니에요</b>
+      <p style="font-size:13px; margin-top:4px;">지금 서버: ${esc(D.serverVersion || '버전 정보 없음(예전 버전)')} · 필요한 버전: ${SERVER_NEED}<br>설정 › 데이터 초기화, 설문 보관함, 접속자처럼 새로 넣은 기능이 '서버가 이 기능을 몰라요'로 실패해요. Cloudflare › okman-live › Edit code에 최신 index.js를 붙여넣고 Deploy해 주세요.</p></div>` : '')
+    + (VIEWS[page] || VIEWS.dash)(S);
   Object.entries(keep).forEach(([id, v])=>{ const el = $(id); if(el) el.value = v; });
   Object.entries(keepHtml).forEach(([id, h])=>{ if($(id)) $(id).innerHTML = h; });
   openKeys.forEach(k => { const d = document.querySelector(`#main details[data-open-key="${CSS.escape(k)}"]`); if(d) d.open = true; });
