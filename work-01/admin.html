@@ -286,7 +286,7 @@ const ERR_TEXT = {
   library_too_large:'보관함이 너무 커요. 안 쓰는 설문을 지워주세요.', code_required:'코드를 입력해주세요.',
 };
 // 이 관리자 화면이 기대하는 서버 버전 (index.js의 SERVER_VERSION)
-const SERVER_NEED = '2026-10-16.safety';
+const SERVER_NEED = '2026-10-16.cheer';
 async function call(method, path, body){
   const res = await fetch(`${base()}/admin/${path}`, {
     method, headers:{ 'Content-Type':'application/json', 'X-Admin-Id': uid(), 'X-Admin-Key': key() },
