@@ -3,6 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<script>
+/* 관람객 화면 오류 — 페이지가 다 뜨기 전에 난 오류도 받아뒀다가, 서버 연결이 준비되면 보내요 (관리자 대시보드 '관람객 화면 오류') */
+window.__errQ = [];
+(function(){
+  function push(o){ (window.__reportErr || function(x){ if(window.__errQ.length < 10) window.__errQ.push(x); })(o); }
+  window.addEventListener('error', function(e){ if(e && e.message) push({ msg:e.message, src:e.filename || '', line:e.lineno || 0 }); });
+  window.addEventListener('unhandledrejection', function(e){ var r = e && e.reason; push({ msg:'Promise: ' + String(r && (r.message || r) || '알 수 없음'), src:(r && r.stack || '').split('\n')[1] || '', line:0 }); });
+})();
+</script>
 <title>읏배구놀이터</title>
 <meta name="apple-mobile-web-app-title" content="읏배구놀이터">
 <meta name="application-name" content="읏배구놀이터">
@@ -1215,6 +1224,17 @@
   .goods-card__ic svg{width:32px; height:32px;}
   .app-card{margin-top:12px;}
   .rl-sub[hidden]{display:none;}
+  .data-link{display:inline; padding:0; font-size:inherit; font-weight:600; color:var(--ink-faint); text-decoration:underline; text-underline-offset:2px;}
+  .home-foot{margin:20px 0 4px; text-align:center; font-size:12px; line-height:18px; color:var(--ink-faint);}
+  .ck__pv{display:block; margin:4px auto 0; font-size:12px;}
+  .pop.pv{max-width:380px; padding:16px 18px 20px; text-align:left;}
+  .pv__body{max-height:70vh; overflow-y:auto;}
+  .pv__lead{font-size:14px; line-height:22px; color:var(--ink-dim); margin:0 0 14px;}
+  .pv__lead b{color:var(--ink);}
+  .pv__list{margin:0; display:grid; grid-template-columns:76px 1fr; gap:10px 12px; font-size:13px; line-height:20px;}
+  .pv__list dt{font-weight:700; color:var(--ink);}
+  .pv__list dd{margin:0; color:var(--ink-dim);}
+  .pv__extra,.pv__note{margin:14px 0 0; font-size:12px; line-height:18px; color:var(--ink-faint);}
   .rlw-pager{display:flex; align-items:center; justify-content:center; gap:14px; margin:0 0 14px; font-size:14px; font-weight:700; color:var(--ink-dim); font-variant-numeric:tabular-nums;}
   .rlw-pager[hidden]{display:none;}
   .rlw-pager__b{width:36px; height:36px; border-radius:50%; background:var(--surface,#F4F5F7); display:flex; align-items:center; justify-content:center;}
@@ -2314,6 +2334,8 @@
       <div class="goods-card__figs" id="goods-figs" aria-hidden="true"></div>
     </a>
 
+    <p class="home-foot"><button class="data-link" type="button" data-privacy>데이터 수집 안내</button> · 개인정보(이름·연락처)는 받지 않아요</p>
+
     <!-- OK저축은행 앱 다운로드 — 휴대폰 종류에 맞는 스토어로 (관리자 › 룰렛·배너) -->
     <a class="goods-card app-card" id="app-link" target="_blank" rel="noopener">
       <div class="goods-card__text">
@@ -2706,12 +2728,34 @@
   </div>
 </div>
 
+<!-- ============ 데이터 수집 안내 ============ -->
+<div class="pop-dim" id="privacy" role="dialog" aria-modal="true" aria-labelledby="pv-title">
+  <div class="pop pv">
+    <div class="rfc__bar">
+      <p class="rfc__title" id="pv-title">데이터 수집 안내</p>
+      <button class="rfc__close" id="pv-close" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="pv__body">
+      <p class="pv__lead">읏배구놀이터는 <b>이름·연락처 같은 개인정보를 받지 않아요.</b> 이벤트 운영과 통계를 위해 아래 정보만 모아요.</p>
+      <dl class="pv__list">
+        <dt>모으는 정보</dt><dd>이 휴대폰에 만든 임시 번호(기기 ID) · 접속 시각 · 출석체크·설문·경기 예측·MVP 투표 답 · 응원 횟수 · 룰렛 결과 · 경품 응모 닉네임</dd>
+        <dt>쓰는 곳</dt><dd>경기별 참여 통계, 경품 추첨·교환, 다음 경기 운영 개선</dd>
+        <dt>보관 기간</dt><dd id="pv-retention">시즌이 끝나면 지워요.</dd>
+        <dt>모으지 않는 것</dt><dd>이름, 전화번호, 이메일, 위치 · <span id="pv-photo">티켓 촬영 사진은 이 휴대폰 안에서만 보여주고 보내지 않아요</span></dd>
+        <dt>문의</dt><dd id="pv-contact">OK저축은행 읏맨 배구단 현장 부스</dd>
+      </dl>
+      <p class="pv__extra" id="pv-extra" hidden></p>
+      <p class="pv__note">경품 응모 닉네임은 당첨자 발표 때 전광판에 나갈 수 있어요.</p>
+    </div>
+  </div>
+</div>
+
 <!-- ============ 경품 응모 — 닉네임 입력 바텀시트 ============ -->
 <div class="sheet-dim" id="rf-sheet" role="dialog" aria-modal="true" aria-labelledby="rf-title">
   <div class="sheet">
     <span class="sheet__grab" aria-hidden="true"></span>
     <p class="sheet__title" id="rf-title">경품 응모</p>
-    <p class="sheet__desc">응모 결과는 닉네임으로 전광판에 안내돼요.<br>닉네임으로 응모한 뒤 카드를 저장해주세요.</p>
+    <p class="sheet__desc">응모 결과는 닉네임으로 전광판에 안내돼요.<br>닉네임으로 응모한 뒤 카드를 저장해주세요. <button class="data-link" type="button" data-privacy>데이터 안내</button></p>
     <div class="nick-row">
       <input class="glass-input" id="rf-nick" maxlength="10" placeholder="닉네임 입력" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-describedby="rf-help">
       <button class="btn ghost" id="rf-check" type="button">중복확인</button>
@@ -3229,7 +3273,7 @@ const LIVE = (function(){
         state = { events:(CONFIG.LIVE_DEMO || {}).events || [], total:Number(localStorage.getItem(DEMO_TOTAL)) || 0, phase:'auto', mvp:undefined, start:'' };
       } else {
         const d = await (await fetch(`${base}/live/${encodeURIComponent(MATCH_KEY)}`)).json();
-        state = { events:d.events || [], total:(d.cheer || {}).total || 0, phase:d.phase || 'auto', mvp:d.mvp || null, start:d.start || '', content:d.content || null, epoch:Number(d.epoch) || 0, opponent:d.opponent || '', home:d.home || null };
+        state = { events:d.events || [], total:(d.cheer || {}).total || 0, phase:d.phase || 'auto', mvp:d.mvp || null, start:d.start || '', content:d.content || null, epoch:Number(d.epoch) || 0, opponent:d.opponent || '', home:d.home || null, privacy:d.privacy || null };
       }
       emit('state', state);
     }catch(e){}
@@ -3389,6 +3433,20 @@ const LIVE = (function(){
     }catch(e){ return { available:null }; }
   }
 
+  // 오류 보고 — 같은 오류는 한 번만, 한 번 열 때 최대 5건 (관리자 › 대시보드 '관람객 화면 오류')
+  const sentErr = new Set();
+  window.__reportErr = o=>{
+    if(demo || !o || !o.msg || o.msg === 'Script error.' || sentErr.size >= 5) return;
+    const k = o.msg + '|' + o.line; if(sentErr.has(k)) return; sentErr.add(k);
+    const view = (document.querySelector('.view.active') || {}).id || '';
+    try{
+      navigator.sendBeacon(`${base}/live/${encodeURIComponent(MATCH_KEY)}/error`, new Blob([JSON.stringify({
+        device, msg:String(o.msg).slice(0, 300), src:String(o.src || '').replace(/[?#].*$/, '').slice(-200), line:o.line || 0,
+        view:view.replace('view-', ''), ua:navigator.userAgent.slice(0, 160) })], { type:'text/plain' }));
+    }catch(e){}
+  };
+  (window.__errQ || []).splice(0).forEach(window.__reportErr);
+
   return { on, tap, checkin, submit, refresh, nickCheck, spin, beacon, flushOutbox, get state(){ return state; }, get device(){ return device; }, demo };
 })();
 
@@ -3450,6 +3508,26 @@ const CONTENT = (function(){
   // 지금 화면에 그린 문항의 버전 — 관리자 등록 전 기본 문항은 0
   const ver = k => { const c = cur || {}; return Array.isArray(c[k]) && c[k].length && c[k + 'Ver'] ? Number(c[k + 'Ver'].v) || 0 : 0; };
   return { get:()=> cur || {}, onChange:f=> hooks.push(f), ver };
+})();
+
+/* 데이터 수집 안내 — 관리자(총괄)가 정한 보관 기간·문의처가 오면 바꿔요 */
+(function initPrivacy(){
+  const pop = document.getElementById('privacy');
+  const open = ()=>{ pop.classList.add('show'); document.documentElement.style.overflow = 'hidden'; };
+  const close = ()=>{ pop.classList.remove('show'); document.documentElement.style.overflow = ''; };
+  document.addEventListener('click', e=>{ if(e.target.closest('[data-privacy]')){ e.preventDefault(); e.stopPropagation(); hapticTick && hapticTick(); open(); } }, true);
+  document.getElementById('pv-close').addEventListener('click', close);
+  // 좌석 자동 인식 서버(API_BASE)를 연결하면 티켓 사진이 그 서버로 가요 — 안내도 그에 맞게
+  if(CONFIG.API_BASE) document.getElementById('pv-photo').textContent = '티켓 촬영 사진은 좌석을 읽는 데만 서버로 보내요';
+  pop.addEventListener('click', e=>{ if(e.target === pop) close(); });
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && pop.classList.contains('show')) close(); });
+  let sig = '';
+  LIVE.on('state', st=>{
+    const p = st.privacy || {}; const x = JSON.stringify(p); if(x === sig) return; sig = x;
+    if(p.retention) document.getElementById('pv-retention').textContent = p.retention;
+    if(p.contact) document.getElementById('pv-contact').textContent = p.contact;
+    const ex = document.getElementById('pv-extra'); ex.textContent = p.extra || ''; ex.hidden = !p.extra;
+  });
 })();
 
 /* 관리자 대시보드 '상대팀' — 넣으면 상단 경기 정보와 AI 승부예측이 그 팀 기준이 돼요 */
@@ -4415,7 +4493,7 @@ function fmtMatchDate(d, withTime){
     const q = list[pos];
     const last = pos === list.length - 1;
     body.innerHTML = `<div class="survey-q active${still ? ' still' : ''}" data-id="${escHtml(q.id)}">
-      <div class="qnum">${pos + 1} / ${list.length}</div>
+      <div class="qnum">${pos + 1} / ${list.length}${pos === 0 ? ' · <button class="data-link" type="button" data-privacy>데이터 안내</button>' : ''}</div>
       <p class="qtext">${escHtml(q.q)}</p>
       ${optHtml(q)}
       <div class="survey-nav">
@@ -5200,6 +5278,7 @@ function fmtMatchDate(d, withTime){
         </button>`).join('')}
       </div>
       <button class="ck__later" id="ck-later" type="button">다음에 할게요</button>
+      <button class="data-link ck__pv" type="button" data-privacy>데이터 안내</button>
     </div>`;
   }
   function openCheckin(){

@@ -286,14 +286,18 @@ const ERR_TEXT = {
   library_too_large:'보관함이 너무 커요. 안 쓰는 설문을 지워주세요.', code_required:'코드를 입력해주세요.',
 };
 // 이 관리자 화면이 기대하는 서버 버전 (index.js의 SERVER_VERSION)
-const SERVER_NEED = '2026-10-16.roles';
+const SERVER_NEED = '2026-10-16.safety';
 async function call(method, path, body){
   const res = await fetch(`${base()}/admin/${path}`, {
     method, headers:{ 'Content-Type':'application/json', 'X-Admin-Id': uid(), 'X-Admin-Key': key() },
     body: body ? JSON.stringify(body) : undefined,
   });
   const d = await res.json().catch(() => ({}));
-  if(res.status === 401) throw new Error('아이디 또는 비밀번호가 맞지 않아요.');
+  if(res.status === 401) throw new Error('아이디 또는 비밀번호가 맞지 않아요. 5번 틀리면 10분 동안 잠겨요.');
+  if(res.status === 429 && d.error === 'locked'){
+    const t = new Date(d.until), p = n => String(n).padStart(2, '0');
+    throw new Error(`로그인을 여러 번 틀려서 ${p(t.getHours())}:${p(t.getMinutes())}까지 잠겼어요. 급하면 총괄 관리자에게 잠금 풀기를 부탁해주세요.`);
+  }
   // 서버가 모르는 주소 — 대부분 okman-live를 최신 index.js로 다시 배포하지 않은 경우예요
   if(res.status === 404 && d.error === 'not_found') throw new Error('서버(okman-live)가 아직 이 기능을 몰라요. Cloudflare에 최신 index.js를 다시 배포해 주세요.');
   if(!res.ok) throw new Error(ERR_TEXT[d.error] || d.error || `서버 오류 (${res.status})`);
@@ -1096,6 +1100,20 @@ function checklistCard(S){
     <div class="check">${items.map(([k, t, go]) => `<div class="check__i ${k}"><b>${IC[k]}</b><span>${t}</span>${go && k !== 'ok' ? `<button class="btn small ghost" data-page="${go}">바로가기</button>` : ''}</div>`).join('')}</div></section>`;
 }
 
+/* 관람객 화면 오류 — 휴대폰에서 난 오류를 같은 것끼리 묶어서 보여줘요 */
+function errorsCard(){
+  const list = D.errors || [];
+  if(!list.length) return '';
+  const total = list.reduce((a, e) => a + e.n, 0), recent = list.filter(e => Date.now() - e.last < 10 * 60e3).length;
+  return `<section class="card"><h2><span>관람객 화면 오류 <span class="chip ${recent ? '' : 'off'}">${recent ? `최근 10분 ${recent}종` : '최근 10분 없음'}</span></span>
+      ${isAdmin() ? '<button class="btn small ghost" data-act="err-clear">기록 비우기</button>' : ''}</h2>
+    <p class="desc">${list.length}종 · 총 ${fmt(total)}건. 같은 오류가 여러 기기에서 계속 늘면 화면 일부가 안 되는 거라 개발 담당에게 이 표를 보내주세요.</p>
+    <div class="scroll"><table><thead><tr><th>오류</th><th>위치</th><th>화면</th><th>횟수</th><th>기기</th><th>마지막</th></tr></thead><tbody>
+      ${list.slice(0, 20).map(e => `<tr><td style="white-space:normal; min-width:240px;"><b>${esc(e.msg)}</b><br><span class="muted" style="font-size:11px;">${esc(e.ua || '')}</span></td>
+        <td class="muted">${esc(String(e.src || '').split('/').pop())}${e.line ? ':' + e.line : ''}</td><td>${esc(e.view || '')}</td><td><b>${fmt(e.n)}</b></td><td>${fmt(e.devices)}대</td><td class="muted">${time(e.last)}</td></tr>`).join('')}
+    </tbody></table></div></section>`;
+}
+
 /* 전광판 — 화면(board.html) 제어 */
 function boardCard(){
   const b = (D.settings || {}).board || {}, scene = b.scene || 'auto';
@@ -1148,7 +1166,7 @@ function resetCard(S){
 /* ================================================================
    설정 › 계정 · 내 비밀번호 · 닉네임 금칙어 · 작업 기록
    ================================================================ */
-const EXTRA = { users:null, nick:null, audit:null, auditAt:0, home:null };
+const EXTRA = { users:null, nick:null, audit:null, auditAt:0, home:null, locks:null, privacy:null };
 const LOADING = new Set();
 // 불러오는 중이면 다시 부르지 않고, 실제로 받아왔을 때만 화면을 다시 그려요 (화면 그리기 ↔ 불러오기가 서로 부르며 맴돌지 않게)
 async function loadExtra(kind, force){
@@ -1165,6 +1183,8 @@ async function loadExtra(kind, force){
       EXTRA.audit = [...(a.audit || []).map(x => ({ ...x, scope:mid() })), ...(b.audit || []).map(x => ({ ...x, scope:'시즌' }))].sort((x, y) => y.at - x.at);
     }
     if(kind === 'home' && (force || !EXTRA.home)) EXTRA.home = await call('GET', '_/home');
+    if(kind === 'locks') EXTRA.locks = (await call('GET', '_/locks')).locks || [];
+    if(kind === 'privacy') EXTRA.privacy = (await call('GET', '_/privacy')).privacy || {};
   }catch(e){ EXTRA[kind] = EXTRA[kind] || { error:e.message }; }
   finally{ LOADING.delete(kind); }
   render();
@@ -1195,6 +1215,25 @@ function accountCards(){
       <button class="btn" data-act="user-add" style="grid-column:auto; align-self:end;">추가</button>
     </div></section>`;
 }
+function locksCard(){
+  if(!EXTRA.locks){ loadExtra('locks'); return ''; }
+  if(EXTRA.locks.error) return '';
+  return `<section class="card"><h2>잠긴 로그인 <span class="muted" style="font-size:12px; font-weight:600;">아이디 5번 · 접속 주소 20번 틀리면 10분</span></h2>
+    ${EXTRA.locks.length ? EXTRA.locks.map(l => `<div class="row"><div class="main"><p class="t">${l.key.startsWith('ip:') ? '접속 주소' : '아이디'} ${esc(l.key.replace(/^(id|ip):/, ''))}</p>
+      <p class="m">${l.n}번 실패 · ${time(l.until)}까지 잠김</p></div><button class="btn small ghost" data-act="lock-open" data-k="${esc(l.key)}">잠금 풀기</button></div>`).join('')
+      : '<p class="empty">지금 잠긴 로그인이 없어요.</p>'}
+    <div class="edfoot"><span></span><button class="btn small ghost" data-act="lock-refresh">새로 보기</button></div></section>`;
+}
+function privacyCard(){
+  if(!EXTRA.privacy){ loadExtra('privacy'); return '<section class="card"><p class="empty">불러오는 중…</p></section>'; }
+  const p = EXTRA.privacy.error ? {} : EXTRA.privacy;
+  return `<section class="card"><h2>데이터 수집 안내 <span class="muted" style="font-size:12px; font-weight:600;">시즌 공통 · 관람객 화면 '데이터 안내'</span></h2>
+    <p class="desc">관람객 화면 홈 아래 · 출석체크 · 설문 첫 문항 · 경품 응모에 '데이터 안내' 링크가 있어요. 모으는 정보·쓰는 곳·모으지 않는 것은 화면에 고정돼 있고, 아래 세 가지만 여기서 정해요. 준법 검토 결과에 맞게 고쳐주세요.</p>
+    <div class="field" style="margin-top:10px;"><label for="pv-ret">보관 기간</label><input class="in" id="pv-ret" maxlength="120" value="${esc(p.retention || '')}" placeholder="예: 2026-27 시즌이 끝나면 30일 안에 지워요."></div>
+    <div class="field" style="margin-top:10px;"><label for="pv-con">문의</label><input class="in" id="pv-con" maxlength="120" value="${esc(p.contact || '')}" placeholder="예: OK저축은행 AX마케팅부 · 현장 부스"></div>
+    <div class="field" style="margin-top:10px;"><label for="pv-ext">덧붙일 말 (선택)</label><textarea class="in" id="pv-ext" maxlength="600" rows="3" style="height:auto; padding:10px 12px; font-family:inherit;">${esc(p.extra || '')}</textarea></div>
+    <div class="edfoot"><span class="muted" style="font-size:12px; align-self:center;">${p.updatedAt ? time(p.updatedAt) + ' 저장' : '아직 저장 전 — 기본 문구가 나가요 (보관 기간: 시즌이 끝나면 지워요)'}</span><button class="btn" data-act="pv-save">저장</button></div></section>`;
+}
 function saveUsers(users, msg){
   return act(()=> call('PUT', '_/users', { users }), msg).then(ok => { if(ok) loadExtra('users', true); return ok; });
 }
@@ -1208,7 +1247,7 @@ function nickBanCard(){
       <button class="btn" data-act="nb-save">저장</button></div></section>`;
 }
 const ACT_NAME = { events:'현장 이벤트', prizes:'응원 이벤트', settings:'경기 설정', raffle:'추첨', 'raffle-clear':'응모 삭제', 'raffle-hide':'추첨 제외', redeem:'교환',
-  'reset-cheer':'초기화', reset:'초기화', surveys:'설문 보관함', users:'계정', password:'비밀번호', home:'룰렛·배너', nickban:'금칙어' };
+  'reset-cheer':'초기화', reset:'초기화', 'login-lock':'로그인 잠금', unlock:'잠금 풀기', privacy:'데이터 안내', 'errors-clear':'오류 기록', surveys:'설문 보관함', users:'계정', password:'비밀번호', home:'룰렛·배너', nickban:'금칙어' };
 function auditCard(){
   if(!EXTRA.audit || Date.now() - EXTRA.auditAt > 15000) loadExtra('audit');
   const list = EXTRA.audit || [];
@@ -1387,6 +1426,7 @@ const VIEWS = {
     const top = S.mvpRank[0];
     return `<p class="page-title">대시보드 <button class="btn small ghost" data-act="report" style="vertical-align:4px; margin-left:6px;">경기 리포트 (엑셀)</button></p><p class="page-sub">${esc(mid())} 경기 · 참여 현황과 경기 진행을 한 곳에서 관리해요.</p>
     ${isAdmin() ? checklistCard(S) : ''}
+    ${errorsCard()}
     ${visitCard(S)}
     <div class="kpis">
       <div class="kpi hot"><span>전체 응원</span><b>${fmt(D.total)}</b></div>
@@ -1570,11 +1610,12 @@ const VIEWS = {
     const tabs = [
       isOwner() && ['reset', '데이터 초기화'],
       ['account', isOwner() ? '계정 관리' : '내 계정'],
+      isOwner() && ['privacy', '데이터 안내'],
       isAdmin() && ['nickban', '닉네임 금칙어'],
       ['audit', '작업 기록'],
     ].filter(Boolean);
     const tab = tabs.some(([k]) => k === DR.setTab) ? DR.setTab : tabs[0][0];
-    const body = { reset:() => resetCard(S), account:() => accountCards(), nickban:() => nickBanCard(), audit:() => auditCard() }[tab]();
+    const body = { reset:() => resetCard(S), account:() => accountCards() + (isOwner() ? locksCard() : ''), privacy:() => privacyCard(), nickban:() => nickBanCard(), audit:() => auditCard() }[tab]();
     return `<p class="page-title">설정</p><p class="page-sub">${esc($('who').textContent)} 계정으로 로그인했어요.</p>
       <div class="settabs" role="tablist">${tabs.map(([k, t]) => `<button role="tab" aria-selected="${k === tab}" class="${k === tab ? 'on' : ''}" data-settab="${k}">${t}</button>`).join('')}</div>
       ${body}`;
@@ -1836,6 +1877,10 @@ document.addEventListener('click', e=>{
     case 'redeem': return act(()=> mcall('PUT', 'redeem', { code:b.dataset.code, redeemed:b.dataset.v === '1' }), b.dataset.v === '1' ? '교환 완료로 처리했어요.' : '교환 처리를 취소했어요.', true).then(()=>{ if($('code-result') && $('code-result').innerHTML) findCode(); });
     case 'code-find': return findCode();
     case 'rf-swap': return swapDraw(i);
+    case 'lock-refresh': return loadExtra('locks', true);
+    case 'err-clear': if(!confirm('관람객 화면 오류 기록을 비울까요?')) return; return act(()=> mcall('POST', 'errors-clear'), '오류 기록을 비웠어요.');
+    case 'lock-open': return act(()=> call('POST', '_/unlock', { key:b.dataset.k }), '잠금을 풀었어요.').then(ok => { if(ok) loadExtra('locks', true); });
+    case 'pv-save': return act(()=> call('PUT', '_/privacy', { privacy:{ retention:val('pv-ret').trim(), contact:val('pv-con').trim(), extra:val('pv-ext').trim() } }), '데이터 안내를 저장했어요. 관람객 화면엔 1분 안에 바뀌어요.').then(ok => { if(ok) loadExtra('privacy', true); });
     case 'pw-save': return act(()=> call('POST', '_/password', { current:val('pw-cur'), next:val('pw-new') }), '비밀번호를 바꿨어요. 다음 로그인부터 새 비밀번호를 쓰세요.').then(ok => { if(ok){ sessionStorage.setItem('adm_key', val('pw-new')); $('pw-cur').value = ''; $('pw-new').value = ''; } });
     case 'user-add': {
       const u = { id:val('nu-id').trim(), name:val('nu-name').trim(), role:val('nu-role'), password:val('nu-pw') };
