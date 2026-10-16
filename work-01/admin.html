@@ -1226,7 +1226,7 @@ function homeDraft(){
   if(DR.home) return DR.home;
   const h = (EXTRA.home && EXTRA.home.home) || {}, def = (EXTRA.home && EXTRA.home.defaults) || {};
   const r = h.roulette && h.roulette.prizes && h.roulette.prizes.length === 8 ? h.roulette : { ...def.roulette, notices:[] };
-  DR.home = clone({ roulette:{ base:r.base ?? 1, bonus:r.bonus ?? 1, prizes:r.prizes || [], notices:r.notices || [] },
+  DR.home = clone({ roulette:{ base:r.base ?? 1, bonus:r.bonus ?? 1, onePerPerson:r.onePerPerson !== false, prizes:r.prizes || [], notices:r.notices || [] },
                     goods:h.goods || { title:'읏맨 공식 굿즈샵', desc:'유니폼과 응원 도구를 온라인에서 만나보세요.', url:'' },
                     app:h.app || { title:'OK저축은행 앱 다운로드', desc:'앱에서 더 많은 혜택을 만나보세요.', ios:'', android:'', on:true } });
   return DR.home;
@@ -1243,6 +1243,7 @@ function homeView(){
     <div class="form" style="grid-template-columns:1fr 1fr 3fr; margin-bottom:6px;">
       <div class="field" style="grid-column:auto;"><label for="rl-base">기본 횟수</label><input id="rl-base" data-hf="base" type="number" min="0" max="5" value="${R.base}"></div>
       <div class="field" style="grid-column:auto;"><label for="rl-bonus">미션 완료 보너스</label><input id="rl-bonus" data-hf="bonus" type="number" min="0" max="5" value="${R.bonus}"></div>
+      <label class="chk" style="grid-column:auto; align-self:end; padding-bottom:12px;"><input type="checkbox" data-hf="onePerPerson"${R.onePerPerson !== false ? ' checked' : ''}>1인 1회 당첨 — 당첨되면 남은 기회가 있어도 더 돌릴 수 없어요</label>
     </div>
     <div class="scroll"><table class="rltab"><thead><tr><th>칸</th><th>이미지</th><th>꽝</th><th>경품 이름</th><th>안내</th><th>가중치</th><th>확률</th><th>수량</th><th>${esc(mid())} 나감</th></tr></thead><tbody>
       ${R.prizes.map((p, i) => `<tr>
@@ -1937,6 +1938,7 @@ document.addEventListener('input', e=>{
   } else if(t.dataset.hf != null){
     const R = homeDraft().roulette;
     if(t.dataset.hf === 'notices') R.notices = t.value.split('\n').map(x => x.trim()).filter(Boolean);
+    else if(t.dataset.hf === 'onePerPerson') R.onePerPerson = t.checked;
     else R[t.dataset.hf] = Math.max(0, Number(t.value) || 0);
   } else if(t.dataset.hb != null){
     const [g, k] = t.dataset.hb.split('.'); homeDraft()[g][k] = t.type === 'checkbox' ? t.checked : t.value;
