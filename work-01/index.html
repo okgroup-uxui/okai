@@ -69,91 +69,131 @@ window.__errQ = [];
   ::selection{background:var(--brand); color:#fff;}
 
   /* ============================================================
-     인트로 — 스파이크 한 방
-     주황 코트 위로 공이 내리꽂히면(0.4초) 충격파와 함께 '읏배구놀이터'가 찍히고,
-     네트 앞뒤로 선수들이 블로킹하듯 튀어 올라요. 탭하면 바로 넘어가요.
+     인트로 — 경기 당일 선수 소개
+     ① 오프닝: 주황 바탕에 흰 사선이 지나가며 'OK저축은행 읏맨'이 찍혀요
+     ② 선수 1: 실사 사진이 밀려 들어오고, 이름이 '탕!' 찍히며 번쩍 + 흔들림 + 충격선
+     ③ 선수 2: 반대쪽에서 같은 방식으로
+     ④ 마지막: 두 선수가 사선으로 나뉜 화면(흰색 · 주황) + OK저축은행 읏맨 · 날짜 + 로딩 바 (기획서 1-1 ~ 1-3) — 우리 팀만, 상대팀은 넣지 않아요
+     어느 순간이든 탭하면 바로 넘어가요.
      ============================================================ */
   .splash{
-    --sp-orange:#FF571F; --sp-deep:#C93A0C; --sp-navy:#14204A; --sp-yellow:#FFD23F;
-    position:fixed; inset:0; z-index:500; overflow:hidden; cursor:pointer;
-    background:radial-gradient(120% 80% at 50% 38%, #FF7A45 0%, var(--sp-orange) 45%, var(--sp-deep) 100%);
-    transition:transform .65s cubic-bezier(.7,0,.2,1), opacity .4s ease .25s;
+    --sx-orange:#FF571F; --sx-light:#FF8A5C; --sx-deep:#D9430F; --sx-ink:#8A2A06; --sx-cream:#FFF4EE;
+    position:fixed; inset:0; z-index:500; overflow:hidden; cursor:pointer; color:#fff;
+    background:radial-gradient(120% 75% at 70% 15%, var(--sx-light) 0%, var(--sx-orange) 45%, var(--sx-deep) 100%);
+    transition:transform .6s cubic-bezier(.7,0,.2,1), opacity .35s ease .2s;
   }
   .splash.hide{transform:translateY(-100%); opacity:0; pointer-events:none;}
+  /* 배경 — 주황 사선(속도감) */
+  .sx-bg{position:absolute; inset:-20%; pointer-events:none;}
+  .sx-stripe{position:absolute; left:-40%; width:180%; height:14vh; background:linear-gradient(90deg, transparent, rgba(255,255,255,.95) 30%, #fff 70%, transparent);
+    transform:rotate(-24deg) translateX(-120%); opacity:.9; animation:sxSweep 1.1s cubic-bezier(.6,0,.2,1) forwards;}
+  .sx-stripe.s1{top:30%;} .sx-stripe.s1{opacity:.22;} .sx-stripe.s2{top:44%; height:5vh; animation-delay:.12s; opacity:.5;} .sx-stripe.s3{top:62%; height:2vh; animation-delay:.2s; opacity:.7;}
+  @keyframes sxSweep{ 0%{transform:rotate(-24deg) translateX(-120%);} 60%{transform:rotate(-24deg) translateX(0);} 100%{transform:rotate(-24deg) translateX(8%);} }
+  .sx-grain{position:absolute; inset:0; pointer-events:none; opacity:.18;
+    background:repeating-linear-gradient(-24deg, rgba(255,255,255,.09) 0 2px, transparent 2px 9px);}
 
-  /* 코트 라인 — 원근으로 눕힌 바닥 */
-  .sp-court{position:absolute; left:-30%; right:-30%; top:46%; height:90%; transform:perspective(520px) rotateX(58deg); transform-origin:50% 0;
-    border:3px solid rgba(255,255,255,.28); border-bottom:0; pointer-events:none;}
-  .sp-court::before{content:''; position:absolute; left:0; right:0; top:34%; height:3px; background:rgba(255,255,255,.28);}   /* 어택 라인 */
-  .sp-court::after{content:''; position:absolute; left:50%; top:0; bottom:0; width:3px; margin-left:-1.5px; background:rgba(255,255,255,.12);}
+  /* ① 오프닝 */
+  .sx-open{position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); text-align:center; transition:opacity .3s, transform .4s;}
+  .sx-open .k{margin:0; font-size:12px; letter-spacing:.32em; font-weight:800; color:var(--sx-cream); opacity:0; animation:sxUp .4s ease-out .25s forwards;}
+  .sx-open .t{margin:8px 0 0; font-size:clamp(36px, 11vw, 64px); line-height:1; font-weight:900; letter-spacing:-.04em; font-style:italic;
+    opacity:0; transform:scale(2.2); animation:sxStamp .45s cubic-bezier(.2,1.5,.4,1) .35s forwards; text-shadow:0 4px 0 var(--sx-ink), 0 10px 24px rgba(120,30,0,.35);}
+  .sx-open .t b{display:inline-block; padding:0 .12em; background:#fff; color:var(--sx-orange); text-shadow:none; transform:skewX(-8deg); box-shadow:0 6px 0 var(--sx-ink);}
+  .sx-open .s{margin:14px 0 0; font-size:14px; font-weight:700; color:rgba(255,255,255,.9); opacity:0; animation:sxUp .4s ease-out .7s forwards;}
+  .splash.ph-p1 .sx-open, .splash.ph-final .sx-open{opacity:0; transform:translateY(-50%) scale(.9);}
+  @keyframes sxUp{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;} }
+  @keyframes sxStamp{ 0%{opacity:0; transform:scale(2.2) rotate(-4deg);} 60%{opacity:1;} 100%{opacity:1; transform:scale(1) rotate(-4deg);} }
 
-  /* 타격 순간 — 번쩍 + 충격파 */
-  .sp-flash{position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; animation:spFlash .5s ease-out .36s;}
-  @keyframes spFlash{ 0%{opacity:.55;} 100%{opacity:0;} }
-  .sp-ring{position:absolute; left:50%; top:36%; width:120px; height:120px; margin:-60px 0 0 -60px; border-radius:50%;
-    border:6px solid rgba(255,255,255,.9); opacity:0; pointer-events:none; animation:spRing .7s cubic-bezier(.1,.7,.3,1) .36s;}
-  .sp-ring.r2{border-width:3px; animation-delay:.46s;}
-  @keyframes spRing{ 0%{opacity:1; transform:scale(.2);} 100%{opacity:0; transform:scale(4.2);} }
+  /* ②③ 선수 */
+  .sx-player{position:absolute; inset:0; pointer-events:none; opacity:0;}
+  .sx-num{position:absolute; right:-6%; top:6%; font-size:min(78vw, 420px); line-height:.8; font-weight:900; font-style:italic; letter-spacing:-.06em;
+    color:transparent; -webkit-text-stroke:2px rgba(255,255,255,.4); transform:translateX(-30%); transition:transform 1.4s cubic-bezier(.2,.8,.2,1);}
+  .sx-photo{position:absolute; right:-4%; bottom:0; width:min(112vw, 560px); height:84%; transform:translateX(70%) skewX(-8deg); filter:blur(8px);
+    transition:transform .5s cubic-bezier(.15,.9,.2,1), filter .5s;}
+  .sx-photo img{width:100%; height:100%; object-fit:cover; object-position:50% 12%;
+    -webkit-mask-image:linear-gradient(to top, transparent 0, #000 22%); mask-image:linear-gradient(to top, transparent 0, #000 22%);}
+  .sx-photo.cut img{object-fit:contain; object-position:50% 100%; -webkit-mask-image:none; mask-image:none; filter:drop-shadow(0 12px 30px rgba(0,0,0,.5));}  /* 배경 없는 컷아웃 사진 */
+  /* 카드 이미지(card-N.webp) — 자르지 않고 카드 전체를, 살짝 기울여 꽂히듯 */
+  .sx-photo.card{right:6%; top:12%; bottom:auto; width:min(70vw, 330px); height:auto; aspect-ratio:3/4; transform:translateX(90%) rotate(18deg) scale(1.15);}
+  .sx-photo.card img{object-fit:contain; object-position:50% 50%; -webkit-mask-image:none; mask-image:none; border-radius:14px; filter:drop-shadow(0 18px 30px rgba(120,30,0,.45));}
+  .sx-player.in .sx-photo.card{transform:translateX(0) rotate(-6deg); filter:none; transition:transform .55s cubic-bezier(.2,1.4,.35,1), filter .4s;}
+  .sx-player.left .sx-photo.card{right:auto; left:4%; transform:translateX(-90%) rotate(-18deg) scale(1.15);}
+  .sx-player.left.in .sx-photo.card{transform:translateX(0) rotate(6deg);}
+  .sx-player.out .sx-photo.card{transform:translateX(-120%) rotate(-24deg); filter:blur(6px);}
+  .sx-half img.card{height:auto; width:46%; bottom:auto; top:24%; object-fit:contain; -webkit-mask-image:none; mask-image:none; border-radius:12px; filter:drop-shadow(0 14px 24px rgba(120,30,0,.4));}
+  .sx-half.a img.card{left:4%; transform:rotate(-6deg);} .sx-half.b img.card{right:4%; transform:rotate(6deg);}
+  .sx-photo .nophoto{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:40vw; font-weight:900; font-style:italic; color:rgba(255,255,255,.12);}
+  .sx-band{position:absolute; left:-10%; right:-10%; bottom:16%; height:20%; background:#fff;
+    transform:skewY(-8deg) translateX(-110%); transition:transform .45s cubic-bezier(.2,.9,.2,1) .05s; box-shadow:0 10px 30px rgba(120,30,0,.3);}
+  .sx-name{position:absolute; left:6%; right:6%; bottom:17%; transform:skewY(-8deg);}
+  .sx-name .pos{display:inline-block; margin:0 0 6px; padding:3px 10px; border-radius:4px; background:var(--sx-orange); font-size:12px; font-weight:800; letter-spacing:.08em; color:#fff;
+    opacity:0; transform:translateX(-20px); transition:opacity .25s .55s, transform .3s .55s;}
+  .sx-name .nm{display:block; margin:0; font-size:clamp(54px, 19vw, 110px); line-height:.95; font-weight:900; letter-spacing:-.05em; font-style:italic;
+    color:var(--sx-orange); text-shadow:0 4px 0 rgba(138,42,6,.18); opacity:0; transform:scale(2.8) rotate(-6deg); transform-origin:20% 60%;}
+  .sx-name .no{font-size:.42em; color:var(--sx-ink); margin-right:.12em; vertical-align:.5em;}
+  /* 이름이 찍히는 순간 */
+  .sx-burst{position:absolute; left:6%; bottom:12%; width:70vw; height:70vw; max-width:420px; max-height:420px; margin:0 0 -35vw -20vw; border-radius:50%; opacity:0; pointer-events:none;
+    background:repeating-conic-gradient(from 0deg, rgba(255,255,255,.75) 0 3deg, transparent 3deg 14deg);
+    -webkit-mask-image:radial-gradient(circle, transparent 18%, #000 20%, #000 46%, transparent 60%); mask-image:radial-gradient(circle, transparent 18%, #000 20%, #000 46%, transparent 60%);}
+  .sx-player.in{opacity:1;}
+  .sx-player.in .sx-photo{transform:translateX(0) skewX(0); filter:none;}
+  .sx-player.in .sx-num{transform:translateX(0);}
+  .sx-player.in .sx-band{transform:skewY(-8deg) translateX(0);}
+  .sx-player.hit .nm{animation:sxSlam .38s cubic-bezier(.2,1.6,.35,1) forwards;}
+  .sx-player.hit .pos{opacity:1; transform:none;}
+  .sx-player.hit .sx-burst{animation:sxBurst .5s ease-out forwards;}
+  .sx-player.out{opacity:0; transition:opacity .25s;}
+  .sx-player.out .sx-photo{transform:translateX(-80%) skewX(8deg); filter:blur(8px); transition:transform .35s ease-in, filter .35s;}
+  @keyframes sxSlam{ 0%{opacity:0; transform:scale(2.8) rotate(-6deg);} 55%{opacity:1; transform:scale(.94) rotate(-6deg);} 100%{opacity:1; transform:scale(1) rotate(-6deg);} }
+  @keyframes sxBurst{ 0%{opacity:.9; transform:scale(.3) rotate(0);} 100%{opacity:0; transform:scale(1.5) rotate(20deg);} }
+  /* 선수 2 — 왼쪽에서 들어와요 */
+  .sx-player.left .sx-photo{right:auto; left:-4%; transform:translateX(-70%) skewX(8deg);}
+  .sx-player.left .sx-num{right:auto; left:-6%; transform:translateX(30%);}
+  .sx-player.left .sx-band{transform:skewY(-8deg) translateX(110%);}
+  .sx-player.left .sx-name{text-align:right;}
+  .sx-player.left .sx-name .nm{transform-origin:80% 60%;}
+  .sx-player.left .sx-burst{left:auto; right:6%; margin:0 -20vw -35vw 0;}
+  .sx-player.left.in .sx-photo{transform:translateX(0) skewX(0);}
+  .sx-player.left.in .sx-num{transform:translateX(0);}
+  .sx-player.left.in .sx-band{transform:skewY(-8deg) translateX(0);}
+  /* 흔들림 · 번쩍 */
+  .splash.shake{animation:sxShake .32s linear;}
+  @keyframes sxShake{ 0%,100%{transform:none;} 15%{transform:translate(-8px,5px);} 35%{transform:translate(7px,-4px);} 55%{transform:translate(-5px,3px);} 75%{transform:translate(3px,-2px);} }
+  .sx-flash{position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none;}
+  .sx-flash.go{animation:sxFlash .35s ease-out;}
+  @keyframes sxFlash{ 0%{opacity:.7;} 100%{opacity:0;} }
 
-  /* 공 — 오른쪽 위에서 대각선으로 내리꽂혔다가 튕겨 나가요 */
-  .sp-ball{position:absolute; left:50%; top:36%; width:64px; height:64px; margin:-32px 0 0 -32px; opacity:0;
-    animation:spSpike .75s cubic-bezier(.5,0,.6,1) .02s forwards; filter:drop-shadow(0 10px 14px rgba(60,10,0,.35));}
-  .sp-ball__spin{display:block; width:100%; height:100%; animation:spSpin .75s linear .02s;}
-  .sp-ball__spin svg{display:block; width:100%; height:100%;}
-  @keyframes spSpike{
-    0%  {opacity:1; transform:translate(46vw,-62vh) scale(.55);}
-    47% {opacity:1; transform:translate(0,0) scale(1.1,.78);}                /* 꽝 — 찌그러짐 (0.37초) */
-    58% {opacity:1; transform:translate(-5vw,7vh) scale(.95,1.05);}
-    100%{opacity:0; transform:translate(-38vw,72vh) scale(.6);}              /* 글자 뒤로 튕겨 나가요 */
-  }
-  @keyframes spSpin{ to{transform:rotate(-540deg);} }
-
-  /* 워드마크 — 한 글자씩 쾅쾅 */
-  .sp-stage{position:absolute; left:0; right:0; top:19%; text-align:center; animation:spShake .42s linear .36s;}
-  @keyframes spShake{ 0%,100%{transform:none;} 20%{transform:translate(-6px,4px);} 40%{transform:translate(5px,-3px);} 60%{transform:translate(-3px,2px);} 80%{transform:translate(2px,-1px);} }
-  .sp-word{margin:0; font-size:clamp(64px, 23vw, 112px); line-height:.94; font-weight:900; letter-spacing:-0.07em; color:#fff;
-    text-shadow:0 .06em 0 var(--sp-deep), 0 .12em .2em rgba(80,15,0,.35);}
-  .sp-word span{display:inline-block; opacity:0; transform:scale(2.4) rotate(var(--r,0deg)); animation:spSlam .42s cubic-bezier(.2,1.4,.4,1) forwards;
-    animation-delay:calc(.4s + var(--i) * .055s);}
-  @keyframes spSlam{ 0%{opacity:0; transform:scale(2.4) rotate(var(--r,0deg));} 60%{opacity:1;} 100%{opacity:1; transform:scale(1) rotate(var(--r,0deg));} }
-  .sp-team{margin:14px 0 0; display:inline-flex; align-items:center; gap:8px; padding:6px 14px; border-radius:100px; background:var(--sp-navy); color:#fff;
-    font-size:14px; line-height:20px; font-weight:700; letter-spacing:-0.01em; opacity:0; transform:translateY(8px); animation:spUp .4s var(--ease-out) .9s forwards;}
-  .sp-team i{width:8px; height:8px; border-radius:50%; background:var(--sp-yellow);}
-  @keyframes spUp{ to{opacity:1; transform:none;} }
-
-  /* 선수단 — 네트 뒤(작게)·앞(크게) 두 줄이 블로킹하듯 점프 */
-  .sp-squad{position:absolute; left:0; right:0; bottom:calc(52px + var(--court-b)); display:flex; flex-direction:column; align-items:center; pointer-events:none;}
-  .sp-row{display:flex; justify-content:center; align-items:flex-end;}
-  .sp-row img{flex-shrink:0; height:auto; opacity:0; transform:translateY(60%);
-    animation:spJump .6s cubic-bezier(.25,1.5,.45,1) forwards; animation-delay:calc(.75s + var(--d) * .045s);}
-  .sp-row.back img{width:min(13.5vw, 62px); margin:0 min(-1.2vw, -5px); filter:brightness(.82) saturate(.9);}
-  .sp-row.front img{width:min(15vw, 74px); margin:0 min(-1.8vw, -7px); filter:drop-shadow(0 6px 8px rgba(60,10,0,.3));}
-  .sp-row.front{margin-top:min(-3.2vw, -12px); position:relative; z-index:2;}
-  @keyframes spJump{ 0%{opacity:0; transform:translateY(60%);} 55%{opacity:1; transform:translateY(-16%);} 100%{opacity:1; transform:none;} }
-  .sp-net{position:relative; z-index:1; width:112%; height:30px; margin-top:-24px;
-    background:
-      repeating-linear-gradient(90deg, rgba(255,255,255,.35) 0 1.5px, transparent 1.5px 12px),
-      repeating-linear-gradient(0deg, rgba(255,255,255,.35) 0 1.5px, transparent 1.5px 10px),
-      rgba(20,32,74,.55);
-    border-top:6px solid #fff; box-shadow:0 -1px 0 rgba(0,0,0,.08); transform:scaleX(0); animation:spNet .45s var(--ease-out) .6s forwards;}
-  @keyframes spNet{ to{transform:scaleX(1);} }
-
-  .splash__tap{position:absolute; left:0; right:0; bottom:calc(18px + var(--court-b)); margin:0; text-align:center;
-    font-size:12px; line-height:18px; font-weight:600; color:rgba(255,255,255,.75); opacity:0; animation:spUp .4s var(--ease-out) 1.6s forwards;}
-
-  /* 작은 화면(높이 640 이하) — 선수단을 조금 줄여요 */
-  @media (max-height:640px){
-    .sp-stage{top:14%;}
-    .sp-row.back img{width:min(12vw, 52px);}
-    .sp-row.front img{width:min(15vw, 66px);}
-  }
-  /* 동작 줄이기 — 움직임 없이 완성된 화면만 보여줘요 */
+  /* ④ 마지막 — 두 선수 사선 분할 */
+  .sx-final{position:absolute; inset:0; opacity:0; pointer-events:none; transition:opacity .35s;}
+  .splash.ph-final .sx-final{opacity:1;}
+  .sx-half{position:absolute; inset:0; overflow:hidden;}
+  .sx-half img{position:absolute; bottom:0; height:78%; width:62%; object-fit:cover; object-position:50% 12%;
+    -webkit-mask-image:linear-gradient(to top, transparent 0, #000 25%); mask-image:linear-gradient(to top, transparent 0, #000 25%);}
+  .sx-half.a{clip-path:polygon(0 0, 62% 0, 38% 100%, 0 100%); background:linear-gradient(160deg, #fff, var(--sx-cream));}
+  .sx-half.b{clip-path:polygon(62% 0, 100% 0, 100% 100%, 38% 100%); background:linear-gradient(200deg, var(--sx-light), var(--sx-deep));}
+  .sx-half.a img{left:-6%;} .sx-half.b img{right:-6%;}
+  /* 이름표 — 사진 색과 상관없이 읽히게 흰 띠 위에 */
+  .sx-half.a .tag, .sx-half.b .tag{position:absolute; bottom:22%; margin:0; padding:6px 12px 7px; background:#fff; color:var(--sx-orange); font-size:21px; line-height:1.1; font-weight:900; font-style:italic;
+    letter-spacing:-.03em; transform:skewX(-8deg); box-shadow:0 5px 0 var(--sx-ink), 0 10px 22px rgba(120,30,0,.3);}
+  .sx-half.a .tag{left:6%;} .sx-half.b .tag{right:6%; text-align:right;}
+  .sx-half .tag small{display:block; margin-bottom:2px; font-size:11px; font-weight:800; color:var(--sx-ink); font-style:normal; letter-spacing:.02em;}
+  .sx-slash{position:absolute; left:50%; top:-5%; bottom:-5%; width:6px; background:var(--sx-orange); transform:translateX(-50%) rotate(13.5deg); box-shadow:0 0 24px rgba(255,87,31,.6);}
+  .sx-title{position:absolute; left:0; right:0; top:9%; text-align:center;}
+  .sx-title .w{display:inline-block; margin:0; padding:4px 14px 6px; background:var(--sx-orange); color:#fff; font-size:clamp(32px, 9.5vw, 54px); line-height:1; font-weight:900; font-style:italic;
+    letter-spacing:-.05em; transform:skewX(-8deg); box-shadow:0 6px 0 var(--sx-ink), 0 12px 24px rgba(120,30,0,.3);}
+  .sx-title .m{margin:14px 0 0; display:inline-flex; gap:6px; align-items:center; padding:6px 14px; border-radius:100px; background:#fff; color:var(--sx-ink); font-size:13px; font-weight:700;
+    box-shadow:0 6px 18px rgba(120,30,0,.18);}
+  .sx-title .m b{color:var(--sx-orange);}
+  .sx-bottom{position:absolute; left:0; right:0; bottom:calc(20px + var(--court-b)); text-align:center;}
+  .sx-load{width:150px; height:4px; margin:0 auto 10px; border-radius:4px; background:rgba(255,255,255,.35); overflow:hidden;}
+  .sx-load i{display:block; height:100%; width:0; background:#fff; border-radius:4px; transition:width .3s;}
+  .splash__tap{margin:0; font-size:13px; line-height:18px; font-weight:700; color:#fff; text-shadow:0 1px 6px rgba(120,30,0,.4);}
+  .sx-skip{position:absolute; right:14px; top:calc(14px + env(safe-area-inset-top, 0px)); padding:6px 12px; border-radius:100px; background:rgba(255,255,255,.9);
+    font-size:12px; font-weight:700; color:var(--sx-deep); z-index:2;}
+  /* 동작 줄이기 — 움직임 없이 마지막 화면만 */
   @media (prefers-reduced-motion: reduce){
-    .splash{transition:opacity .3s ease;}
-    .splash.hide{transform:none;}
-    .sp-ball,.sp-ring,.sp-flash{display:none;}
-    .sp-stage{animation:none;}
-    .sp-word span,.sp-team,.sp-row img,.sp-net,.splash__tap{animation:none; opacity:1; transform:none;}
+    .splash{transition:opacity .3s ease;} .splash.hide{transform:none;}
+    .sx-stripe,.sx-open,.sx-player{display:none;}
+    .sx-final{opacity:1; transition:none;}
   }
 
   /* ============================================================
@@ -1224,6 +1264,31 @@ window.__errQ = [];
   .goods-card__ic svg{width:32px; height:32px;}
   .app-card{margin-top:12px;}
   .rl-sub[hidden]{display:none;}
+  /* 막차안내 — 방향별 카드 (기획서 10-2 · 10-3) */
+  .st-list{display:flex; flex-direction:column; gap:12px; margin-top:12px;}
+  .st-card{padding:18px 18px 16px; border-radius:20px; background:var(--surface,#F7F7F9);}
+  .st-card__head{display:flex; align-items:center; gap:8px;}
+  .st-line{padding:3px 9px; border-radius:100px; background:#BB8C00; color:#fff; font-size:12px; line-height:16px; font-weight:700;}   /* 부산 3호선 색 */
+  .st-station{font-size:16px; line-height:24px; font-weight:700; color:var(--ink);}
+  .st-kind{margin-left:auto; font-size:12px; line-height:16px; font-weight:600; color:var(--ink-faint);}
+  .st-dir{margin:6px 0 0; font-size:14px; line-height:20px; color:var(--ink-dim);}
+  .st-track{position:relative; height:44px; margin:12px 0 4px;}
+  .st-rail{position:absolute; left:0; right:14px; top:50%; height:4px; margin-top:-2px; border-radius:4px;
+    background:repeating-linear-gradient(90deg, #D9DDE3 0 10px, transparent 10px 16px);}
+  .st-stop{position:absolute; right:0; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; align-items:center;}
+  .st-stop i{width:14px; height:14px; border-radius:50%; background:#fff; box-shadow:inset 0 0 0 4px #BB8C00;}
+  .st-stop em{position:absolute; top:16px; white-space:nowrap; font-style:normal; font-size:11px; font-weight:600; color:var(--ink-faint);}
+  .st-train{position:absolute; top:50%; width:34px; height:34px; margin-top:-17px; left:calc(var(--p, 0) * (100% - 48px));
+    transition:left 1s linear; filter:drop-shadow(0 2px 4px rgba(0,0,0,.15));}
+  .st-train svg{width:100%; height:100%;}
+  .st-card.idle .st-train{opacity:.35;}
+  .st-foot{display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+  .st-eta{margin:0; font-size:20px; line-height:28px; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums;}
+  .st-eta.now{color:var(--brand); animation:stBlink 1s ease-in-out infinite;}
+  @keyframes stBlink{50%{opacity:.45;}}
+  .st-next{margin:0; font-size:12px; line-height:18px; color:var(--ink-faint); font-variant-numeric:tabular-nums;}
+  .st-card.soon .st-next{color:var(--brand-dark); font-weight:700;}
+  @media (prefers-reduced-motion: reduce){ .st-train{transition:none;} .st-eta.now{animation:none;} }
   .data-link{display:inline; padding:0; font-size:inherit; font-weight:600; color:var(--ink-faint); text-decoration:underline; text-underline-offset:2px;}
   .home-foot{margin:20px 0 4px; text-align:center; font-size:12px; line-height:18px; color:var(--ink-faint);}
   .ck__pv{display:block; margin:4px auto 0; font-size:12px;}
@@ -2224,24 +2289,26 @@ window.__errQ = [];
 </head>
 <body>
 
-<div id="splash" class="splash" role="img" aria-label="읏배구놀이터 — 부산 OK 저축은행 읏맨. 화면을 탭하면 시작해요">
-  <div class="sp-court" aria-hidden="true"></div>
-  <div class="sp-ring" aria-hidden="true"></div><div class="sp-ring r2" aria-hidden="true"></div>
-  <div class="sp-ball" aria-hidden="true">
-    <span class="sp-ball__spin"><svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M38.4518 13.3816C38.2024 12.6648 37.9115 11.9791 37.5791 11.3141C34.8051 5.67264 29.3714 1.53762 22.8364 0.612953C22.2338 0.529837 21.6208 0.4675 20.9974 0.436332C17.4546 0.2701 14.0988 1.0597 11.1586 2.56618C8.44692 3.95837 6.09889 5.97393 4.3119 8.44663C3.83398 9.10117 3.39763 9.77649 3.01321 10.483C3.33529 10.3895 3.64697 10.3167 3.96905 10.2648C3.65736 10.3167 3.33529 10.3895 3.0236 10.483C1.62102 13.018 0.769083 15.9063 0.62363 18.992C0.62363 19.1894 0.613241 19.3764 0.602851 19.5634C0.498957 25.2984 2.89893 30.5243 6.81577 34.171C9.39236 36.571 12.6235 38.2853 16.239 39.0125C16.8105 39.1268 17.3923 39.2203 17.9845 39.2826C18.3793 39.3346 18.7845 39.3554 19.1897 39.3762C26.4 39.719 32.8934 36.0827 36.5193 30.41C36.5401 30.3892 36.5505 30.3685 36.5505 30.3685C37.9843 28.1243 38.9713 25.5685 39.3868 22.8049C39.4907 22.1608 39.5531 21.4958 39.5842 20.8205C39.7089 18.2024 39.3037 15.6881 38.4829 13.3713L38.4518 13.3816Z" fill="white"/> <path d="M14.2441 32.3113V27.1795C14.2441 28.2184 21.5388 30.7692 28.27 29.7139C32.3961 29.067 37.2742 25.7313 39.1789 23.9997L38.14 27.636L35.385 31.7949C33.8265 32.8338 30.31 34.5534 26.1542 35.3846C21.9984 36.2158 16.4952 33.8697 14.2441 32.3113Z" fill="#FF571F"/> <path d="M23.0771 1.02561C20.168 -0.221128 13.2049 0.623293 11.127 2.70119C21.0258 2.70119 26.9932 14.2857 28.2053 20L32.9449 18.2855C33.3335 7.17947 26.7134 2.58404 23.0771 1.02561Z" fill="#FF571F"/> <path d="M13.8463 14.359L10.2565 11.282C6.15397 11.282 1.60252 17.0733 0.217586 19.8439C-0.613574 25.2464 3.6805 31.0992 5.93143 33.3502C3.85415 22.9607 9.74372 15.8974 13.8463 14.359Z" fill="#FF571F"/> <path d="M14.1299 32.0092C14.1299 32.0092 14.1299 31.9682 14.1299 31.9477C14.1299 31.9682 14.1299 31.9887 14.1299 32.0092Z" stroke="#DCDDDD" stroke-width="1.02564" stroke-linecap="round" stroke-linejoin="round"/> <path d="M0.512695 20.5128C2.49709 12.2324 9.74346 11.282 9.74346 11.282" stroke="#FF571F" stroke-width="1.02564" stroke-linecap="round" stroke-linejoin="round"/> <path d="M27.7917 20.4673C27.7917 20.4673 25.8275 3.91472 11.2822 2.56409" stroke="#FF571F" stroke-width="1.02564" stroke-linecap="round" stroke-linejoin="round"/> <path d="M23.0771 1.02563C23.233 1.09836 34.872 5.1282 32.8311 18.5972" stroke="#FF571F" stroke-width="1.02564" stroke-linecap="round" stroke-linejoin="round"/> <path d="M35.0888 32.0101C35.0888 32.0101 31.2816 35.8974 23.5893 35.3846C18.7735 35.0635 15.6048 33.5581 14.1191 32.0101" stroke="#FF571F" stroke-width="1.02564" stroke-linecap="round" stroke-linejoin="round"/> <path d="M38.9742 24.1025C37.9486 25.641 35.574 27.9062 27.8962 29.5165C20.2391 31.1269 14.234 27.1685 14.2236 27.1581" stroke="#FF571F" stroke-width="1.02564" stroke-linecap="round" stroke-linejoin="round"/> <path d="M13.8469 14.8718C2.56413 20 6.34929 33.815 6.35968 33.8461" stroke="#FF571F" stroke-width="1.02564" stroke-linecap="round" stroke-linejoin="round"/> <path d="M17.6406 39.1795C16.8406 38.5354 14.0774 36.2282 13.9631 29.9322C13.8488 23.5011 18.3267 20.5193 18.3267 20.5193" stroke="#FF571F" stroke-width="1.02564" stroke-linecap="round" stroke-linejoin="round"/> <path d="M38.4617 13.8462C38.389 13.9709 37.9425 15.5843 32.5192 18.7842C31.1997 19.4803 29.6413 20.0829 27.8024 20.4673C25.2154 21.018 22.0881 21.1426 18.3375 20.5193C18.3375 20.5193 16.9557 17.5167 14.4519 14.7427C11.8025 11.8129 8.04061 9.16553 3.28223 10.2564" stroke="#FF571F" stroke-width="1.02564" stroke-linecap="round" stroke-linejoin="round"/> <circle cx="20" cy="20" r="19.4872" stroke="#E9EBF0" stroke-width="1.02564"/> </svg></span><span class="ball-shade" aria-hidden="true"></span>
+<div id="splash" class="splash" role="img" aria-label="읏배구놀이터 — OK저축은행 읏맨 오늘의 선수 소개. 화면을 탭하면 시작해요">
+  <div class="sx-bg" aria-hidden="true"><i class="sx-stripe s1"></i><i class="sx-stripe s2"></i><i class="sx-stripe s3"></i></div>
+  <div class="sx-grain" aria-hidden="true"></div>
+  <div class="sx-open" aria-hidden="true">
+    <p class="k">BUSAN OK SAVINGS BANK</p>
+    <p class="t">OK저축은행 <b>읏맨</b></p>
+    <p class="s">읏배구놀이터 · 오늘의 선수</p>
   </div>
-  <div class="sp-squad" aria-hidden="true">
-    <div class="sp-row back" id="sp-back"></div>
-    <div class="sp-net"></div>
-    <div class="sp-row front" id="sp-front"></div>
+  <div class="sx-player" id="sx-p1" aria-hidden="true"></div>
+  <div class="sx-player left" id="sx-p2" aria-hidden="true"></div>
+  <div class="sx-final" id="sx-final">
+    <div class="sx-half a" id="sx-ha"></div><div class="sx-half b" id="sx-hb"></div>
+    <i class="sx-slash" aria-hidden="true"></i>
+    <div class="sx-title"><p class="w">읏배구놀이터</p><p class="m" id="sx-match"><b>OK저축은행 읏맨</b></p></div>
+    <div class="sx-bottom"><div class="sx-load" aria-hidden="true"><i id="sx-load"></i></div><p class="splash__tap">화면을 탭하면 바로 시작해요</p></div>
   </div>
-  <div class="sp-stage" aria-hidden="true">
-    <div class="sp-word"><span style="--i:0;--r:-4deg">읏</span><span style="--i:1;--r:2deg">배</span><span style="--i:2;--r:-2deg">구</span><br><span style="--i:3;--r:3deg">놀</span><span style="--i:4;--r:-3deg">이</span><span style="--i:5;--r:4deg">터</span></div>
-    <p class="sp-team"><i></i>부산 OK 저축은행 읏맨</p>
-  </div>
-  <div class="sp-flash" aria-hidden="true"></div>
-  <p class="splash__tap">화면을 탭하면 바로 시작해요</p>
+  <div class="sx-flash" id="sx-flash" aria-hidden="true"></div>
+  <button class="sx-skip" type="button">건너뛰기</button>
 </div>
+
 
 <div id="app">
 
@@ -2402,16 +2469,14 @@ window.__errQ = [];
 
       <!-- 막차안내 -->
       <div class="seg-panel" data-key="lastrain">
-        <p class="pagesub" style="margin-bottom:14px;">경기가 길어지면 화면에 알림이 떠요. 언제든 여기서 시간표를 확인할 수 있어요.</p>
+        <p class="pagesub" style="margin-bottom:14px;">경기가 길어지면 화면에 알림이 떠요.<br>언제든 여기서 지하철 시간표를 확인할 수 있어요.</p>
         <div class="card clock-card">
           <span class="clock-card__ic" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" fill="#E9EBF0"/><path d="M16 8.5V16l5 3" stroke="#4D5764" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="16" r="2" fill="#FF571F"/></svg></span>
           <div class="now" id="clock-now">--:--</div>
           <div class="lbl">현재 시각</div>
         </div>
-        <div class="card">
-          <div id="subway-list"><!-- JS로 채움 --></div>
-          <p class="config-note" id="subway-config-note"></p>
-        </div>
+        <div id="subway-list" class="st-list"><!-- 방향별 카드 — JS로 채움 --></div>
+        <p class="config-note" id="subway-config-note"></p>
       </div>
     </div>
   </div>
@@ -2816,31 +2881,54 @@ const SPLASH_CHARACTERS = [
   const splash = document.getElementById('splash');
   if(!splash) return;
   document.documentElement.style.overflow = 'hidden';
-
-  // 선수단 두 줄 — 감독 포함 18명을 앞·뒤로 나눠 가운데부터 바깥쪽으로 점프
-  const back = document.getElementById('sp-back'), front = document.getElementById('sp-front');
-  const list = SPLASH_CHARACTERS.slice();
-  const backList = list.filter((_, i)=> i % 2 === 0), frontList = list.filter((_, i)=> i % 2 === 1);
-  function fill(row, srcs){
-    const mid = (srcs.length - 1) / 2;
-    srcs.forEach((src, i)=>{
-      const img = document.createElement('img');
-      img.src = src; img.alt = ''; img.decoding = 'async';
-      img.style.setProperty('--d', Math.abs(i - mid).toFixed(1));
-      row.appendChild(img);
-    });
-  }
-  fill(back, backList);
-  fill(front, frontList);
-
+  window.__splashT0 = performance.now();
+  const timers = [];
   function dismissSplash(){
     if(splash.classList.contains('hide')) return;
+    timers.forEach(clearTimeout);
     splash.classList.add('hide');
     document.documentElement.style.overflow = '';
     setTimeout(()=> splash.remove(), 700);
   }
   splash.addEventListener('click', dismissSplash);
-  setTimeout(dismissSplash, 2900);
+  // 선수 정보가 준비되면(아래 introPlayers) 이 순서대로 보여줘요
+  window.__runIntro = function(players, meta){
+    if(splash.classList.contains('hide')) return;
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const [p1, p2] = players;
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, c=> ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+    const photo = (p, cls)=> p.src ? `<img src="${esc(p.src)}" alt="" decoding="async" ${cls ? `class="${cls}"` : ''}>` : '';
+    const card = p => `
+      <span class="sx-num">${esc(p.num)}</span>
+      <div class="sx-photo${p.card ? ' card' : p.cut ? ' cut' : ''}">${p.src ? photo(p) : `<span class="nophoto">${esc(p.num)}</span>`}</div>
+      <div class="sx-band"></div>
+      <i class="sx-burst"></i>
+      <div class="sx-name"><span class="pos">${esc(p.pos)}</span><b class="nm">${p.name ? `<span class="no">${esc(p.num)}</span>${esc(p.name)}` : `No.${esc(p.num)}`}</b></div>`;
+    const el1 = document.getElementById('sx-p1'), el2 = document.getElementById('sx-p2');
+    el1.innerHTML = card(p1); el2.innerHTML = card(p2);
+    const tag = p => `<p class="tag"><small>${esc(p.pos)}</small>#${esc(p.num)}${p.name ? ' ' + esc(p.name) : ''}</p>`;
+    document.getElementById('sx-ha').innerHTML = `${photo(p1, p1.card ? 'card' : '')}${tag(p1)}`;
+    document.getElementById('sx-hb').innerHTML = `${photo(p2, p2.card ? 'card' : '')}${tag(p2)}`;
+    document.getElementById('sx-match').innerHTML = `<b>OK저축은행 읏맨</b>${meta.date ? ` · ${esc(meta.date)}` : ''}`;   // 우리 팀만 (상대팀은 넣지 않아요)
+    const load = document.getElementById('sx-load'), flash = document.getElementById('sx-flash');
+    const at = (ms, fn)=> timers.push(setTimeout(fn, ms));
+    const hit = el=>{
+      el.classList.add('hit');
+      flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
+      splash.classList.remove('shake'); void splash.offsetWidth; splash.classList.add('shake');
+      if(navigator.vibrate) navigator.vibrate(18);
+    };
+    if(reduce){ splash.classList.add('ph-final'); load.style.width = '100%'; at(2600, dismissSplash); return; }
+    // 오프닝(이미 진행 중) → 선수 1 → 선수 2 → 마지막
+    at(0,    ()=>{ splash.classList.add('ph-p1'); el1.classList.add('in'); load.style.width = '25%'; });
+    at(420,  ()=> hit(el1));
+    at(1700, ()=>{ el1.classList.add('out'); el2.classList.add('in'); load.style.width = '55%'; });
+    at(2120, ()=> hit(el2));
+    at(3400, ()=>{ el2.classList.add('out'); splash.classList.add('ph-final'); load.style.width = '100%'; });
+    at(5600, dismissSplash);
+  };
+  // 혹시 선수 정보를 못 받아도 4.5초 뒤엔 넘어가요 (정상이면 오프닝 1.1초 + 선수 소개 약 5.6초 · 탭하면 언제든 넘어가요)
+  timers.push(setTimeout(()=>{ if(!window.__introStarted) dismissSplash(); }, 4500));
 })();
 
 /* ================================================================
@@ -3133,6 +3221,8 @@ const CONFIG = {
        season  : 시즌 기록 — g 경기 · pts 득점 · atk 공격성공률% · blk 세트당 블로킹 · ace 세트당 서브 · dig 세트당 디그 · rcv 리시브효율%
      ⚠ 이름·사진은 실제 선수예요. 능력치(ability)·시즌 기록(season)은 화면 확인용 샘플이니 실제 값으로 바꿔주세요.
      --------------------------------------------------------------- */
+  /* 선수 — 인트로는 images/players/card-1.webp ~ card-40.webp 중 무작위 두 장을 보여줘요 (INTRO_CARDS).
+     파일 번호가 선수 등번호와 같으면 그 선수 이름·포지션이 함께 나와요. 카드는 세로 3:4 비율이 가장 잘 맞아요. */
   PLAYERS: [
     { num:1 , name:'김정호', pos:'OH', birth:'1997-03-01', figure:1 , photo:'images/players/face-1.webp', card:'images/players/card-1.webp', model:'', ability:{atk:84,srv:73,blk:56,dig:71,rcv:77,set:52}, season:{g:14,pts:196,atk:46.3,blk:0.23,ace:0.19,dig:1.71,rcv:32.2} },
     { num:3 , name:'정성현', pos:'L', birth:'1991-05-18', figure:2 , photo:'images/players/face-3.webp', card:'images/players/card-3.webp', model:'', ability:{atk:19,srv:32,blk:10,dig:91,rcv:90,set:66}, season:{g:22,pts:0,atk:null,blk:null,ace:null,dig:2.36,rcv:50.8} },
@@ -3217,12 +3307,18 @@ const CONFIG = {
     desc: '유니폼과 응원 도구를 온라인에서 만나보세요.',
   },
 
+  /* 막차안내 — 기획서 15p
+     · 열차 시각은 부산교통공사 '열차시각표 조회' API를 서버(okman-live)가 대신 받아와요 (/live/_/subway).
+       서버에 SUBWAY_KEY(공공데이터포털 인증키)가 없으면 '도착 정보 준비 중'과 아래 막차 시각만 보여줘요.
+     · scode: 역 외부코드 (체육공원 316) · updown: API의 상하행 값 (0 상행 · 1 하행) — 방면과 맞는지 서버 /live/_/subway?debug=1 로 확인해주세요.
+     · last: API를 못 받을 때 쓰는 막차 시각 (24:36 = 다음 날 00:36) */
   SUBWAY: {
     station: '체육공원역',
+    scode: '316',
     alertAfter: '22:00',   // 기획서: 경기가 밤 10시를 넘기면 토스트
     lines: [
-      { tag:'3호선', dir:'구포·연산·수영 방면', last:'23:41' },
-      { tag:'3호선', dir:'대저 방면', last:'24:36' },
+      { tag:'3호선', dir:'구포 ∙ 연산 ∙ 수영 방면', updown:0, last:'23:41' },
+      { tag:'3호선', dir:'대저 방면', updown:1, last:'24:36' },
     ]
   }
 };
@@ -3555,6 +3651,44 @@ LIVE.on('state', st=>{
   LOCAL = {};
   location.reload();
 });
+
+/* 인트로 카드 2장 — images/players/card-1.webp ~ card-40.webp 중에서 열 때마다 무작위로
+   · 파일이 없는 번호는 건너뛰고 다른 번호를 골라요
+   · 그 번호 선수가 선수 데이터에 있으면 이름·포지션을 함께, 없으면 등번호만 크게 */
+const INTRO_CARDS = { dir:'images/players/', from:1, to:40 };
+(function introCards(){
+  if(!document.getElementById('splash')) return;
+  const tryLoad = src => new Promise(res=>{ const im = new Image(); let done = false;
+    const end = ok=>{ if(!done){ done = true; res(ok ? src : ''); } };
+    im.onload = ()=> end(true); im.onerror = ()=> end(false); im.src = src; setTimeout(()=> end(false), 1500); });
+  async function pickTwo(){
+    const nums = []; for(let n = INTRO_CARDS.from; n <= INTRO_CARDS.to; n++) nums.push(n);
+    for(let i = nums.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [nums[i], nums[j]] = [nums[j], nums[i]]; }
+    const got = [];
+    // 4장씩 동시에 받아보고, 먼저 두 장 모이면 끝
+    for(let i = 0; i < nums.length && got.length < 2 && i < 16; i += 4){
+      const batch = nums.slice(i, i + 4);
+      const srcs = await Promise.all(batch.map(n=> tryLoad(`${INTRO_CARDS.dir}card-${n}.webp`)));
+      batch.forEach((n, k)=>{ if(srcs[k] && got.length < 2) got.push({ n, src:srcs[k] }); });
+    }
+    return got;
+  }
+  async function go(){
+    window.__introStarted = true;
+    const cards = await pickTwo();
+    if(cards.length < 2){ window.__introStarted = false; return; }      // 카드 파일이 없으면 4.5초 뒤 그냥 넘어가요
+    const two = cards.map(({ n, src })=>{
+      const p = playerByNum(n);
+      return { num:n, name: p ? playerName(p) : '', pos: p ? ((POS[p.pos] || {}).ko || p.pos) : 'OK저축은행 읏맨', src, card:true };
+    });
+    // 오프닝('OK저축은행 읏맨')이 최소 1.1초는 보이게
+    const wait = 1100 - (performance.now() - (window.__splashT0 || 0));
+    if(wait > 0) await new Promise(r=> setTimeout(r, wait));
+    const date = (document.getElementById('mb-date') || {}).textContent || '';
+    window.__runIntro && window.__runIntro(two, { date: /입력 필요/.test(date) ? '' : date });
+  }
+  setTimeout(go, 0);   // PLAYERS·POS가 다 만들어진 뒤에
+})();
 
 async function fetchData(path){
   if(CONFIG.DATA_MODE === 'api'){ const res = await fetch(`${CONFIG.API_BASE}/matches/${MATCH_KEY}/${path}`); return res.json(); }
@@ -4721,120 +4855,107 @@ function fmtMatchDate(d, withTime){
    6. 막차 안내 + 토스트 알림
    ================================================================ */
 (function initSubway(){
+  const SW = CONFIG.SUBWAY;
   const clockEl = document.getElementById('clock-now');
   const listEl = document.getElementById('subway-list');
   const noteEl = document.getElementById('subway-config-note');
   const toastEl = document.getElementById('subway-toast');
   const toastDesc = document.getElementById('toast-desc');
   let toastDismissed = false;
+  let TT = null;           // { [updown]: [분, 분, …] } 자정 기준 분 (다음 날 새벽은 1440 이상)
+  let ttSource = '';
 
-  function nearestLine(now){
-    let nearest = null;
-    listEl.querySelectorAll('.line-time').forEach(el=>{
-      const last = el.dataset.last;
-      if(!last) return;
-      const [lh, lm] = last.split(':').map(Number);
-      const lastDate = new Date(now); lastDate.setHours(0, 0, 0, 0); lastDate.setMinutes(lh * 60 + lm);
-      const diffMin = Math.round((lastDate - now) / 60000);
-      if(diffMin >= 0 && (!nearest || diffMin < nearest.diffMin)){
-        nearest = { tag: el.closest('.line-row').querySelector('.line-tag').textContent, last, diffMin };
+  const pad = n => String(n).padStart(2, '0');
+  const fmt = min => { const h = Math.floor(min / 60), m = min % 60; return h >= 24 ? `${pad(h - 24)}:${pad(m)} (익일)` : `${pad(h)}:${pad(m)}`; };
+  const toMin = hhmm => { const [h, m] = String(hhmm).split(':').map(Number); return h * 60 + m; };
+  // 지금 = 자정 기준 초 (새벽 4시 전이면 전날 운행의 연장으로 봐요)
+  function nowSec(){ const d = new Date(); let s = d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds(); if(d.getHours() < 4) s += 86400; return s; }
+  const lastOf = l => (TT && TT[l.updown] && TT[l.updown].length) ? Math.max(...TT[l.updown]) : toMin(l.last);
+
+  // 방향별 카드 — 기획서 10-2 · 10-3
+  listEl.innerHTML = SW.lines.map((l, i)=> `
+    <section class="st-card" data-i="${i}" aria-live="polite">
+      <div class="st-card__head">
+        <span class="st-line">${escHtml(l.tag)}</span>
+        <b class="st-station">${escHtml(SW.station)}</b>
+        <span class="st-kind">지하철</span>
+      </div>
+      <p class="st-dir">${escHtml(l.dir)}</p>
+      <div class="st-track" aria-hidden="true">
+        <span class="st-rail"></span>
+        <span class="st-stop"><i></i><em>${escHtml(SW.station.replace(/역$/, ''))}</em></span>
+        <span class="st-train">${UI_ICON.subway}</span>
+      </div>
+      <div class="st-foot">
+        <p class="st-eta" data-eta>도착 정보 확인 중…</p>
+        <p class="st-next" data-next></p>
+      </div>
+    </section>`).join('');
+  noteEl.textContent = '';
+
+  function render(){
+    const now = nowSec();
+    clockEl.textContent = `${pad(new Date().getHours())}:${pad(new Date().getMinutes())}`;
+    SW.lines.forEach((l, i)=>{
+      const card = listEl.querySelector(`.st-card[data-i="${i}"]`); if(!card) return;
+      const etaEl = card.querySelector('[data-eta]'), nextEl = card.querySelector('[data-next]'), train = card.querySelector('.st-train');
+      const times = TT && TT[l.updown];
+      const last = lastOf(l);
+      card.classList.toggle('soon', last * 60 - now <= 30 * 60 && last * 60 - now >= 0);
+      if(!times || !times.length){
+        etaEl.textContent = '도착 정보 준비 중';
+        nextEl.textContent = `막차 ${fmt(last)}`;
+        card.classList.add('idle'); card.style.setProperty('--p', '0');
+        return;
       }
-    });
-    return nearest;
-  }
-
-  function tick(){
-    const now = new Date();
-    clockEl.textContent = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-
-    listEl.querySelectorAll('.line-time').forEach(el=>{
-      const last = el.dataset.last;
-      if(!last) return;
-      const [lh, lm] = last.split(':').map(Number);
-      const lastDate = new Date(now); lastDate.setHours(0, 0, 0, 0); lastDate.setMinutes(lh * 60 + lm);
-      const diffMin = Math.round((lastDate - now) / 60000);
-      el.classList.toggle('soon', diffMin <= 30 && diffMin >= 0);
+      card.classList.remove('idle');
+      const up = times.filter(t => t * 60 >= now - 20);   // 막 도착한 열차는 20초 동안 '곧 도착'
+      if(!up.length){ etaEl.textContent = '오늘 운행이 끝났어요'; nextEl.textContent = `막차 ${fmt(last)}`; card.style.setProperty('--p', '0'); return; }
+      const left = up[0] * 60 - now;
+      const m = Math.ceil(left / 60);
+      etaEl.textContent = left <= 30 ? '곧 도착해요' : `${m}분 후 도착 예정`;
+      etaEl.classList.toggle('now', left <= 60);
+      // 열차 위치 — 10분 전부터 역으로 다가와요
+      card.style.setProperty('--p', String(Math.max(0, Math.min(1, 1 - left / 600))));
+      const after = up.slice(1, 3).filter(t => t !== last).map(fmt).join(' · ');   // 막차는 따로 보여줘요
+      nextEl.textContent = `${after ? '다음 ' + after + ' · ' : ''}막차 ${fmt(last)}`;
     });
 
-    if(CONFIG.SUBWAY.alertAfter && !toastDismissed){
-      const [ah, am] = CONFIG.SUBWAY.alertAfter.split(':').map(Number);
-      const isAfter = now.getHours() > ah || (now.getHours() === ah && now.getMinutes() >= am);
-      if(isAfter){
-        const near = nearestLine(now);
-        let nearLabel = near ? near.last : '';
-        if(near){
-          const [nh, nm] = near.last.split(':').map(Number);
-          if(nh >= 24) nearLabel = `${String(nh - 24).padStart(2,'0')}:${String(nm).padStart(2,'0')} (익일)`;
-        }
-        toastDesc.textContent = near
-          ? `${near.tag} 막차가 ${nearLabel}에 있어요.`
-          : '안내 탭의 막차안내에서 시간표를 확인해보세요.';
-        toastEl.classList.add('show');
-      }
+    // 기획서 10-4 — 밤 10시가 넘으면 하단 토스트 (확인·X로 닫으면 다시 안 떠요)
+    if(SW.alertAfter && !toastDismissed && now >= toMin(SW.alertAfter) * 60){
+      const lines = SW.lines.map(l => ({ l, last:lastOf(l) })).filter(x => x.last * 60 >= now);
+      const tag = (SW.lines[0] || {}).tag || '지하철';
+      // 방면마다 막차가 달라서 함께 알려줘요 (한 시각만 보여주면 일찍 끊기는 방면 관람객이 놓칠 수 있어요)
+      toastDesc.textContent = !lines.length ? '오늘 지하철 운행이 끝났어요.'
+        : lines.length === 1 ? `${tag} 막차는 ${fmt(lines[0].last)}까지 있어요.`
+        : `${tag} 막차는 ${lines.map(x => `${x.l.dir.replace(/\s*방면$/, '').split('∙').pop().trim()} 방면 ${fmt(x.last)}`).join(', ')}까지 있어요.`;
+      toastEl.classList.add('show');
     }
   }
 
-  if(CONFIG.SUBWAY.lines.length){
-    CONFIG.SUBWAY.lines.forEach((l, i)=>{
-      const row = document.createElement('div');
-      row.className = 'line-row';
-      row.dataset.dir = i % 2 === 0 ? 'up' : 'down';
-      const [lh, lm] = l.last.split(':').map(Number);
-      const displayTime = lh >= 24
-        ? `${String(lh - 24).padStart(2,'0')}:${String(lm).padStart(2,'0')} (익일)`
-        : l.last;
-      const delay = (i * 0.18).toFixed(2);
-      row.style.setProperty('--delay', `${delay}s`);
-      row.innerHTML = `
-        <div class="line-track"><span class="line-train">${UI_ICON.subway}</span></div>
-        <div class="line-info">
-          <span class="line-tag">${l.tag}</span>
-          <span class="line-dir">${l.dir}</span>
-          <span class="line-time pending" data-last="${l.last}" data-display="${displayTime}">--:--</span>
-        </div>
-      `;
-      listEl.appendChild(row);
-
-      // 기차가 도착하는 타이밍에 맞춰 막차 시각이 짠 하고 드러나요.
-      const timeEl = row.querySelector('.line-time');
-      setTimeout(()=>{
-        timeEl.textContent = displayTime;
-        timeEl.classList.remove('pending');
-        timeEl.classList.add('pop');
-        setTimeout(()=> timeEl.classList.remove('pop'), 460);
-      }, delay * 1000 + 1000);
-
-      // 다시 탭하면 기차가 한 번 더 지나가요.
-      row.addEventListener('click', ()=>{
-        hapticTick();
-        const train = row.querySelector('.line-train');
-        train.style.animation = 'none';
-        void train.offsetWidth;
-        train.style.animation = '';
-        setTimeout(()=>{
-          timeEl.classList.remove('pop'); void timeEl.offsetWidth; timeEl.classList.add('pop');
-          setTimeout(()=> timeEl.classList.remove('pop'), 460);
-        }, 1000);
-      });
-    });
-  } else {
-    listEl.innerHTML = `<p class="empty-note">막차 시간표가 아직 입력되지 않았어요.<br>CONFIG.SUBWAY 값을 채워주세요.</p>`;
+  // 열차 시각 — 서버가 부산교통공사 API에서 받아 정리해 줘요 (10분마다 다시)
+  async function loadTimetable(){
+    if(!CONFIG.LIVE_API || LIVE.demo) return;
+    try{
+      const r = await fetch(`${CONFIG.LIVE_API}/live/_/subway?scode=${encodeURIComponent(SW.scode || '')}`);
+      const d = await r.json();
+      if(d && d.lines){ TT = d.lines; ttSource = d.source || ''; }
+      noteEl.textContent = d && d.lines ? `${SW.station} 열차 시각표 기준이에요. 실제 도착은 조금 다를 수 있어요.` : '';
+    }catch(e){}
+    render();
   }
-  noteEl.textContent = CONFIG.SUBWAY.station ? `${CONFIG.SUBWAY.station} 기준 안내입니다.` : '최인접 역 기준 정확한 막차 시각을 CONFIG에 입력해주세요.';
 
-  document.getElementById('toast-close').addEventListener('click', ()=>{
-    toastDismissed = true;
-    toastEl.classList.remove('show');
-  });
+  document.getElementById('toast-close').addEventListener('click', ()=>{ toastDismissed = true; toastEl.classList.remove('show'); });
   document.getElementById('toast-action').addEventListener('click', ()=>{
-    toastEl.classList.remove('show');
-    toastDismissed = true;
+    toastEl.classList.remove('show'); toastDismissed = true;
     navigate('guide', 'lastrain');
-    setTimeout(()=> document.getElementById('subway-list').scrollIntoView({behavior:'smooth', block:'center'}), 60);
+    setTimeout(()=> listEl.scrollIntoView({ behavior:'smooth', block:'center' }), 60);
   });
 
-  tick();
-  setInterval(tick, 1000);
+  render();
+  loadTimetable();
+  setInterval(render, 1000);
+  setInterval(loadTimetable, 10 * 60 * 1000);
 })();
 
 /* ================================================================
