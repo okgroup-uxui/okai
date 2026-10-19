@@ -1235,6 +1235,15 @@ window.__errQ = [];
   .goods-card__ic{display:block; width:32px; height:32px; margin-bottom:8px;}
   .goods-card__ic svg{width:32px; height:32px;}
   .app-card{margin-top:12px;}
+  /* 굿즈샵 — 배너 사진 + 아래 한 줄 */
+  .goods-card.goods-banner{display:block; padding:0; overflow:hidden; min-height:0;}
+  .goods-banner__img{display:block; width:100%; height:auto; aspect-ratio:1440/346; object-fit:cover; background:#111;}
+  .goods-banner__img[hidden]{display:none;}
+  .goods-banner__row{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px;}
+  .goods-banner__text{min-width:0;}
+  .goods-banner .goods-card__title{margin:0;}
+  .goods-banner .goods-card__desc{max-width:none; margin-top:2px; word-break:keep-all;}
+  .goods-banner .goods-card__cta{margin:0; padding-top:0; flex-shrink:0; white-space:nowrap;}
   .rl-sub[hidden]{display:none;}
   /* 막차안내 — 방향별 카드 (기획서 10-2 · 10-3) */
   .st-list{display:flex; flex-direction:column; gap:12px; margin-top:12px;}
@@ -2356,16 +2365,17 @@ window.__errQ = [];
       <button class="rl-last" id="rl-last" hidden>지난 당첨 교환권 보기</button>
     </section>
 
-    <a class="goods-card" id="goods-link" target="_blank" rel="noopener">
-      <div class="goods-card__text">
-        <span class="goods-card__ic" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><g><g><g><mask id="gsm_shop" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><rect width="32" height="32" fill="#C8CBD5"/></mask><g mask="url(#gsm_shop)"><g><path fill-rule="evenodd" clip-rule="evenodd" d="M11.6358 8.38743H20.361C19.8489 6.45724 18.0897 5.03478 15.9984 5.03478C13.907 5.03478 12.1479 6.45724 11.6358 8.38743ZM8.34476 8.40835C8.89582 4.67568 12.1126 1.81104 15.9984 1.81104C19.8875 1.81104 23.1064 4.68054 23.6534 8.41783C25.6589 8.65406 27.2772 10.2417 27.5123 12.2924L28.9707 25.0132C29.2705 27.6288 27.2252 29.922 24.5924 29.922H7.31762C4.6849 29.922 2.63953 27.6288 2.93939 25.0132L4.39774 12.2924C4.63628 10.2117 6.29869 8.60778 8.34476 8.40835Z" fill="#FF571F"/></g><g><path d="M10.7971 16.3218L13.0232 23.0001L15.8058 16.3218L18.5884 23.0001L20.8145 16.3218" stroke="white" stroke-width="2.048" stroke-linecap="round" stroke-linejoin="round"/><path d="M19.9241 19.1045H22.1502" stroke="white" stroke-width="2.048" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.3501 19.1045H11.5762" stroke="white" stroke-width="2.048" stroke-linecap="round" stroke-linejoin="round"/></g></g></g></g></g></svg></span>
-        <p class="goods-card__title" id="goods-title">읏맨 공식 굿즈샵</p>
-        <p class="goods-card__desc" id="goods-desc">유니폼과 응원 도구를 온라인에서 만나보세요.</p>
+    <a class="goods-card goods-banner" id="goods-link" target="_blank" rel="noopener">
+      <img class="goods-banner__img" id="goods-img" src="images/banners/goods-2026-27.webp" width="1440" height="346" alt="2026-2027 시즌 유니폼 출시 — OK저축은행 읏맨 배구단" loading="lazy" decoding="async">
+      <div class="goods-banner__row">
+        <div class="goods-banner__text">
+          <p class="goods-card__title" id="goods-title">읏맨 공식 굿즈샵</p>
+          <p class="goods-card__desc" id="goods-desc">유니폼과 응원 도구를 온라인에서 만나보세요.</p>
+        </div>
         <span class="goods-card__cta" id="goods-cta">굿즈샵 가기
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
         </span>
       </div>
-      <div class="goods-card__figs" id="goods-figs" aria-hidden="true"></div>
     </a>
 
     <p class="home-foot"><button class="data-link" type="button" data-privacy>데이터 수집 안내</button> · 개인정보(이름·연락처)는 받지 않아요</p>
@@ -3268,6 +3278,7 @@ const CONFIG = {
     url: '',  // 굿즈샵 주소를 넣으면 카드가 그 링크로 열려요.
     title: '읏맨 공식 굿즈샵',
     desc: '유니폼과 응원 도구를 온라인에서 만나보세요.',
+    image: 'images/banners/goods-2026-27.webp',   // 배너 사진 (가로로 긴 1440×346 안팎 · 시즌마다 바꿔 끼우면 돼요)
   },
 
   /* 막차안내 — 기획서 15p
@@ -5930,6 +5941,9 @@ const ROULETTE_ASSETS = {
   function apply(h){
     const G = { ...(CONFIG.GOODS || {}), ...Object.fromEntries(Object.entries((h && h.goods) || {}).filter(([, v])=> v)) };
     document.getElementById('goods-title').textContent = G.title || '굿즈샵';
+    const gi = document.getElementById('goods-img');
+    if(G.image && gi.getAttribute('src') !== G.image) gi.src = G.image;
+    gi.onerror = ()=>{ gi.hidden = true; };   // 사진이 없으면 글씨만
     document.getElementById('goods-desc').textContent = G.desc || '';
     setLink(link, 'goods-cta', G.url, '굿즈샵 가기');
     const P = { ...(CONFIG.APP || {}), ...Object.fromEntries(Object.entries((h && h.app) || {}).filter(([, v])=> v !== '' && v != null)) };
@@ -5941,11 +5955,6 @@ const ROULETTE_ASSETS = {
   apply(null);
   let sig = '';
   LIVE.on('state', st=>{ const x = JSON.stringify(st.home ? { g:st.home.goods, a:st.home.app } : null); if(x !== sig){ sig = x; apply(st.home); } });
-  const figs = document.getElementById('goods-figs');
-  [PLAYERS[9], PLAYERS[6]].filter(Boolean).forEach(p=>{
-    const src = figureSrc(p);
-    if(src){ const img = document.createElement('img'); img.src = src; img.alt = ''; figs.appendChild(img); }
-  });
 })();
 
 /* ================================================================
