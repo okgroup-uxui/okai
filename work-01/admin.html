@@ -1185,6 +1185,7 @@ async function loadExtra(kind, force){
     if(kind === 'home' && (force || !EXTRA.home)) EXTRA.home = await call('GET', '_/home');
     if(kind === 'locks') EXTRA.locks = (await call('GET', '_/locks')).locks || [];
     if(kind === 'privacy') EXTRA.privacy = (await call('GET', '_/privacy')).privacy || {};
+    if(kind === 'subway') EXTRA.subway = (await call('GET', '_/subway')).subway || {};
   }catch(e){ EXTRA[kind] = EXTRA[kind] || { error:e.message }; }
   finally{ LOADING.delete(kind); }
   render();
@@ -1214,6 +1215,64 @@ function accountCards(){
       <div class="field" style="grid-column:auto;"><label for="nu-pw">비밀번호 (8자 이상)</label><input id="nu-pw" type="password" autocomplete="new-password"></div>
       <button class="btn" data-act="user-add" style="grid-column:auto; align-self:end;">추가</button>
     </div></section>`;
+}
+/* ================================================================
+   설정 › 막차 시간표 — 부산교통공사 홈페이지 '열차시간표' 표를 그대로 붙여넣으면 읽어요
+   표 모양: 시(05~00) × 평일 · 토요일 · 일요일(공휴일), 칸마다 '수영행05분 출발' 같은 글
+   ================================================================ */
+const TT_DAYS = [['wk', '평일'], ['sa', '토요일'], ['su', '일요일·공휴일']];
+function parseHumetro(text){
+  const out = { wk:[], sa:[], su:[] }, keys = ['wk', 'sa', 'su'];
+  const add = (h, cell, k) => { for(const m of String(cell).matchAll(/(\d{1,2})\s*분/g)){ let t = h * 60 + Number(m[1]); if(h < 4) t += 1440; out[k].push(t); } };
+  let hour = null, col = 0;
+  for(const raw of String(text || '').replace(/\r/g, '').split('\n')){
+    const line = raw.trim(); if(!line) continue;
+    const cells = raw.split('\t').map(x => x.trim());
+    const hm = cells[0].match(/^(\d{1,2})$/);
+    if(hm && cells.length >= 2){ const h = Number(hm[1]); cells.slice(1, 4).forEach((c, i) => add(h, c, keys[i])); hour = null; continue; }   // 한 줄에 시·평일·토·일 (탭으로 구분)
+    if(/^\d{1,2}$/.test(line)){ hour = Number(line); col = 0; continue; }                                                                   // 시만 있는 줄 — 다음 줄들이 평일·토·일
+    if(hour != null && /분/.test(line)){ if(col < 3) add(hour, line, keys[col]); col++; }
+  }
+  for(const k of keys) out[k] = [...new Set(out[k])].sort((a, b) => a - b);
+  return out;
+}
+const ttm = t => { const h = Math.floor(t / 60), m = t % 60; return `${String(h >= 24 ? h - 24 : h).padStart(2, '0')}:${String(m).padStart(2, '0')}${h >= 24 ? '(익일)' : ''}`; };
+function ttSummary(tt){
+  return TT_DAYS.map(([k, t]) => { const a = tt[k] || []; return `${t} ${a.length}편${a.length ? ` · 첫차 ${ttm(a[0])} · 막차 <b>${ttm(a[a.length - 1])}</b>` : ''}`; }).join('<br>');
+}
+function subwayPreview(){
+  const d = DR.sub || {};
+  [0, 1].forEach(i => {
+    const el = $('sub-pv' + i); if(!el) return;
+    const t = parseHumetro(d['t' + i]);
+    const n = t.wk.length + t.sa.length + t.su.length;
+    el.innerHTML = !String(d['t' + i] || '').trim() ? '<span class="muted">붙여넣으면 여기서 읽은 결과를 보여줘요.</span>'
+      : n ? ttSummary(t) + (t.sa.length && t.su.length ? '' : '<br><span style="color:#C2410C;">토요일·일요일 칸이 비었어요 — 표 전체(평일·토·일 세 칸)를 같이 복사해주세요.</span>')
+          : '<span style="color:#C2410C;">시각을 하나도 못 읽었어요. 표에서 시(05, 06…)와 \'○○행 ○○분 출발\' 칸을 같이 복사해주세요.</span>';
+  });
+}
+function subwayCard(){
+  if(!EXTRA.subway){ loadExtra('subway'); return '<section class="card"><p class="empty">불러오는 중…</p></section>'; }
+  const cur = EXTRA.subway.error ? {} : EXTRA.subway;
+  DR.sub = DR.sub || { t0:'', t1:'', hol:(cur.holidays || []).join('\n') };
+  setTimeout(subwayPreview, 0);
+  const saved = cur.tt ? `<div class="grid2" style="margin-top:6px;">${[['0', '수영 방면'], ['1', '대저 방면']].map(([i, t]) => `<div class="rsrow" style="display:block; cursor:default;"><b>${t}</b><p class="muted" style="font-size:13px; line-height:20px; margin-top:4px;">${ttSummary({ wk:(cur.tt.wk || {})[i] || [], sa:(cur.tt.sa || {})[i] || [], su:(cur.tt.su || {})[i] || [] })}</p></div>`).join('')}</div>
+      <p class="muted" style="font-size:12px; margin-top:8px;">${time(cur.updatedAt)} 저장 · 관람객 화면 막차안내에 10분 안에 반영돼요.</p>`
+    : '<p class="empty">아직 저장한 시간표가 없어요. 관람객 화면엔 \'도착 정보 준비 중\'과 기본 막차 시각만 나와요.</p>';
+  return `<section class="card"><h2>지금 쓰는 시간표 <span class="muted" style="font-size:12px; font-weight:600;">체육공원역 · 시즌 공통</span></h2>${saved}</section>
+  <section class="card"><h2>시간표 붙여넣기</h2>
+    <p class="desc">1) <a href="https://www2.humetro.busan.kr/homepage/english/stationtime/page/view.do?menu_no=10060102" target="_blank" rel="noopener">부산교통공사 열차시간표</a>(한글 홈페이지 › 이용안내 › 열차시간표도 같아요)에서 <b>3호선 → 체육공원(Sports Park)</b>을 고르세요.<br>
+      2) 방향(상행·하행)을 고르고, 표 맨 위 '시'부터 맨 아래 '00'까지 드래그해서 복사(Ctrl+C) → 아래 칸에 붙여넣기(Ctrl+V).<br>
+      3) 반대 방향도 똑같이 하고 저장하세요. 평일·토요일·일요일 세 칸을 같이 읽어요. 시간표가 바뀌면 다시 붙여넣기만 하면 돼요.</p>
+    <div class="grid2" style="margin-top:12px;">
+      ${[['0', '수영 방면 (구포·연산·수영행)'], ['1', '대저 방면 (대저행)']].map(([i, t]) => `<div class="field"><label for="sub-t${i}">${t}</label>
+        <textarea class="in" id="sub-t${i}" data-sub="t${i}" rows="8" style="height:auto; padding:10px 12px; font-family:inherit; font-size:12px;" placeholder="05	수영행05분 출발 …	…	…">${esc(DR.sub['t' + i])}</textarea>
+        <p class="muted" id="sub-pv${i}" style="font-size:12px; line-height:19px; margin-top:6px;"></p></div>`).join('')}
+    </div>
+    <div class="field" style="margin-top:12px;"><label for="sub-hol">공휴일 (이날은 일요일 시간표 · 한 줄에 하나, 예: 2026-12-25)</label>
+      <textarea class="in" id="sub-hol" data-sub="hol" rows="3" style="height:auto; padding:10px 12px; font-family:inherit;">${esc(DR.sub.hol)}</textarea></div>
+    <div class="edfoot"><span class="muted" style="font-size:12px; align-self:center;">붙여넣지 않은 방향은 지금 저장된 것을 그대로 둬요.</span><button class="btn" data-act="sub-save">저장</button></div>
+  </section>`;
 }
 function locksCard(){
   if(!EXTRA.locks){ loadExtra('locks'); return ''; }
@@ -1247,7 +1306,7 @@ function nickBanCard(){
       <button class="btn" data-act="nb-save">저장</button></div></section>`;
 }
 const ACT_NAME = { events:'현장 이벤트', prizes:'응원 이벤트', settings:'경기 설정', raffle:'추첨', 'raffle-clear':'응모 삭제', 'raffle-hide':'추첨 제외', redeem:'교환',
-  'reset-cheer':'초기화', reset:'초기화', 'login-lock':'로그인 잠금', unlock:'잠금 풀기', privacy:'데이터 안내', 'errors-clear':'오류 기록', surveys:'설문 보관함', users:'계정', password:'비밀번호', home:'룰렛·배너', nickban:'금칙어' };
+  'reset-cheer':'초기화', reset:'초기화', subway:'막차 시간표', 'login-lock':'로그인 잠금', unlock:'잠금 풀기', privacy:'데이터 안내', 'errors-clear':'오류 기록', surveys:'설문 보관함', users:'계정', password:'비밀번호', home:'룰렛·배너', nickban:'금칙어' };
 function auditCard(){
   if(!EXTRA.audit || Date.now() - EXTRA.auditAt > 15000) loadExtra('audit');
   const list = EXTRA.audit || [];
@@ -1612,10 +1671,11 @@ const VIEWS = {
       ['account', isOwner() ? '계정 관리' : '내 계정'],
       isOwner() && ['privacy', '데이터 안내'],
       isAdmin() && ['nickban', '닉네임 금칙어'],
+      isAdmin() && ['subway', '막차 시간표'],
       ['audit', '작업 기록'],
     ].filter(Boolean);
     const tab = tabs.some(([k]) => k === DR.setTab) ? DR.setTab : tabs[0][0];
-    const body = { reset:() => resetCard(S), account:() => accountCards() + (isOwner() ? locksCard() : ''), privacy:() => privacyCard(), nickban:() => nickBanCard(), audit:() => auditCard() }[tab]();
+    const body = { reset:() => resetCard(S), account:() => accountCards() + (isOwner() ? locksCard() : ''), privacy:() => privacyCard(), nickban:() => nickBanCard(), subway:() => subwayCard(), audit:() => auditCard() }[tab]();
     return `<p class="page-title">설정</p><p class="page-sub">${esc($('who').textContent)} 계정으로 로그인했어요.</p>
       <div class="settabs" role="tablist">${tabs.map(([k, t]) => `<button role="tab" aria-selected="${k === tab}" class="${k === tab ? 'on' : ''}" data-settab="${k}">${t}</button>`).join('')}</div>
       ${body}`;
@@ -1878,6 +1938,17 @@ document.addEventListener('click', e=>{
     case 'code-find': return findCode();
     case 'rf-swap': return swapDraw(i);
     case 'lock-refresh': return loadExtra('locks', true);
+    case 'sub-save': {
+      const cur = (EXTRA.subway && !EXTRA.subway.error && EXTRA.subway.tt) || {};
+      const p0 = parseHumetro(DR.sub.t0), p1 = parseHumetro(DR.sub.t1);
+      const has = p => p.wk.length + p.sa.length + p.su.length > 0;
+      if(String(DR.sub.t0 || '').trim() && !has(p0)) return toast('수영 방면 칸에서 시각을 못 읽었어요. 표를 다시 복사해주세요.', true);
+      if(String(DR.sub.t1 || '').trim() && !has(p1)) return toast('대저 방면 칸에서 시각을 못 읽었어요. 표를 다시 복사해주세요.', true);
+      const tt = {};
+      for(const [k] of TT_DAYS) tt[k] = { 0: has(p0) ? p0[k] : ((cur[k] || {})[0] || []), 1: has(p1) ? p1[k] : ((cur[k] || {})[1] || []) };
+      const holidays = String(DR.sub.hol || '').split(/[\s,]+/).filter(Boolean);
+      return act(()=> call('PUT', '_/subway', { subway:{ tt, holidays } }), '막차 시간표를 저장했어요. 관람객 화면엔 10분 안에 반영돼요.').then(ok => { if(ok){ DR.sub = null; loadExtra('subway', true); } });
+    }
     case 'err-clear': if(!confirm('관람객 화면 오류 기록을 비울까요?')) return; return act(()=> mcall('POST', 'errors-clear'), '오류 기록을 비웠어요.');
     case 'lock-open': return act(()=> call('POST', '_/unlock', { key:b.dataset.k }), '잠금을 풀었어요.').then(ok => { if(ok) loadExtra('locks', true); });
     case 'pv-save': return act(()=> call('PUT', '_/privacy', { privacy:{ retention:val('pv-ret').trim(), contact:val('pv-con').trim(), extra:val('pv-ext').trim() } }), '데이터 안내를 저장했어요. 관람객 화면엔 1분 안에 바뀌어요.').then(ok => { if(ok) loadExtra('privacy', true); });
@@ -1974,6 +2045,8 @@ document.addEventListener('input', e=>{
     else if(f === 'low' || f === 'high') q[f] = t.value;
     else if(f === 'max') q.max = Number(t.value) || 0;
     else if(f === 'type'){ setSvType(q, t.value); render(); }
+  } else if(t.dataset.sub){
+    DR.sub = DR.sub || {}; DR.sub[t.dataset.sub] = t.value; subwayPreview();
   } else if(t.dataset.rp != null){
     const p = homeDraft().roulette.prizes[Number(t.dataset.i)], f = t.dataset.rp;
     if(f === 'miss'){ p.miss = t.checked; if(p.miss) p.img = 'miss'; else if(p.img === 'miss') p.img = 'soju'; render(); }
