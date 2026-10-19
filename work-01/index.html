@@ -142,6 +142,8 @@ window.__errQ = [];
   .sx-player.left .sx-band{transform:skewY(-8deg) translateX(110%);}
   .sx-player.left .sx-name{text-align:right;}
   .sx-player.left .sx-name .nm{transform-origin:80% 60%;}
+  /* 두 번째 선수는 오른쪽 정렬이라, 기울어진 이름의 오른쪽 끝이 위로 올라가요 — 포지션 라벨을 그만큼 더 띄워요 */
+  .sx-player.left .sx-name .pos{margin-bottom:calc(10px + 6vw);}
   .sx-player.left .sx-burst{left:auto; right:6%; margin:0 -20vw -35vw 0;}
   .sx-player.left.in .sx-photo{transform:translateX(0) skewX(0);}
   .sx-player.left.in .sx-num{transform:translateX(0);}
