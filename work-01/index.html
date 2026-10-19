@@ -116,7 +116,7 @@ window.__errQ = [];
   .sx-band{position:absolute; left:-10%; right:-10%; bottom:16%; height:20%; background:#fff;
     transform:skewY(-8deg) translateX(-110%); transition:transform .45s cubic-bezier(.2,.9,.2,1) .05s; box-shadow:0 10px 30px rgba(120,30,0,.3);}
   .sx-name{position:absolute; left:6%; right:6%; bottom:17%; transform:skewY(-8deg);}
-  .sx-name .pos{display:inline-block; margin:0 0 6px; padding:3px 10px; border-radius:4px; background:var(--sx-orange); font-size:12px; font-weight:800; letter-spacing:.08em; color:#fff;
+  .sx-name .pos{display:inline-block; margin:0 0 8px; padding:3px 10px; border-radius:4px; background:var(--sx-orange); font-size:12px; font-weight:800; letter-spacing:.08em; color:#fff;
     opacity:0; transform:translateX(-20px); transition:opacity .25s .55s, transform .3s .55s;}
   .sx-name .nm{display:block; margin:0; font-size:clamp(54px, 19vw, 110px); line-height:.95; font-weight:900; letter-spacing:-.05em; font-style:italic;
     color:var(--sx-orange); text-shadow:0 4px 0 rgba(138,42,6,.18); opacity:0; transform:scale(2.8) rotate(-6deg); transform-origin:20% 60%;}
@@ -134,7 +134,7 @@ window.__errQ = [];
   .sx-player.hit .sx-burst{animation:sxBurst .5s ease-out forwards;}
   .sx-player.out{opacity:0; transition:opacity .25s;}
   .sx-player.out .sx-photo{transform:translateX(-80%) skewX(8deg); filter:blur(8px); transition:transform .35s ease-in, filter .35s;}
-  @keyframes sxSlam{ 0%{opacity:0; transform:scale(2.8) rotate(-6deg);} 55%{opacity:1; transform:scale(.94) rotate(-6deg);} 100%{opacity:1; transform:scale(1) rotate(-6deg);} }
+  @keyframes sxSlam{ 0%{opacity:0; transform:scale(2.8) rotate(-6deg);} 55%{opacity:1; transform:scale(.94) rotate(1deg);} 100%{opacity:1; transform:scale(1) rotate(0);} }   /* 끝나면 띠·포지션과 같은 기울기 */
   @keyframes sxBurst{ 0%{opacity:.9; transform:scale(.3) rotate(0);} 100%{opacity:0; transform:scale(1.5) rotate(20deg);} }
   /* 선수 2 — 왼쪽에서 들어와요 */
   .sx-player.left .sx-photo{right:auto; left:-4%; transform:translateX(-70%) skewX(8deg);}
@@ -142,8 +142,7 @@ window.__errQ = [];
   .sx-player.left .sx-band{transform:skewY(-8deg) translateX(110%);}
   .sx-player.left .sx-name{text-align:right;}
   .sx-player.left .sx-name .nm{transform-origin:80% 60%;}
-  /* 두 번째 선수는 오른쪽 정렬이라, 기울어진 이름의 오른쪽 끝이 위로 올라가요 — 포지션 라벨을 그만큼 더 띄워요 */
-  .sx-player.left .sx-name .pos{margin-bottom:calc(10px + 6vw);}
+
   .sx-player.left .sx-burst{left:auto; right:6%; margin:0 -20vw -35vw 0;}
   .sx-player.left.in .sx-photo{transform:translateX(0) skewX(0);}
   .sx-player.left.in .sx-num{transform:translateX(0);}
@@ -3629,8 +3628,9 @@ const INTRO_CARDS = { dir:'images/players/', from:1, to:40 };
     const nums = []; for(let n = INTRO_CARDS.from; n <= INTRO_CARDS.to; n++) nums.push(n);
     for(let i = nums.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [nums[i], nums[j]] = [nums[j], nums[i]]; }
     const got = [];
-    // 4장씩 동시에 받아보고, 먼저 두 장 모이면 끝
-    for(let i = 0; i < nums.length && got.length < 2 && i < 16; i += 4){
+    // 4장씩 동시에 받아보고, 먼저 두 장 모이면 끝 (빠진 번호가 많아도 2.5초 안에서 끝까지 찾아요)
+    const t0 = performance.now();
+    for(let i = 0; i < nums.length && got.length < 2 && performance.now() - t0 < 2500; i += 4){
       const batch = nums.slice(i, i + 4);
       const srcs = await Promise.all(batch.map(n=> tryLoad(`${INTRO_CARDS.dir}card-${n}.webp`)));
       batch.forEach((n, k)=>{ if(srcs[k] && got.length < 2) got.push({ n, src:srcs[k] }); });
