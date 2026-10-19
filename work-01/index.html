@@ -2315,7 +2315,7 @@ window.__errQ = [];
 
     <!-- 홈 경기가 없는 날 — 관리자 '오늘 운영'(자동이면 경기 일정 기준) -->
     <section class="no-game-card" id="no-game" hidden>
-      <span class="no-game-card__ic" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><rect x="3" y="5" width="26" height="24" rx="6" fill="#E9EBF0"/><rect x="8" y="2" width="2.6" height="6" rx="1.3" fill="#FF571F"/><rect x="21.4" y="2" width="2.6" height="6" rx="1.3" fill="#FF571F"/><circle cx="16" cy="18" r="6.2" fill="#fff" stroke="#FF571F" stroke-width="1.8"/><path d="M11.2 15.6c3 .4 6.6 2.4 8.4 6.6M16 11.8c-1.6 2.6-1.8 6.6.2 10.4M21.6 17.2c-3 1.2-7.2 1.2-10.2-.4" stroke="#FF571F" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+      <span class="no-game-card__ic" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><rect x="3.5" y="5" width="25" height="24" rx="5.5" fill="#fff" stroke="#E3E6EC" stroke-width="1"/><path d="M3.5 10.5V10a5 5 0 0 1 5-5h15a5 5 0 0 1 5 5v.5z" fill="#FF571F"/><rect x="9" y="2.5" width="2.4" height="5.4" rx="1.2" fill="#C93A0C"/><rect x="20.6" y="2.5" width="2.4" height="5.4" rx="1.2" fill="#C93A0C"/><circle cx="16" cy="19.8" r="6.6" fill="#FFF4EE" stroke="#FF571F" stroke-width="1.6"/><path d="M16.00 19.80 Q20.57 14.98 13.74 13.60 M16.00 19.80 Q17.89 26.17 22.50 20.95 M16.00 19.80 Q9.54 18.26 11.76 24.86" stroke="#FF571F" stroke-width="1.36" stroke-linecap="round" fill="none"/></svg></span>
       <p class="no-game-card__t">오늘은 홈 경기가 없어요</p>
       <p class="no-game-card__d">다음에 경기장에서 만나요</p>
       <p class="no-game-card__next" id="no-game-next" hidden></p>
@@ -3057,7 +3057,7 @@ const CONFIG = {
   DATA_MODE: 'local', // 'local' = 기기 내 데모 저장 · 'api' = 아래 API_BASE 연동
   API_BASE: '', // 예: 'https://wm-api.yourname.workers.dev'
   // 기록 API(okman-stats Worker) 주소 — DATA_MODE와 따로 동작해요. 비워두면 샘플 기록을 보여줘요.
-  STATS_API: 'https://okman-stats.okgroup0425.workers.dev', // 예: 'https://okman-stats.<계정>.workers.dev'
+  STATS_API: '', // 예: 'https://okman-stats.<계정>.workers.dev'
 
   MATCH: {
     home: 'OK저축은행 읏맨',
