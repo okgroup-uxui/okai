@@ -559,7 +559,7 @@ const LIVE = (function(){
         state = { events:(CONFIG.LIVE_DEMO || {}).events || [], total:Number(localStorage.getItem(DEMO_TOTAL)) || 0, phase:'auto', mvp:undefined, start:'' };
       } else {
         const r = await fetch(`${base}/live/${encodeURIComponent(MATCH_KEY)}`);
-        if(!r.ok){ netFail('refresh', 'HTTP ' + r.status, r.status); return; }
+        if(!r.ok){ const d = await r.json().catch(()=> ({})); netFail('refresh', `HTTP ${r.status}${d.error ? ' ' + d.error : ''}${d.reason ? ' — ' + String(d.reason).slice(0, 120) : ''}`, r.status); return; }
         const d = await r.json();
         netOk('refresh');
         state = { events:d.events || [], total:(d.cheer || {}).total || 0, phase:d.phase || 'auto', mvp:d.mvp || null, start:d.start || '', content:d.content || null, epoch:Number(d.epoch) || 0, opponent:d.opponent || '', home:d.home || null, privacy:d.privacy || null };
@@ -605,7 +605,11 @@ const LIVE = (function(){
         const r = await fetch(`${base}/live/${encodeURIComponent(MATCH_KEY)}/cheer`, {
           method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ device, count:n }),
         });
-        if(!r.ok){ const err = new Error('HTTP ' + r.status); err.status = r.status; throw err; }
+        if(!r.ok){
+          // 서버가 알려준 진짜 이유(사용량 한도·과부하 등)도 같이 남겨요
+          const d = await r.json().catch(()=> ({}));
+          const err = new Error(`HTTP ${r.status}${d.error ? ' ' + d.error : ''}${d.reason ? ' — ' + String(d.reason).slice(0, 120) : ''}`); err.status = r.status; throw err;
+        }
         res = await r.json();
         netOk('cheer');
       }
