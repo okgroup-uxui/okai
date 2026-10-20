@@ -1169,7 +1169,7 @@ function fmtMatchDate(d, withTime){
    · logo 파일이 없거나 못 불러오면 팀 색 원 + 약자로 대신 보여줘요
    · 상대팀 엠블럼은 images/teams/ 에 파일만 넣으면 바로 나와요 */
 const TEAM_BRANDS = [
-  { keys:['OK저축은행','읏맨'],          short:'OK저축은행', nick:'읏맨',        logo:'images/brand/emblem.webp',  color:'#FF571F', init:'OK' },
+  { keys:['OK저축은행','읏맨'],          short:'OK저축은행', nick:'읏맨',        logo:'images/teams/okman.webp',  color:'#FF571F', init:'OK' },
   { keys:['대한항공','점보스'],          short:'대한항공',   nick:'점보스',      logo:'images/teams/koreanair.webp', color:'#0B4EA2', init:'KAL' },
   { keys:['현대캐피탈','스카이워커스'],  short:'현대캐피탈', nick:'스카이워커스', logo:'images/teams/hyundai.webp',   color:'#0C2340', init:'HC' },
   { keys:['삼성화재','블루팡스'],        short:'삼성화재',   nick:'블루팡스',    logo:'images/teams/samsung.webp',   color:'#1C4DA1', init:'SF' },
