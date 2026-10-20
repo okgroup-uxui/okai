@@ -2508,7 +2508,7 @@ const findTeamBrand = name=> TEAM_BRANDS.find(b=> b.keys.some(k=> String(name ||
     }
     prevDone = Object.fromEntries(MISSIONS.map((m, i)=> [m.id, doneList[i]]));
 
-    subEl.textContent = `${doneCount}/${MISSIONS.length} 완료`;
+    subEl.textContent = `${doneCount}/${MISSIONS.length} 완료 *미션완료하면 룰렛 한번더!`;
     ringFg.style.strokeDashoffset = `${CIRC * (1 - doneCount / MISSIONS.length)}`;
     ringLabel.textContent = `${Math.round((doneCount / MISSIONS.length) * 100)}%`;
 
