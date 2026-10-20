@@ -1,0 +1,1907 @@
+/* ================================================================
+   관리자 — okman-live Worker와 연결
+   관람객 화면(index.html)의 LIVE_API와 같은 서버를 쓰고, 경기 ID는 index.html의 MATCH_KEY(기본: 오늘 날짜)와 같아요.
+   ================================================================ */
+const $ = id => document.getElementById(id);
+const esc = v => String(v ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+const fmt = n => Number(n || 0).toLocaleString();
+const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
+const today = () => { const t = new Date(); return new Date(t.getTime() - t.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
+const time = ts => ts ? new Date(ts).toLocaleString('ko-KR', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
+const fmtStart = v => { const d = new Date(v); if(isNaN(d)) return v; const p = n => String(n).padStart(2, '0'); return `${d.getMonth() + 1}.${d.getDate()} (${'일월화수목금토'[d.getDay()]}) ${p(d.getHours())}:${p(d.getMinutes())}`; };
+const hm = v => v ? v.replace('T', ' ').slice(5, 16) : '';
+const mask = c => { c = String(c || ''); if(c.includes('@')){ const [a, b] = c.split('@'); return a.slice(0, 2) + '***@' + b; } const d = c.replace(/\D/g, ''); return d.length >= 8 ? `${d.slice(0, 3)}-****-${d.slice(-4)}` : c.replace(/\d/g, '*'); };
+
+let D = null, page = 'dash', timer = null, busy = false;
+let MATCHES = [];
+// 서버 주소는 고정 (관람객 화면 index.html의 LIVE_API와 같은 주소)
+const ADMIN_API = 'https://okman-live.okgroup0425.workers.dev';
+const base = () => ADMIN_API;
+const uid = () => sessionStorage.getItem('adm_id') || '';
+const key = () => sessionStorage.getItem('adm_key') || '';
+const mid = () => $('match').value || today();
+
+function toast(msg, err){ const t = $('toast'); t.textContent = msg; t.className = 'toast show' + (err ? ' err' : ''); clearTimeout(t._t); t._t = setTimeout(()=> t.className = 'toast', 2200); }
+
+const ERR_TEXT = {
+  nothing_to_reset:'지울 항목을 골라주세요.', forbidden:'이 계정 권한으로는 할 수 없는 작업이에요. 총괄 관리자에게 부탁해주세요.',
+  bad_user_id:'아이디는 영문·숫자 3~30자로 넣어주세요.', duplicate_user:'같은 아이디가 있어요.', weak_password:'비밀번호는 8자 이상으로 넣어주세요.',
+  password_required:'새 계정은 비밀번호가 필요해요.', wrong_password:'지금 비밀번호가 맞지 않아요.', env_owner_password:'총괄 관리자 비밀번호는 Cloudflare 환경변수(ADMIN_KEY)에서 바꿔요.',
+  roulette_needs_8:'룰렛은 8칸이 모두 있어야 해요.', roulette_all_zero:'확률이 모두 0이에요. 하나 이상 넣어주세요.', home_too_large:'이미지가 너무 커요. 더 작은 이미지를 써주세요.', busy:'서버가 잠시 바빠요. 조금 뒤 다시 눌러주세요.', content_too_large:'등록하려는 내용이 너무 커요. 출석 이미지 수를 줄여주세요.',
+  library_too_large:'보관함이 너무 커요. 안 쓰는 설문을 지워주세요.', code_required:'코드를 입력해주세요.',
+};
+// 이 관리자 화면이 기대하는 서버 버전 (index.js의 SERVER_VERSION)
+const SERVER_NEED = '2026-10-16.cheer';
+async function call(method, path, body){
+  const res = await fetch(`${base()}/admin/${path}`, {
+    method, headers:{ 'Content-Type':'application/json', 'X-Admin-Id': uid(), 'X-Admin-Key': key() },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const d = await res.json().catch(() => ({}));
+  if(res.status === 401) throw new Error('아이디 또는 비밀번호가 맞지 않아요. 5번 틀리면 10분 동안 잠겨요.');
+  if(res.status === 429 && d.error === 'locked'){
+    const t = new Date(d.until), p = n => String(n).padStart(2, '0');
+    throw new Error(`로그인을 여러 번 틀려서 ${p(t.getHours())}:${p(t.getMinutes())}까지 잠겼어요. 급하면 총괄 관리자에게 잠금 풀기를 부탁해주세요.`);
+  }
+  // 서버가 모르는 주소 — 대부분 okman-live를 최신 index.js로 다시 배포하지 않은 경우예요
+  if(res.status === 404 && d.error === 'not_found') throw new Error('서버(okman-live)가 아직 이 기능을 몰라요. Cloudflare에 최신 index.js를 다시 배포해 주세요.');
+  if(!res.ok) throw new Error(ERR_TEXT[d.error] || d.error || `서버 오류 (${res.status})`);
+  return d;
+}
+const mcall = (method, action, body) => call(method, encodeURIComponent(mid()) + (action ? '/' + action : ''), body);
+
+/* ================================================================
+   관리자 콘텐츠 — 예측 문항 · 설문 · 출석 질문 · 미션 순서 · 오늘 운영
+   settings.content 하나에 모아 저장하고, 관람객 화면은 GET /live 의 content로 받아요.
+   아래 기본값은 index.html CONFIG와 같아요 (등록 전엔 관람객 화면에 이 기본값이 나가요).
+   ================================================================ */
+const PRED_DEF = [
+  { id:'first_point', q:'첫 득점 팀은 어디일까요?', options:['OK저축은행 읏맨', '상대팀'], ai:true },
+  { id:'first_block', q:'첫 블로킹을 성공시킬 선수는?', type:'player', ai:true },
+  { id:'set_score', q:'세트 스코어를 예측해보세요', options:['3:0', '3:1', '3:2', '2:3 이하'], ai:true },
+];
+// v0 = 보관함이 비었을 때 관람객 화면이 쓰는 비상용 기본 문항 (index.html CONFIG와 같아요)
+const SURV_DEF = [{"id": "1", "q": "오늘 경기장 좌석 안내는 찾기 쉬웠나요?", "type": "single", "options": ["매우 쉬움", "쉬움", "보통", "어려움"]}, {"id": "2", "q": "오늘 응원 분위기는 어땠나요?", "type": "single", "options": ["최고였어요", "좋았어요", "보통이었어요", "아쉬웠어요"]}, {"id": "3", "q": "다음에도 직관하러 오실 의향이 있나요?", "type": "single", "options": ["꼭 다시 올게요", "아마도요", "잘 모르겠어요"]}, {"id": "4", "q": "경기장 내 편의시설(매점·화장실 등)은 만족스러웠나요?", "type": "single", "options": ["매우 만족", "만족", "보통", "불만족"]}];
+const CK_DEF = [
+  { key:'gender', q:'성별을 알려주세요', opts:['남성', '여성'].map(label => ({ label })) },
+  { key:'age', q:'나이대를 골라주세요', opts:['10대 이하', '20대', '30대', '40대', '50대', '60대 이상'].map(label => ({ label })) },
+  { key:'company', q:'오늘 누구와 왔나요?', opts:['혼자', '친구', '연인', '가족', '동료', '기타'].map(label => ({ label })) },
+];
+const MISSION_LABEL = { checkin:'출석체크', seats:'내자리찾기', fortune:'오늘의선수', survey:'설문조사', predict:'경기예측', raffle:'경품응모' };
+const MISSION_DEF = Object.keys(MISSION_LABEL);
+const LIMIT = { predictQ:5, predictO:6, surveyQ:25, surveyO:25, gridRows:15, gridCols:7, ckQ:3, ckO:6 };
+const SV_TYPE = { single:'단일 선택', multi:'복수 선택', nps:'NPS 0~10', grid:'행렬 척도' };
+// 키 순서와 상관없이 같은 내용인지 비교 (서버가 저장하며 키 순서를 바꿀 수 있어요)
+const canon = v => JSON.stringify(v, (k, x) => x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map(key => [key, x[key]])) : x);
+const clone = v => JSON.parse(JSON.stringify(v));
+const CT = () => ((D && D.settings) || {}).content || {};
+// 편집 중인 값 — 5초 새로고침에도 지워지지 않게 따로 들고 있어요 (경기를 바꾸면 비워요)
+let DR = {};
+function saveContent(patch, msg){ return act(()=> mcall('PUT', 'settings', { content:{ ...CT(), ...patch } }), msg); }
+
+/* ================================================================
+   설문 엑셀 — 불러오기(parseSurveyRows) · 양식 내려받기(surveyToRows)
+   엑셀은 SheetJS로 브라우저에서 바로 읽어요 (파일이 서버로 올라가지 않아요)
+   ================================================================ */
+/* 설문 엑셀 → 설문 문항 (관리자 '엑셀로 불러오기'와 같은 코드)
+   열: 번호 · 문항 · 응답 유형 · 선택지 · 기타   (머리글 줄은 자동으로 찾아요)
+   · 응답 유형: '단일 선택' / '복수 가능(최대 3개)' / 'NPS (0~10점)' / '척도 (5점, 행렬형)' / '단일 선택 + 기타 주관식'
+   · 선택지: 줄바꿈으로 구분. 행렬형은 '[행] 항목' 여러 줄 + '[열] 매우 불만족 / … / 매우 만족' 한 줄
+   · '기타(직접 입력)' 선택지 → 고르면 직접 입력칸이 열려요
+   · 기타 칸에 '주관식'이 있으면 → 아래에 자유 의견칸(선택)을 붙여요
+   · 번호가 '1-1', '4-2'처럼 생기면 앞 번호 문항의 답에 따라 보여줘요. 기타 칸에 그 문항의 선택지를 적으면 그걸 골랐을 때만,
+     '1회 이상'처럼 '이상'이 있으면 첫 번째 선택지(예: 0회)가 아닐 때만, '0회 제외·이외'처럼 쓰면 그 선택지가 아닐 때만.
+     비어 있으면 같은 묶음의 앞 문항 조건을 따라요. */
+function parseSurveyRows(rows){
+  const warn = [];
+  const norm = v => String(v ?? '').replace(/\r/g, '').trim();
+  const h = rows.findIndex(r => r.some(c => norm(c) === '번호') && r.some(c => norm(c).startsWith('문항')));
+  if(h < 0) throw new Error("'번호'와 '문항' 머리글이 있는 줄을 찾지 못했어요.");
+  const head = rows[h].map(c => norm(c).replace(/\s/g, ''));
+  const col = k => head.findIndex(c => c.startsWith(k));
+  const cN = col('번호'), cQ = col('문항'), cT = col('응답유형'), cO = col('선택지'), cE = col('기타');
+  const items = [];
+  for(const r of rows.slice(h + 1)){
+    const q = norm(r[cQ]);
+    if(!q) continue;
+    const id = (norm(r[cN]).replace(/\.0+$/, '') || String(items.length + 1)).replace(/[^\w-]/g, '');
+    const typeTxt = cT >= 0 ? norm(r[cT]) : '', optTxt = cO >= 0 ? norm(r[cO]) : '', note = cE >= 0 ? norm(r[cE]) : '';
+    const lines = optTxt.split('\n').map(s => s.trim()).filter(Boolean);
+    const it = { id, q };
+    if(/NPS|0\s*~\s*10/i.test(typeTxt)){
+      it.type = 'nps';
+      const m = optTxt.match(/0\s*점?\s*\(([^)]*)\)\s*~\s*10\s*점?\s*\(([^)]*)\)/);
+      it.low = m ? m[1].trim() : '전혀 아니다'; it.high = m ? m[2].trim() : '매우 그렇다';
+    } else if(/척도|행렬|그리드/.test(typeTxt) || lines.some(l => /^\[행\]/.test(l))){
+      it.type = 'grid';
+      it.rows = lines.filter(l => /^\[행\]/.test(l)).map(l => l.replace(/^\[행\]\s*/, ''));
+      const cl = lines.find(l => /^\[열\]/.test(l));
+      it.cols = cl ? cl.replace(/^\[열\]\s*/, '').split('/').map(s => s.trim()).filter(Boolean) : ['매우 불만족', '불만족', '보통', '만족', '매우 만족'];
+      if(!it.rows.length) warn.push(`${id}번: 행렬형인데 '[행]' 항목이 없어요.`);
+    } else {
+      it.type = /복수/.test(typeTxt) ? 'multi' : 'single';
+      if(it.type === 'multi'){ const m = typeTxt.match(/최대\s*(\d+)/); if(m) it.max = Number(m[1]); }
+      if(!typeTxt) warn.push(`${id}번: 응답 유형이 비어 있어서 단일 선택으로 넣었어요.`);
+      it.options = lines.map(l => { if(/^기타\s*\(\s*직접\s*입력\s*\)$/.test(l)){ it.other = true; return '기타'; } return l; });
+      if(/주관식/.test(typeTxt) && !it.other && it.options.includes('기타')) it.other = true;
+      if(/주관식/.test(note) && !it.other) it.comment = true;
+      if(it.options.length < 2) warn.push(`${id}번: 선택지가 2개보다 적어요.`);
+      if(/\(1개\)/.test(q) && it.type === 'multi') warn.push(`${id}번: 문항엔 '(1개)'인데 응답 유형은 복수 선택(최대 ${it.max || '제한 없음'})이에요. 응답 유형대로 넣었어요.`);
+    }
+    const pm = id.match(/^(\d+)-\d+$/);
+    if(pm){
+      const parent = items.find(x => x.id === pm[1]);
+      if(!parent || !parent.options) warn.push(`${id}번: 앞 문항 ${pm[1]}번을 찾지 못해 모두에게 보여요.`);
+      else {
+        const hit = parent.options.filter(o => o !== '기타' && note.includes(o));
+        if(/이상/.test(note)) it.cond = { id:parent.id, notIn:[parent.options[0]] };
+        else if(hit.length && /제외|이외|아닌|말고/.test(note)) it.cond = { id:parent.id, notIn:hit };
+        else {
+          if(hit.length) it.cond = { id:parent.id, in:hit };
+          else { const sib = [...items].reverse().find(x => x.cond && x.cond.id === parent.id); if(sib) it.cond = JSON.parse(JSON.stringify(sib.cond)); }
+        }
+        const ref = note.match(/(\d+)\s*번에서/);
+        if(ref && ref[1] !== parent.id) warn.push(`${id}번: 기타 칸엔 '${ref[1]}번에서'라고 돼 있지만, 번호가 ${id}라서 ${parent.id}번 답에 따라 보여줘요.`);
+        if(!it.cond) warn.push(`${id}번: 보여줄 조건을 찾지 못해 모두에게 보여요.`);
+      }
+    }
+    items.push(it);
+  }
+  if(!items.length) throw new Error('문항이 하나도 없어요.');
+  return { items, warn };
+}
+
+
+/* 설문 문항 → 엑셀 줄 (관리자 '엑셀 양식 내려받기'와 같은 코드) — parseSurveyRows로 다시 읽으면 같은 설문이 돼요 */
+function surveyToRows(items){
+  const rows = [['읏배구놀이터 관람 설문'], ['응답 유형: 단일 선택 · 복수 가능(최대 N개) · NPS (0~10점) · 척도 (5점, 행렬형) · 단일 선택 + 기타 주관식  |  선택지는 줄바꿈으로 구분  |  1-1처럼 번호를 붙이면 앞 문항 답에 따라 보여요'],
+                ['번호', '문항', '응답 유형', '선택지', '기타']];
+  for(const it of items){
+    let type, opts, note = [];
+    if(it.type === 'nps'){ type = 'NPS (0~10점)'; opts = `0점(${it.low || ''}) ~ 10점(${it.high || ''})`; }
+    else if(it.type === 'grid'){ type = `척도 (${it.cols.length}점, 행렬형)`; opts = [...it.rows.map(r => '[행] ' + r), '[열] ' + it.cols.join(' / ')].join('\n'); }
+    else {
+      type = it.type === 'multi' ? `복수 가능${it.max ? `(최대 ${it.max}개)` : ''}` : '단일 선택';
+      if(it.other) type += ' + 기타 주관식';
+      opts = it.options.map(o => it.other && o === '기타' ? '기타(직접 입력)' : o).join('\n');
+    }
+    if(it.cond) note.push(it.cond.in ? `${it.cond.id}번에서 ${it.cond.in.join(', ')}를 선택할 시` : `${it.cond.id}번에서 ${it.cond.notIn.join(', ')} 제외`);
+    if(it.comment) note.push('주관식 의견칸');
+    rows.push([it.id, it.q, type, opts, note.join(' / ')]);
+  }
+  return rows;
+}
+
+
+let xlsxLib = null;
+function loadXlsx(){
+  if(window.XLSX) return Promise.resolve(window.XLSX);
+  if(xlsxLib) return xlsxLib;
+  xlsxLib = new Promise((res, rej)=>{
+    const sc = document.createElement('script');
+    sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    sc.onload = ()=> res(window.XLSX); sc.onerror = ()=>{ xlsxLib = null; rej(new Error('엑셀 도구를 불러오지 못했어요. 인터넷 연결을 확인해주세요.')); };
+    document.head.appendChild(sc);
+  });
+  return xlsxLib;
+}
+async function readSurveyFile(file){
+  const X = await loadXlsx();
+  const wb = X.read(await file.arrayBuffer(), { type:'array' });
+  let lastErr = null;
+  for(const name of wb.SheetNames){            // '번호·문항' 머리글이 있는 첫 시트를 써요
+    const rows = X.utils.sheet_to_json(wb.Sheets[name], { header:1, defval:'', raw:false });
+    try{ return { sheet:name, ...parseSurveyRows(rows) }; }catch(e){ lastErr = e; }
+  }
+  throw lastErr || new Error('읽을 시트가 없어요.');
+}
+async function downloadSurveyXlsx(items, title){
+  const X = await loadXlsx();
+  const ws = X.utils.aoa_to_sheet(surveyToRows(items));
+  ws['!cols'] = [{ wch:7 }, { wch:46 }, { wch:24 }, { wch:34 }, { wch:30 }];
+  const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, '설문지');
+  X.writeFile(wb, `읏배구놀이터_설문_${String(title || mid()).replace(/[\\/:*?"<>|]/g, '_')}.xlsx`);
+}
+const condText = c => !c ? '' : `${c.id}번에서 ${c.in ? `'${c.in.join("', '")}' 고르면` : `'${c.notIn.join("', '")}' 말고 고르면`} 보여요`;
+function svBadges(q){
+  const b = [`<span class="chip off">${SV_TYPE[q.type] || '단일 선택'}${q.type === 'multi' && q.max ? ` · 최대 ${q.max}개` : ''}</span>`];
+  if(q.other) b.push('<span class="chip off">기타 직접 입력</span>');
+  if(q.comment) b.push('<span class="chip off">자유 의견칸</span>');
+  if(q.cond) b.push(`<span class="chip">${esc(condText(q.cond))}</span>`);
+  return b.join('');
+}
+function svOptsText(q){
+  if(q.type === 'nps') return `0점(${q.low || ''}) ~ 10점(${q.high || ''})`;
+  if(q.type === 'grid') return `${q.rows.join(' · ')}  ▸  ${q.cols.join(' / ')}`;
+  return (q.options || []).join(' · ');
+}
+
+/* 팝업 */
+let MOD = null;
+function openModal(html, dark){ $('modal-box').style.maxWidth = ''; $('modal-box').className = 'modal__box' + (dark ? ' dark' : ''); $('modal-box').innerHTML = html; $('modal').hidden = false; }
+function closeModal(){ $('modal').hidden = true; MOD = null; }
+$('modal').addEventListener('click', e=>{ if(e.target.id === 'modal' || e.target.closest('[data-act="modal-x"]')) closeModal(); });
+document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && !$('modal').hidden) closeModal(); });
+
+/* AI로 설문 생성 — 직관 설문에 맞춘 문항 묶음에서 문항 수·답변 수에 맞게 골라 채워요 (브라우저에서 바로, 비용 없음) */
+const SCALE = {
+  easy: { 3:['쉬웠어요', '보통이에요', '어려웠어요'], 4:['매우 쉬움', '쉬움', '어려움', '매우 어려움'], 5:['매우 쉬움', '쉬움', '보통', '어려움', '매우 어려움'] },
+  good: { 3:['좋았어요', '보통이에요', '아쉬웠어요'], 4:['최고였어요', '좋았어요', '보통이었어요', '아쉬웠어요'], 5:['최고였어요', '좋았어요', '보통이었어요', '아쉬웠어요', '별로였어요'] },
+  sat:  { 3:['만족', '보통', '불만족'], 4:['매우 만족', '만족', '불만족', '매우 불만족'], 5:['매우 만족', '만족', '보통', '불만족', '매우 불만족'] },
+  again:{ 3:['꼭 다시 올게요', '아마도요', '잘 모르겠어요'], 4:['꼭 다시 올게요', '아마도요', '잘 모르겠어요', '아닐 것 같아요'], 5:['다음 홈경기에 또 올게요', '이번 시즌 안에 올게요', '아마도요', '잘 모르겠어요', '아닐 것 같아요'] },
+};
+const SURVEY_BANK = [
+  ['오늘 경기장 좌석 안내는 찾기 쉬웠나요?', 'easy'], ['오늘 응원 분위기는 어땠나요?', 'good'], ['다음에도 직관하러 오실 의향이 있나요?', 'again'],
+  ['경기장 내 편의시설(매점·화장실 등)은 만족스러웠나요?', 'sat'], ['경기장까지 오는 길은 편했나요?', 'easy'], ['읏배구놀이터(이 화면)는 쓰기 편했나요?', 'easy'],
+  ['오늘 현장 이벤트는 어땠나요?', 'good'], ['경기장 입장·퇴장은 원활했나요?', 'sat'], ['오늘 경기는 재미있었나요?', 'good'],
+  ['응원 도구·굿즈는 만족스러웠나요?', 'sat'], ['막차·교통 안내가 도움이 됐나요?', 'sat'], ['친구에게 직관을 추천하고 싶나요?', 'again'],
+];
+function genSurvey(nq, na){
+  const pool = SURVEY_BANK.slice(); const out = [];
+  while(out.length < nq && pool.length){ const [q, sc] = pool.splice(Math.floor(Math.random() * pool.length), 1)[0]; out.push({ id:String(out.length + 1), q, type:'single', options:SCALE[sc][na].slice() }); }
+  return out;
+}
+/* 출석 답변 이미지 — 96px로 줄여서 저장 (관람객 화면이 가볍게 받도록) */
+function shrinkImage(file, size){
+  return new Promise((res, rej)=>{
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = ()=>{
+      const S = size || 96, r = Math.min(S / img.width, S / img.height, 1);
+      const cv = document.createElement('canvas'); cv.width = S; cv.height = S;
+      const g = cv.getContext('2d'); const w = img.width * r, h = img.height * r;
+      g.drawImage(img, (S - w) / 2, (S - h) / 2, w, h);
+      URL.revokeObjectURL(url);
+      let out = cv.toDataURL('image/webp', .8); if(!out.startsWith('data:image/webp')) out = cv.toDataURL('image/png');
+      res(out);
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); rej(new Error('이미지를 읽지 못했어요.')); };
+    img.src = url;
+  });
+}
+
+/* ---------- 로그인 ---------- */
+$('uid').value = uid();
+async function login(){
+  const id = $('uid').value.trim(), pw = $('key').value;
+  if(!id || !pw){ $('gate-status').textContent = '아이디와 비밀번호를 입력해주세요.'; $('gate-status').className = 'status err'; return; }
+  sessionStorage.setItem('adm_id', id);
+  sessionStorage.setItem('adm_key', pw);
+  $('gate-status').textContent = '연결하는 중…'; $('gate-status').className = 'status';
+  try{ await start(); }
+  catch(e){ $('gate-status').textContent = e.message === 'Failed to fetch' ? '서버에 연결하지 못했어요. 잠시 후 다시 시도해주세요.' : e.message; $('gate-status').className = 'status err'; sessionStorage.removeItem('adm_key'); }
+}
+$('login').addEventListener('click', login);
+['uid','key'].forEach(id => $(id).addEventListener('keydown', e => { if(e.key === 'Enter' && !e.isComposing) login(); }));
+$('logout').addEventListener('click', ()=>{ sessionStorage.removeItem('adm_id'); sessionStorage.removeItem('adm_key'); clearInterval(timer); location.reload(); });
+if(uid() && key()) start().catch(()=>{});
+
+let ME = { role:'owner', name:'' };
+// 권한 — owner 총괄 관리자 · manager 일반 관리자 · staff 부스 담당 (서버 index.js의 OWNER_ONLY와 맞춰요)
+const ROLE_NAME = { owner:'총괄 관리자', manager:'일반 관리자', staff:'부스 담당' };
+const ROLE_DESC = {
+  owner:'전부 — 계정 관리 · 데이터 초기화 · 응모 삭제 · 룰렛·배너(경품·확률)까지',
+  manager:'경기 운영 전부 — 경기 진행·설문·예측·MVP·추첨·전광판·금칙어 (초기화·계정·룰렛 경품은 빼고)',
+  staff:'조회 + 교환 코드 처리만 (부스용)',
+};
+const isOwner = () => ME.role === 'owner';
+const isStaff = () => ME.role === 'staff';
+const isAdmin = () => !isStaff();   // 총괄·일반
+async function start(){
+  const { matches } = await call('GET', '_/matches');
+  try{ ME = await call('GET', '_/me'); }catch(e){ ME = { id:uid(), name:uid(), role:'owner' }; }   // 예전 서버엔 없어요
+  const nm = ME.name || ME.id, rn = ROLE_NAME[ME.role] || ME.role;
+  $('who').textContent = nm === rn ? nm : `${nm} · ${rn}`;
+  if(isStaff()) page = 'codes';
+  const ids = [...new Set([today(), ...Object.keys(matches || {})])].sort().reverse();
+  MATCHES = ids;
+  const want = new URLSearchParams(location.search).get('match');
+  if(want && !ids.includes(want)) ids.unshift(want);
+  $('match').innerHTML = ids.map(id => `<option value="${id}">${id}${id === today() ? ' (오늘)' : ''}</option>`).join('')
+    + `<option value="__new">+ 다른 경기 ID 입력</option>`;
+  $('match').value = want || today();
+  $('gate').hidden = true; $('app').hidden = false;
+  await load();
+  clearInterval(timer);
+  timer = setInterval(()=>{ if(!document.hidden && !busy && !document.activeElement.matches('input,textarea,select')) load(true); }, 5000);
+}
+$('match').addEventListener('change', ()=>{
+  if($('match').value === '__new'){
+    const v = (prompt('경기 ID를 입력하세요 (index.html의 MATCH_ID, 비워두면 날짜 예: 2026-10-31)') || '').trim();
+    if(v){ const o = document.createElement('option'); o.value = v; o.textContent = v; $('match').insertBefore(o, $('match').firstChild); $('match').value = v; }
+    else $('match').value = today();
+  }
+  DR = {}; SUBC.mid = '';
+  load();
+});
+
+// 관람객 화면 열기 — 지금 고른 경기 ID로 (오늘 날짜가 아니면 ?match= 로 그 경기에 들어가요)
+function syncSiteLink(){ const id = mid(); $('open-site').href = 'index.html' + (id === today() ? '' : '?match=' + encodeURIComponent(id)); }
+// 응답(subs)은 처음에만 전체, 그다음부턴 서버가 'since 이후 바뀐 것'만 보내요 → 5초 새로고침이 가벼워요.
+// 서버가 지운 적이 있거나(초기화·응모 삭제) 경기를 바꾸면 전체를 다시 받아요.
+const SUBC = { mid:'', since:0, map:{} };
+async function load(quiet){
+  syncSiteLink();
+  const m = mid();
+  try{
+    const fresh = SUBC.mid !== m || !SUBC.since;
+    const d = await call('GET', encodeURIComponent(m) + (fresh ? '' : '?since=' + SUBC.since));
+    if(mid() !== m) return;                                   // 그사이 경기를 바꿨으면 버려요
+    if(fresh || d.subsMode !== 'delta') SUBC.map = {};
+    for(const [t, arr] of Object.entries(d.subs || {})){
+      const mp = SUBC.map[t] || (SUBC.map[t] = new Map());
+      arr.forEach(r => mp.set(r.k || t + ':' + r.device, r));
+    }
+    d.subs = Object.fromEntries(Object.entries(SUBC.map).map(([t, mp]) => [t, [...mp.values()]]));
+    SUBC.mid = m; SUBC.since = d.now || 0;
+    D = d; render();
+  }
+  catch(e){ if(!quiet) toast(e.message, true); }
+}
+
+/* ================================================================
+   집계
+   ================================================================ */
+/* ================================================================
+   설문 · 예측 버전 — 서버가 문항이 바뀔 때마다 v1, v2 … 를 매기고(history), 응답엔 그때 본 버전(ver)이 같이 저장돼요.
+   v0 = 관리자 등록 전 기본 문항 · '이전 응답' = 버전 기능 전에 쌓인 응답
+   ================================================================ */
+function buildVersions(kind, rows){
+  const hist = ((D.history || {})[kind]) || [];
+  const live = kind === 'survey' ? D.survey : null;
+  const curHas = kind === 'survey' ? !!live : Array.isArray(CT()[kind]) && CT()[kind].length;
+  const cur = kind === 'survey' ? (live ? live.v : 0) : curHas ? (Number((CT()[kind + 'Ver'] || {}).v) || 0) : 0;
+  const map = new Map();
+  const add = (v, at, items, title) => { if(!map.has(v)) map.set(v, { v, at, items, title:'', rows:[] }); const x = map.get(v); if(items && !x.items) x.items = items; if(at && !x.at) x.at = at; if(title && !x.title) x.title = title; return x; };
+  hist.forEach(h => add(h.v, h.at, h.items, h.title));
+  add(cur, null, null);
+  rows.forEach(r => { const d = r.data || {}; add(d.ver == null ? 'none' : Number(d.ver) || 0, null, null).rows.push(r); });
+  if(map.has(0) && !map.get(0).items) map.get(0).items = clone(kind === 'survey' ? SURV_DEF : PRED_DEF);
+  return [...map.values()].map(x => ({ ...x, current:x.v === cur }))
+    .sort((a, b) => (a.v === 'none') - (b.v === 'none') || (b.v === 'none' ? 0 : b.v - a.v));
+}
+const vLabel = v => v === 'none' ? '이전 응답' : v === 0 ? '기본 문항' : 'v' + v;
+const ansKey = (v, id) => (v === 'none' || v === 0) ? id : `v${v}_${id}`;
+function derivePredQs(rows, fallback){
+  const m = new Map();
+  for(const r of rows) for(const q of ((r.data || {}).questions) || []) if(!m.has(q.id)) m.set(q.id, { id:q.id, q:q.q });
+  if(!m.size && fallback) return fallback;
+  return [...m.values()];
+}
+function deriveSurvQs(rows){
+  const m = new Map();
+  for(const r of rows) for(const a of (r.data || {}).answers || []) if(!m.has(a.q)) m.set(a.q, { q:a.q, type:'single', options:null });
+  return [...m.values()];
+}
+const ansVals = a => Array.isArray(a.a) ? a.a.map(String) : a.a == null || a.a === '' ? [] : [typeof a.a === 'number' ? `${a.a}점` : String(a.a)];
+/* 설문 문항 하나 집계 — 유형별로 */
+function surveyAgg(it, rows){
+  const out = { ...it, n:0, etc:[], memo:[] };
+  const find = r => ((r.data || {}).answers || []);
+  if(it.type === 'grid'){
+    out.cells = it.rows.map(() => new Array(it.cols.length).fill(0));
+    for(const r of rows){
+      let any = false;
+      for(const a of find(r)){
+        if(a.group !== it.id) continue;
+        const ri = Number(String(a.id).split(':')[1]), ci = it.cols.indexOf(a.a);
+        if(out.cells[ri] && ci >= 0){ out.cells[ri][ci]++; any = true; }
+      }
+      if(any) out.n++;
+    }
+    return out;
+  }
+  const counts = {};
+  if(it.type === 'nps') out.dist = new Array(11).fill(0);
+  for(const r of rows){
+    const a = find(r).find(x => it.id != null && x.id != null ? String(x.id) === String(it.id) : x.q === it.q);
+    if(!a || a.a == null || a.a === '' || (Array.isArray(a.a) && !a.a.length)) continue;
+    out.n++;
+    if(it.type === 'nps'){ const v = Number(a.a); if(v >= 0 && v <= 10) out.dist[v]++; }
+    else for(const x of ansVals(a)) counts[x] = (counts[x] || 0) + 1;
+    if(a.etc) out.etc.push({ t:a.etc, at:r.at });
+    if(a.memo) out.memo.push({ t:a.memo, at:r.at });
+  }
+  out.counts = counts;
+  const o = it.options || null;
+  out.order = o ? [...o, ...Object.keys(counts).filter(k => !o.includes(k))] : null;
+  if(it.type === 'nps' && out.n){
+    const d = out.dist, sum = d.reduce((acc, c, i) => acc + c * i, 0);
+    const pro = d[9] + d[10], det = d.slice(0, 7).reduce((x, y) => x + y, 0);
+    out.avg = sum / out.n; out.nps = Math.round((pro - det) / out.n * 100);
+    out.pro = pro; out.det = det; out.pas = out.n - pro - det;
+  }
+  return out;
+}
+/* 설문 결과 카드 — 유형별 */
+function textList(title, list, key){
+  if(!list.length) return '';
+  return `<details class="tlist" data-open-key="${esc(key || title)}"><summary>${title} ${list.length}건</summary>${list.slice().sort((a, b) => (b.at || 0) - (a.at || 0)).map(x => `<p>${esc(x.t)}<span>${time(x.at)}</span></p>`).join('')}</details>`;
+}
+function surveyCard(q){
+  const head = `<h2 style="align-items:flex-start;"><span>${esc(q.id != null ? q.id + '. ' : '')}${esc(q.q)}</span><span class="muted" style="font-size:13px; font-weight:600; white-space:nowrap;">응답 ${fmt(q.n)}명</span></h2>
+    <p class="m" style="margin:2px 0 12px;">${q.type ? svBadges(q) : ''}</p>`;
+  let bodyHtml;
+  if(!q.n) bodyHtml = '<p class="empty">아직 응답이 없어요.</p>';
+  else if(q.type === 'nps'){
+    const max = Math.max(1, ...q.dist);
+    bodyHtml = `<div class="kpis" style="grid-template-columns:repeat(3,1fr); margin-bottom:12px;">
+        <div class="kpi hot"><span>NPS</span><b>${q.nps > 0 ? '+' : ''}${q.nps}</b></div>
+        <div class="kpi"><span>평균</span><b>${q.avg.toFixed(1)}점</b></div>
+        <div class="kpi"><span>추천 9~10 · 중립 7~8 · 비추천 0~6</span><b style="font-size:18px;">${pct(q.pro, q.n)}% · ${pct(q.pas, q.n)}% · ${pct(q.det, q.n)}%</b></div></div>
+      <div class="hours nps-d">${q.dist.map((c, i) => `<div class="${i >= 9 ? 'pro' : i >= 7 ? 'pas' : 'det'}" title="${i}점 ${c}명">${c ? `<b>${c}</b>` : ''}<i style="height:${c / max * 84}%"></i><em>${i}</em></div>`).join('')}</div>
+      <p class="desc" style="margin-top:8px;">NPS = 9~10점 비율 − 0~6점 비율 · 0점 ${esc(q.low || '')} / 10점 ${esc(q.high || '')}</p>`;
+  }
+  else if(q.type === 'grid'){
+    bodyHtml = `<div class="scroll"><table class="gtab"><thead><tr><th>항목</th><th>평균</th><th style="width:44%;">분포 (${q.cols.map(esc).join(' → ')})</th>${q.cols.map(c => `<th class="num">${esc(c)}</th>`).join('')}</tr></thead><tbody>
+      ${q.rows.map((row, ri) => { const c = q.cells[ri], n = c.reduce((a, b) => a + b, 0), avg = n ? c.reduce((a, x, i) => a + x * (i + 1), 0) / n : 0;
+        return `<tr><td><b>${esc(row)}</b></td><td><b>${n ? avg.toFixed(2) : '—'}</b><span class="muted"> / ${q.cols.length}</span></td>
+          <td><span class="stack">${c.map((x, i) => x ? `<i style="width:${x / n * 100}%; opacity:${(0.25 + 0.75 * i / (q.cols.length - 1)).toFixed(2)}" title="${esc(q.cols[i])} ${x}명"></i>` : '').join('')}</span></td>
+          ${c.map(x => `<td class="num muted">${x}</td>`).join('')}</tr>`; }).join('')}
+    </tbody></table></div>`;
+  }
+  else bodyHtml = bars(q.counts, { order:q.order || undefined, base:q.n, multi:q.type === 'multi' })
+    + (q.type === 'multi' ? '<p class="desc" style="margin-top:6px;">복수 선택이라 비율의 합이 100%를 넘을 수 있어요 (응답자 대비).</p>' : '');
+  return `<section class="card">${head}${bodyHtml}${textList("'기타' 직접 입력", q.etc || [], 'etc:' + q.id)}${textList('자유 의견', q.memo || [], 'memo:' + q.id)}</section>`;
+}
+function vTabs(kind, list, extra){
+  const sel = DR.tab && DR.tab[kind];
+  const pick = list.some(v => String(v.v) === String(sel)) || (extra && sel === extra[0]) ? sel : String((list.find(v => v.current) || list[0] || {}).v);
+  DR.tab = { ...(DR.tab || {}), [kind]:pick };
+  return { pick, html:`<div class="seg vtabs">${list.map(v => `<button data-vtab="${kind}" data-v="${v.v}" class="${String(v.v) === pick ? 'on' : ''}">${vLabel(v.v)}${v.title ? ' ' + esc(v.title.length > 14 ? v.title.slice(0, 13) + '…' : v.title) : ''}${v.current ? ' · 지금' : ''} <em>${v.rows.length}</em></button>`).join('')}
+    ${extra ? `<button data-vtab="${kind}" data-v="${extra[0]}" class="${pick === extra[0] ? 'on' : ''}">${extra[1]}</button>` : ''}</div>` };
+}
+const vMeta = (v, unit) => `${vLabel(v.v)}${v.title ? ` '${esc(v.title)}'` : ''}${v.at ? ` · ${time(v.at)} 등록` : ''} · ${unit} ${fmt(v.rows.length)}명${v.current ? ' · 지금 관람객에게 나가는 문항' : ''}${v.v === 'none' ? ' · 버전 기능을 넣기 전에 쌓인 응답이에요' : ''}`;
+
+/* CSV 내려받기 — 엑셀에서 한글이 깨지지 않게 BOM을 붙여요 */
+function downloadCsv(name, rows){
+  const cell = v => { v = String(v ?? ''); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const text = '\ufeff' + rows.map(r => r.map(cell).join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type:'text/csv;charset=utf-8' }));
+  a.download = `읏배구놀이터_${name}_${mid()}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=> URL.revokeObjectURL(a.href), 4000);
+}
+const csvTime = ts => { if(!ts) return ''; const d = new Date(ts); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+function csvSurvey(){
+  const S = stats(), out = [['버전', '설문 제목', '버전 등록 시각', '응답 시각', '기기', '문항 번호', '유형', '질문', '답변', '점수', '기타 직접 입력', '자유 의견']];
+  const TY = { ...SV_TYPE, grid:'행렬 척도' };
+  for(const v of S.sv) for(const r of v.rows) ((r.data || {}).answers || []).forEach((a, i) => out.push([
+    vLabel(v.v), v.title || '', csvTime(v.at), csvTime(r.at), String(r.device || '').slice(-6), a.id != null ? String(a.id).replace(/:(\d+)$/, (m, n) => `-${Number(n) + 1}행`) : i + 1,
+    TY[a.type] || '', a.q, Array.isArray(a.a) ? a.a.join(' / ') : a.a, a.score ?? (typeof a.a === 'number' ? a.a : ''), a.etc || '', a.memo || '']));
+  if(out.length === 1) return toast('아직 설문 응답이 없어요.', true);
+  downloadCsv('설문', out);
+}
+function csvPredict(){
+  const S = stats(), ans = (D.settings || {}).answers || {}, out = [['버전', '버전 등록 시각', '응답 시각', '기기', '질문', '예측', '정답', '맞힘']];
+  for(const v of S.pred.versions) for(const r of v.rows){
+    const t = (r.data || {}).text || {};
+    v.questions.forEach(q => { const a = ans[q.key] || ''; out.push([vLabel(v.v), csvTime(v.at), csvTime(r.at), String(r.device || '').slice(-6), q.q, t[q.id] || '', a, a ? (t[q.id] === a ? 'O' : 'X') : '']); });
+  }
+  if(out.length === 1) return toast('아직 예측 응답이 없어요.', true);
+  downloadCsv('경기예측', out);
+}
+
+function stats(){
+  const s = D.subs || {};
+  // 경기 예측 — 버전별 (관리자가 문항을 바꿀 때마다 서버가 버전을 올려요)
+  const answers = (D.settings || {}).answers || {};
+  const pv = buildVersions('predict', s.predictions || []);
+  pv.forEach(v => {
+    const qs = v.v === 'none' || !v.items ? derivePredQs(v.rows, v.items) : v.items;
+    v.questions = qs.map(q => {
+      const counts = {};
+      for(const r of v.rows){ const x = ((r.data || {}).text || {})[q.id]; if(x) counts[x] = (counts[x] || 0) + 1; }
+      const opts = q.type === 'player' || !q.options ? null : q.options;
+      return { id:q.id, q:q.q, counts, key:ansKey(v.v, q.id), order: opts ? [...opts, ...Object.keys(counts).filter(k => !opts.includes(k))] : null };
+    });
+    const withAns = v.questions.filter(q => answers[q.key]);
+    v.answered = withAns.length;
+    v.allCorrect = new Set();
+    if(withAns.length) for(const r of v.rows){ const t = (r.data || {}).text || {}; if(withAns.every(q => t[q.id] === answers[q.key])) v.allCorrect.add(r.device); }
+  });
+  const pred = { count:(s.predictions || []).length, versions:pv, allCorrect:new Set(pv.flatMap(v => [...v.allCorrect])) };
+  // MVP
+  const mvp = {};
+  for(const r of s.mvp || []){ const d = r.data || {}; if(d.num == null) continue; const k = String(d.num); mvp[k] = mvp[k] || { num:d.num, name:d.name || '', n:0 }; mvp[k].n++; }
+  const mvpRank = Object.values(mvp).sort((a, b) => b.n - a.n);
+  // 설문
+  // 전체 합산 — 질문 문장이 같은 것끼리 (복수 선택은 고른 것마다, NPS는 'n점')
+  const sq = new Map();
+  for(const r of s.survey || []) for(const a of (r.data || {}).answers || []){
+    if(!sq.has(a.q)) sq.set(a.q, {}); const c = sq.get(a.q);
+    for(const x of ansVals(a)) c[x] = (c[x] || 0) + 1;
+  }
+  const sv = buildVersions('survey', s.survey || []);
+  sv.forEach(v => { v.questions = (v.items || deriveSurvQs(v.rows)).map(it => surveyAgg(it, v.rows)); });
+  // 출석
+  // 질문 key별로 집계 (관리자가 질문을 바꿔도 그대로 동작)
+  const ck = { count:(s.checkin || []).length, by:{} };
+  for(const r of s.checkin || []) for(const [k, v] of Object.entries(r.data || {})){
+    if(typeof v !== 'string' || k === 'ts') continue;
+    (ck.by[k] = ck.by[k] || {})[v] = (ck.by[k][v] || 0) + 1;
+  }
+  // 룰렛
+  const rl = { spins:0, wins:[], byTitle:{} };
+  for(const r of s.roulette || []) for(const w of (r.data || {}).wins || []){
+    rl.spins++;
+    if(w.miss) { rl.byTitle['꽝'] = (rl.byTitle['꽝'] || 0) + 1; continue; }
+    rl.byTitle[w.title] = (rl.byTitle[w.title] || 0) + 1;
+    rl.wins.push({ code:w.code, title:w.title, at:w.ts, device:r.device.slice(-4), type:'룰렛' });
+  }
+  // 응모
+  // 기획서 v0.2: 닉네임 응모. 예전 연락처 응모가 남아 있으면 가려서 보여줘요.
+  const predDev = new Set((s.predictions || []).map(r => r.device)), survDev = new Set((s.survey || []).map(r => r.device));
+  const raffle = (s.raffle_entry || []).map(r => {
+    const d = r.data || {};
+    return { ...d, at:r.at || d.at, device:r.device, name: d.nickname || mask(d.contact),
+             viaPredict: !!d.predicted || predDev.has(r.device) || d.source === 'predict',
+             viaSurvey: !!d.surveyed || survDev.has(r.device) || d.source === 'survey' };
+  });
+  return { pred, mvpRank, sq, sv, ck, rl, raffle };
+}
+
+/* ================================================================
+   화면
+   ================================================================ */
+const PAGES = [
+  ['dash', '대시보드'], ['events', '현장 이벤트'], ['cheer', '응원 이벤트'], ['predict', '경기 예측'],
+  ['mvp', 'MVP 투표'], ['survey', '설문'], ['raffle', '경품 응모·추첨'], ['codes', '룰렛·교환 코드'], ['checkin', '출석체크'],
+  ['home', '룰렛·배너'], ['settings', '설정'],
+];
+const STAFF_PAGES = ['dash', 'codes', 'settings'];
+function render(){
+  // 새로고침해도 입력 중인 값·추첨 결과·코드 확인 결과는 그대로 두기
+  const keep = {}, keepHtml = {};
+  if(render.last === page){
+    document.querySelectorAll('#main input[id], #main select[id], #main textarea[id]').forEach(el=> keep[el.id] = el.value);
+    ['rf-result', 'code-result'].forEach(id=>{ if($(id)) keepHtml[id] = $(id).innerHTML; });
+  }
+  // 펼쳐 둔 목록은 새로고침해도 펼친 채로 (같은 화면일 때)
+  const openKeys = render.last === page ? [...document.querySelectorAll('#main details[open][data-open-key]')].map(d => d.dataset.openKey) : [];
+  render.last = page;
+  const S = stats(); window.__S = S;
+  const count = { cheer:fmt(D.total), predict:S.pred.count, mvp:S.mvpRank.reduce((a, b) => a + b.n, 0), survey:(D.subs.survey || []).length,
+                  raffle:S.raffle.length, codes:S.rl.wins.length + (D.winners || []).length, checkin:S.ck.count, events:(D.events || []).filter(e => e.active !== false).length };
+  if(isStaff() && !STAFF_PAGES.includes(page)) page = 'codes';
+  $('nav').innerHTML = PAGES.filter(([k]) => !isStaff() || STAFF_PAGES.includes(k)).map(([k, t]) => `${k === 'settings' ? '<hr class="navsep">' : ''}<button class="${k === page ? 'on' : ''}" data-page="${k}">${t}${count[k] != null ? `<em>${count[k]}</em>` : ''}</button>`).join('');
+  const oldServer = D.serverVersion !== SERVER_NEED;
+  $('main').innerHTML = (oldServer ? `<div class="winbox" style="background:#FFF1EC; color:#C2410C; margin:0 0 16px;"><b>서버(okman-live)가 최신 버전이 아니에요</b>
+      <p style="font-size:13px; margin-top:4px;">지금 서버: ${esc(D.serverVersion || '버전 정보 없음(예전 버전)')} · 필요한 버전: ${SERVER_NEED}<br>설정 › 데이터 초기화, 설문 보관함, 접속자처럼 새로 넣은 기능이 '서버가 이 기능을 몰라요'로 실패해요. Cloudflare › okman-live › Edit code에 최신 index.js를 붙여넣고 Deploy해 주세요.</p></div>` : '')
+    + (VIEWS[page] || VIEWS.dash)(S);
+  Object.entries(keep).forEach(([id, v])=>{ const el = $(id); if(el) el.value = v; });
+  Object.entries(keepHtml).forEach(([id, h])=>{ if($(id)) $(id).innerHTML = h; });
+  openKeys.forEach(k => { const d = document.querySelector(`#main details[data-open-key="${CSS.escape(k)}"]`); if(d) d.open = true; });
+  (AFTER[page] || (()=>{}))(S);
+}
+$('nav').addEventListener('click', e=>{ const b = e.target.closest('[data-page]'); if(!b) return; page = b.dataset.page; render(); scrollTo(0, 0); });
+$('main').addEventListener('click', e=>{ const b = e.target.closest('button[data-page]'); if(!b) return; page = b.dataset.page; render(); scrollTo(0, 0); });
+
+const bars = (counts, opts = {}) => {
+  const entries = (opts.order || Object.keys(counts)).map(k => [k, counts[k] || 0]);
+  if(!opts.order) entries.sort((a, b) => b[1] - a[1]);
+  const total = opts.base || entries.reduce((a, b) => a + b[1], 0), max = Math.max(1, ...entries.map(e => e[1]));
+  return entries.map(([k, n], i) => `<div class="bar${i === 0 && !opts.order && n ? ' top' : ''}${opts.answer === k ? ' answer' : ''}">
+    <span class="l" title="${esc(k)}">${opts.answer === k ? '✓ ' : ''}${esc(k)}</span>
+    <span class="tr"><span class="f" style="width:${n / max * 100}%"></span></span>
+    <span class="n">${n}명 · ${pct(n, total)}%</span></div>`).join('') || '<p class="empty">아직 응답이 없어요.</p>';
+};
+
+/* ---------- 설문 편집기 — 단일·복수·NPS·행렬, 기타 직접 입력·자유 의견칸, 조건 ---------- */
+function chipList(i, k, list, max, min, ph){
+  return list.map((o, j) => `<span class="ochip"><input data-ed="survey" data-i="${i}" data-j="${j}" data-f="${k}" value="${esc(o)}" maxlength="40" placeholder="${ph}" aria-label="${ph} ${j + 1}"><button data-act="ed-odel" data-ed="survey" data-k="${k}" data-i="${i}" data-j="${j}" aria-label="삭제"${list.length <= min ? ' disabled' : ''}>×</button></span>`).join('')
+    + (list.length < max ? `<button class="btn small ghost" data-act="ed-oadd" data-ed="survey" data-k="${k}" data-i="${i}">추가</button>` : '');
+}
+function sEditor(){
+  const list = DR.survey;
+  return list.map((q, i) => `<div class="qed">
+    <div class="qed__head"><b>${esc(q.id || i + 1)}번</b>
+      <select class="in" style="width:auto; height:34px;" data-ed="survey" data-i="${i}" data-f="type" aria-label="응답 유형">${Object.entries(SV_TYPE).map(([k, t]) => `<option value="${k}"${q.type === k ? ' selected' : ''}>${t}</option>`).join('')}</select>
+      ${q.type === 'multi' ? `<label class="chk">최대 <input class="in" type="number" min="0" max="25" style="width:64px; height:34px;" data-ed="survey" data-i="${i}" data-f="max" value="${q.max || ''}" placeholder="제한 없음">개</label>` : ''}
+      <span style="flex:1"></span>
+      <button class="btn small ghost" data-act="ed-del" data-ed="survey" data-i="${i}"${list.length <= 1 ? ' disabled' : ''}>삭제</button></div>
+    ${q.cond ? `<p class="desc" style="margin:0 0 8px;"><span class="chip">조건</span>${esc(condText(q.cond))} <button class="btn small ghost" data-act="sv-nocond" data-i="${i}">조건 없애기</button></p>` : ''}
+    <input class="in" data-ed="survey" data-i="${i}" data-f="q" value="${esc(q.q)}" maxlength="120" placeholder="질문을 입력해주세요">
+    ${q.type === 'nps' ? `<div class="opts"><label class="chk">0점 <input class="in" style="width:160px; height:34px;" data-ed="survey" data-i="${i}" data-f="low" value="${esc(q.low || '')}" maxlength="30" placeholder="전혀 추천 안 함"></label>
+        <label class="chk">10점 <input class="in" style="width:160px; height:34px;" data-ed="survey" data-i="${i}" data-f="high" value="${esc(q.high || '')}" maxlength="30" placeholder="적극 추천"></label></div>`
+    : q.type === 'grid' ? `<p class="desc" style="margin:10px 0 0;">평가 항목 (행)</p><div class="opts" style="margin-top:6px;">${chipList(i, 'rows', q.rows, LIMIT.gridRows, 1, '평가 항목')}</div>
+        <p class="desc" style="margin:10px 0 0;">척도 (열)</p><div class="opts" style="margin-top:6px;">${chipList(i, 'cols', q.cols, LIMIT.gridCols, 2, '척도')}</div>`
+    : `<div class="opts">${chipList(i, 'options', q.options, LIMIT.surveyO, 2, '선택 항목')}</div>
+       <div class="opts"><label class="chk"><input type="checkbox" data-ed="survey" data-i="${i}" data-f="other"${q.other ? ' checked' : ''}>'기타' 고르면 직접 입력</label>
+         <label class="chk"><input type="checkbox" data-ed="survey" data-i="${i}" data-f="comment"${q.comment ? ' checked' : ''}>아래 자유 의견칸 (선택)</label></div>`}
+  </div>`).join('');
+}
+// 유형을 바꾸면 그 유형에 필요한 칸을 채워요 (원래 값은 남겨둬서 다시 돌아오면 그대로)
+function setSvType(q, t){
+  q.type = t;
+  if((t === 'single' || t === 'multi') && !(q.options || []).length) q.options = ['', ''];
+  if(t === 'grid'){ if(!(q.rows || []).length) q.rows = ['']; if(!(q.cols || []).length) q.cols = ['매우 불만족', '불만족', '보통', '만족', '매우 만족']; }
+  if(t === 'nps'){ if(q.low == null) q.low = '전혀 추천 안 함'; if(q.high == null) q.high = '적극 추천'; }
+}
+function validSurvey(list){
+  const ids = new Set();
+  for(const [i, q] of list.entries()){
+    const no = q.id || i + 1;
+    if(ids.has(String(q.id))) return `${no}번 번호가 겹쳐요.`; ids.add(String(q.id));
+    if(!String(q.q || '').trim()) return `${no}번 질문을 입력해주세요.`;
+    const uniq = (arr, what, min) => { const o = (arr || []).map(x => String(x).trim()).filter(Boolean); if(o.length < min) return `${no}번 ${what}을 ${min}개 이상 넣어주세요.`; if(new Set(o).size !== o.length) return `${no}번에 같은 ${what}이 있어요.`; return ''; };
+    let e = '';
+    if(q.type === 'grid') e = uniq(q.rows, '평가 항목', 1) || uniq(q.cols, '척도', 2);
+    else if(q.type !== 'nps') e = uniq(q.options, '선택 항목', 2);
+    if(e) return e;
+    if(q.cond){
+      const parent = list.slice(0, i).find(x => String(x.id) === String(q.cond.id));
+      if(!parent) return `${no}번 조건의 ${q.cond.id}번 문항이 앞에 없어요. '조건 없애기'를 누르거나 문항을 다시 넣어주세요.`;
+    }
+  }
+  return '';
+}
+function cleanSurvey(list){
+  const t = arr => (arr || []).map(x => String(x).trim()).filter(Boolean);
+  return list.map((q, i) => {
+    const it = { id:String(q.id || i + 1), q:q.q.trim(), type:q.type || 'single' };
+    if(it.type === 'nps'){ it.low = String(q.low || '').trim(); it.high = String(q.high || '').trim(); }
+    else if(it.type === 'grid'){ it.rows = t(q.rows); it.cols = t(q.cols); }
+    else {
+      it.options = t(q.options);
+      if(it.type === 'multi' && Number(q.max) > 0) it.max = Math.min(it.options.length, Math.floor(Number(q.max)));
+      if(q.other){ it.other = true; if(!it.options.includes('기타')) it.options.push('기타'); }
+    }
+    if(q.comment && it.type !== 'grid') it.comment = true;
+    if(q.cond) it.cond = q.cond;
+    return it;
+  });
+}
+/* ---------- 설문 보관함 (시즌 전체 공통 · 서버 레지스트리에 저장) ---------- */
+const LIB = { surveys:[], defaultId:'', at:0, loading:false };
+async function loadLib(){
+  if(LIB.loading) return; LIB.loading = true;
+  try{ const d = await call('GET', '_/surveys'); LIB.surveys = d.surveys || []; LIB.defaultId = d.defaultId || ''; LIB.at = Date.now(); }
+  catch(e){ LIB.err = e.message; LIB.at = Date.now(); }
+  finally{ LIB.loading = false; }
+  if(page === 'survey') render();
+}
+function saveLib(next, msg){
+  return act(()=> call('PUT', '_/surveys', next), msg).then(ok =>{ if(ok){ LIB.surveys = next.surveys; LIB.defaultId = next.defaultId; loadLib(); } return ok; });
+}
+const libById = id => LIB.surveys.find(x => x.id === id);
+const libIdx = i => LIB.surveys[i];
+function svList(items){ return items.map(q => `<div class="row"><div class="main"><p class="t">${esc(q.id)}. ${esc(q.q)}</p><p class="m" style="margin-top:4px;">${svBadges(q)}</p><p class="m">${esc(svOptsText(q))}</p></div></div>`).join(''); }
+
+function svNextId(){ return String(Math.max(0, ...DR.survey.map(q => parseInt(q.id, 10) || 0)) + 1); }
+
+/* ---------- 문항 편집기 (예측) ---------- */
+function qEditor(kind){
+  const P = kind === 'predict';
+  const list = DR[kind];
+  const maxO = P ? LIMIT.predictO : LIMIT.surveyO;
+  return list.map((q, i) => `<div class="qed">
+    <div class="qed__head"><b>${P ? '예측 질문' : '설문'} ${i + 1}</b>
+      ${P ? `<label class="chk"><input type="checkbox" data-ed="${kind}" data-i="${i}" data-f="ai"${q.ai !== false ? ' checked' : ''}>AI추천 사용</label>` : ''}
+      <button class="btn small ghost" data-act="ed-del" data-ed="${kind}" data-i="${i}"${list.length <= 1 ? ' disabled' : ''}>삭제</button></div>
+    <input class="in" data-ed="${kind}" data-i="${i}" data-f="q" value="${esc(q.q)}" maxlength="40" placeholder="질문을 입력해주세요">
+    <div class="opts">
+      ${q.type === 'player'
+        ? `<span class="pchip">OK저축은행 선수 카드 (리베로 제외 전체)</span><button class="btn small ghost" data-act="ed-noplayer" data-ed="${kind}" data-i="${i}">직접 입력으로</button>`
+        : q.options.map((o, j) => `<span class="ochip"><input data-ed="${kind}" data-i="${i}" data-j="${j}" data-f="opt" value="${esc(o)}" maxlength="20" placeholder="선택 항목" aria-label="선택 항목 ${j + 1}"><button data-act="ed-odel" data-ed="${kind}" data-i="${i}" data-j="${j}" aria-label="항목 삭제"${q.options.length <= 2 ? ' disabled' : ''}>×</button></span>`).join('')
+          + (q.options.length < maxO ? `<button class="btn small ghost" data-act="ed-oadd" data-ed="${kind}" data-i="${i}">추가</button>` : '')
+          + (P ? `<button class="btn small ghost" data-act="ed-player" data-ed="${kind}" data-i="${i}">선수불러오기</button>` : '')}
+    </div></div>`).join('');
+}
+function validQs(list, kind){
+  for(const [i, q] of list.entries()){
+    if(!String(q.q || '').trim()) return `${i + 1}번 질문을 입력해주세요.`;
+    if(q.type !== 'player'){
+      const o = q.options.map(x => String(x).trim()).filter(Boolean);
+      if(o.length < 2) return `${i + 1}번 질문의 선택 항목을 2개 이상 넣어주세요.`;
+      if(new Set(o).size !== o.length) return `${i + 1}번 질문에 같은 선택 항목이 있어요.`;
+    }
+  }
+  return '';
+}
+const cleanQs = list => list.map((q, i) => q.type === 'player'
+  ? { id:q.id || 'q' + (i + 1), q:q.q.trim(), type:'player', ai:q.ai !== false }
+  : { ...(q.id ? { id:q.id } : {}), q:q.q.trim(), options:q.options.map(x => String(x).trim()).filter(Boolean), ...('ai' in q ? { ai:q.ai !== false } : {}) });
+
+/* 예측 결과 — 버전 탭 */
+function predResults(S){
+  const list = S.pred.versions.filter(v => v.rows.length || v.current);
+  if(!S.pred.count) return `<section class="card"><p class="empty">아직 예측에 참여한 사람이 없어요.</p></section>`;
+  const ans = (D.settings || {}).answers || {};
+  const { pick, html } = vTabs('predict', list);
+  const v = list.find(x => String(x.v) === pick) || list[0];
+  return `<section class="card"><h2>예측 결과</h2>${html}<p class="desc" style="margin:12px 0 0;">${vMeta(v, '참여')}</p></section>
+    ${v.answered ? `<div class="kpis" style="grid-template-columns:1fr 1fr 1fr;"><div class="kpi hot"><span>이 버전 전부 맞힌 사람</span><b>${fmt(v.allCorrect.size)}</b></div><div class="kpi"><span>정답 입력</span><b>${v.answered} / ${v.questions.length}</b></div><div class="kpi"><span>전체 전부 맞힌 사람</span><b>${fmt(S.pred.allCorrect.size)}</b></div></div>` : ''}
+    ${v.rows.length ? v.questions.map(q => {
+      const right = ans[q.key] ? (q.counts[ans[q.key]] || 0) : null;
+      const choices = q.order || Object.keys(q.counts).sort();
+      return `<section class="card"><h2>${esc(q.q)}${right != null ? `<span class="chip ok">정답 ${right}명</span>` : ''}</h2>
+        ${bars(q.counts, { answer:ans[q.key], order:q.order || undefined })}
+        <div class="form" style="grid-template-columns:1fr auto;">
+          <div class="field" style="grid-column:auto;"><label>정답</label><select data-ans="${esc(q.key)}"><option value="">— 아직 —</option>${choices.map(c => `<option${ans[q.key] === c ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select></div>
+          <button class="btn dark" data-act="ans-save" style="grid-column:auto; align-self:end;">정답 저장</button>
+        </div></section>`; }).join('')
+    : `<section class="card"><p class="empty">이 버전에는 아직 참여한 사람이 없어요.</p></section>`}`;
+}
+/* 설문 결과 — 버전 탭 + 전체 합산 */
+function survResults(S){
+  const n = (D.subs.survey || []).length;
+  // 끝낸 사람이 없어도, 시작했다가 그만둔 기록이 있으면 이탈 지점은 보여줘요
+  if(!n && !(D.subs.survey_progress || []).length) return `<section class="card"><p class="empty">아직 설문 응답이 없어요.</p></section>`;
+  const list = S.sv.filter(v => v.rows.length || v.current);
+  const { pick, html } = vTabs('survey', list, ['all', '전체 합산']);
+  if(pick === 'all') return `<section class="card"><h2>설문 결과</h2>${html}<p class="desc" style="margin:12px 0 0;">모든 버전의 응답을 질문 문장이 같은 것끼리 합쳐서 보여줘요 · 응답 ${fmt(n)}명</p></section>
+    ${[...S.sq].map(([q, c]) => `<section class="card"><h2>${esc(q)}</h2>${bars(c)}</section>`).join('')}`;
+  const v = list.find(x => String(x.v) === pick) || list[0];
+  return `<section class="card"><h2>설문 결과</h2>${html}<p class="desc" style="margin:12px 0 0;">${vMeta(v, '응답')}</p></section>
+    ${dropoutCard(v)}
+    ${v.rows.length ? v.questions.map(surveyCard).join('')
+      : `<section class="card"><p class="empty">이 버전에는 아직 응답이 없어요.</p></section>`}`;
+}
+
+/* ================================================================
+   접속자 — 관람객 화면이 브라우저를 열 때마다 보내는 접속 기록을 기기 기준으로 중복 없이 세요.
+   ================================================================ */
+function visitCard(S){
+  const v = D.visits;
+  const title = mid() === today() ? '오늘 접속자' : '이 경기 접속자';
+  if(!v) return `<section class="card"><h2>${title}</h2><p class="empty">서버(okman-live)를 이번 버전으로 배포하면 집계가 시작돼요.</p></section>`;
+  const u = v.unique || 0;
+  const rate = n => u ? `${pct(n, u)}%` : '—';
+  const raffleN = S.raffle.length;
+  const hrs = Object.keys(v.hours || {}).map(Number);
+  let chart = '<p class="empty" style="padding:40px 0 0;">아직 접속 기록이 없어요.</p>';
+  if(hrs.length){
+    let lo = Math.min(...hrs), hi = Math.max(...hrs);
+    while(hi - lo < 5){ if(lo > 0) lo--; if(hi - lo < 5 && hi < 23) hi++; if(lo === 0 && hi === 23) break; }
+    const vals = []; for(let h = lo; h <= hi; h++) vals.push([h, (v.hours || {})[String(h).padStart(2, '0')] || 0]);
+    const max = Math.max(1, ...vals.map(x => x[1]));
+    chart = `<div class="hours" role="img" aria-label="시간대별 첫 접속">${vals.map(([h, n]) => `<div class="${n === max && n ? 'peak' : ''}" title="${h}시 ${n}명">${n ? `<b>${n}</b>` : ''}<i style="height:${n / max * 84}%"></i><em>${h}시</em></div>`).join('')}</div>`;
+  }
+  return `<section class="card visit">
+    <div>
+      <h2>${title}</h2>
+      <p class="visit__n">${fmt(u)}<small>명</small></p>
+      <p class="visit__m">브라우저를 연 횟수 ${fmt(v.sessions || 0)}회${v.last ? ` · 마지막 접속 ${time(v.last)}` : ''}<br>같은 휴대폰은 여러 번 들어와도 1명으로 세요.</p>
+      <div class="funnel">
+        <span>출석체크<b>${rate(S.ck.count)}</b></span><span>경기예측<b>${rate(S.pred.count)}</b></span>
+        <span>설문<b>${rate((D.subs.survey || []).length)}</b></span><span>경품응모<b>${rate(raffleN)}</b></span>
+      </div>
+    </div>
+    <div><p class="desc" style="margin-bottom:8px;">시간대별 첫 접속 (한국 시간)</p>${chart}</div>
+  </section>`;
+}
+
+/* 경기별 접속자 — 경기 목록의 각 경기를 가볍게 조회해요 (1분에 한 번만) */
+const MV = { at:0, data:{}, loading:false };
+async function loadMatchVisits(force){
+  if(MV.loading || (!force && Date.now() - MV.at < 60000)) return;
+  MV.loading = true;
+  try{
+    const ids = MATCHES.filter(id => id && id !== '__new').slice(0, 40);
+    const res = await Promise.all(ids.map(id => call('GET', encodeURIComponent(id) + '/visits').then(d => [id, d.visits]).catch(() => [id, null])));
+    MV.data = Object.fromEntries(res); MV.at = Date.now();
+  } finally { MV.loading = false; }
+  if(page === 'dash') render();
+}
+function matchVisitsCard(){
+  if(!D.visits) return '';
+  setTimeout(() => loadMatchVisits(), 0);
+  const rows = MATCHES.map(id => [id, MV.data[id]]).filter(([, v]) => v && v.unique);
+  const max = Math.max(1, ...rows.map(([, v]) => v.unique || 0));
+  return `<section class="card"><h2>경기별 접속자 <span class="muted" style="font-size:12px; font-weight:600;">${MV.at ? time(MV.at) + ' 기준 · 1분마다 갱신' : '불러오는 중…'}</span></h2>
+    ${rows.length ? `<div class="scroll"><table class="mtable"><thead><tr><th>경기</th><th>접속자</th><th></th><th>브라우저 연 횟수</th><th>첫 접속 ~ 마지막</th></tr></thead><tbody>
+      ${rows.map(([id, v]) => `<tr data-goto="${esc(id)}" class="${id === mid() ? 'cur' : ''}"><td><b>${esc(id)}</b>${id === today() ? ' <span class="chip">오늘</span>' : ''}</td>
+        <td><b>${fmt(v.unique)}</b>명</td><td style="width:40%;"><span class="tr"><span class="f" style="width:${(v.unique || 0) / max * 100}%"></span></span></td>
+        <td class="muted">${fmt(v.sessions)}회</td><td class="muted">${v.first ? time(v.first) + ' ~ ' + time(v.last) : '—'}</td></tr>`).join('')}
+    </tbody></table></div>` : `<p class="empty">${MV.at ? '아직 접속 기록이 있는 경기가 없어요.' : '불러오는 중…'}</p>`}
+  </section>`;
+}
+document.addEventListener('click', e=>{
+  const r = e.target.closest('[data-goto]'); if(!r) return;
+  $('match').value = r.dataset.goto; DR = {}; load(); scrollTo(0, 0);
+});
+
+/* ================================================================
+   설정 › 데이터 초기화 — 이 경기(경기 ID) 데이터만 지워요. 설문 보관함(시즌 공통)은 그대로예요.
+   ================================================================ */
+function resetParts(S){
+  const subN = t => (D.subs[t] || []).length;
+  return [
+    { k:'visits',   t:'접속자',                       n:(D.visits || {}).unique || 0, u:'명' },
+    { k:'cheer',    t:'응원 수 · 응원 당첨',           n:D.total || 0, u:'회', m:`당첨 ${(D.winners || []).length}건` },
+    { k:'checkin',  t:'출석체크 응답',                 n:subN('checkin'), u:'명' },
+    { k:'predict',  t:'경기 예측 응답 · 입력한 정답 · 버전 기록', n:subN('predictions'), u:'명' },
+    { k:'mvp',      t:'MVP 투표 · 확정한 MVP',          n:subN('mvp'), u:'표', m:D.settings && D.settings.mvp ? `확정: ${D.settings.mvp.name || '#' + D.settings.mvp.num}` : '' },
+    { k:'survey',   t:'설문 응답 · 버전 기록',          n:subN('survey'), u:'명', m:'보관함 설문은 남아요' },
+    { k:'raffle',   t:'경품 응모 닉네임 · 저장한 당첨자', n:subN('raffle_entry'), u:'건', m:`당첨자 ${(D.raffleWinners || []).length}명` },
+    { k:'roulette', t:'룰렛 당첨 · 교환 처리 기록',     n:subN('roulette'), u:'건', m:`교환 처리 ${Object.keys(D.redeemed || {}).length}건` },
+    { k:'config',   t:'이 경기 설정',                   n:null, cfg:true,
+      m:'현장 이벤트 · 응원 당첨 번호 · 경기 진행/시작 시각 · 이 경기에만 지정한 설문·예측 문항 · 오늘 운영 · 미션 순서' },
+  ];
+}
+const DATA_PARTS = ['visits', 'cheer', 'checkin', 'predict', 'mvp', 'survey', 'raffle', 'roulette'];
+
+/* ================================================================
+   경기 전 점검표 — 놓치기 쉬운 것들을 한 번에
+   ================================================================ */
+function checklistCard(S){
+  const st = D.settings || {}, c = CT();
+  const responses = (D.subs.checkin || []).length + S.pred.count + (D.subs.survey || []).length + S.raffle.length + (D.total || 0);
+  const started = st.start && Date.now() >= new Date(st.start).getTime();
+  const items = [
+    D.serverVersion === SERVER_NEED ? ['ok', '서버(okman-live) 최신 버전'] : ['bad', `서버가 예전 버전이에요 (${esc(D.serverVersion || '버전 정보 없음')}) — 최신 index.js를 배포해주세요`],
+    D.survey ? ['ok', `설문: ${esc(D.survey.title || '제목 없음')} (${vLabel(D.survey.v)})`, 'survey'] : ['bad', '보관함 기본 설문이 없어서 비상용 문항이 나가요', 'survey'],
+    st.start ? ['ok', `시작 시각 ${esc(fmtStart(st.start))}`] : ['info', '시작 시각 미입력 — 경기 일정표 기준으로 정해져요 (예측 마감 카운트다운)'],
+    st.opponent ? ['ok', `상대팀 ${esc(st.opponent)}`] : ['info', '상대팀 미입력 — 경기 일정표 기준이에요'],
+    (D.prizes || []).length ? ['ok', `응원 당첨 번호 ${D.prizes.length}개`, 'cheer'] : ['warn', '응원 당첨 번호가 없어요', 'cheer'],
+    ['ok', `룰렛 경품 ${(D.rouletteCfg && D.rouletteCfg.prizes || []).filter(p => !p.miss).length}종 · 수량 제한 ${(D.rouletteCfg && D.rouletteCfg.prizes || []).filter(p => p.stock).length}종`, 'home'],
+    c.open === 'off' ? ['warn', "오늘 운영이 '미운영'이에요 — 관람객 화면이 기록만 보여요"] : ['ok', `오늘 운영: ${({ auto:'자동(일정 기준)', on:'운영' })[c.open || 'auto']}`],
+    !started && responses > 0 ? ['warn', `경기 전인데 응답·응원이 ${fmt(responses)}건 있어요 — 리허설 데이터면 설정 › 데이터 초기화`, 'settings'] : ['ok', '리허설 데이터 정리'],
+  ];
+  const bad = items.filter(x => x[0] === 'bad' || x[0] === 'warn').length;
+  const IC = { ok:'✓', info:'i', warn:'!', bad:'!' };
+  return `<section class="card"><h2>경기 전 점검 <span class="chip ${bad ? '' : 'ok'}">${bad ? `확인 필요 ${bad}` : '모두 준비됐어요'}</span></h2>
+    <div class="check">${items.map(([k, t, go]) => `<div class="check__i ${k}"><b>${IC[k]}</b><span>${t}</span>${go && k !== 'ok' ? `<button class="btn small ghost" data-page="${go}">바로가기</button>` : ''}</div>`).join('')}</div></section>`;
+}
+
+/* 관람객 화면 오류 — 휴대폰에서 난 오류를 같은 것끼리 묶어서 보여줘요 */
+function errorsCard(){
+  const list = D.errors || [];
+  if(!list.length) return '';
+  const total = list.reduce((a, e) => a + e.n, 0), recent = list.filter(e => Date.now() - e.last < 10 * 60e3).length;
+  return `<section class="card"><h2><span>관람객 화면 오류 <span class="chip ${recent ? '' : 'off'}">${recent ? `최근 10분 ${recent}종` : '최근 10분 없음'}</span></span>
+      ${isAdmin() ? '<button class="btn small ghost" data-act="err-clear">기록 비우기</button>' : ''}</h2>
+    <p class="desc">${list.length}종 · 총 ${fmt(total)}건. 같은 오류가 여러 기기에서 계속 늘면 화면 일부가 안 되는 거라 개발 담당에게 이 표를 보내주세요.</p>
+    <div class="scroll"><table><thead><tr><th>오류</th><th>위치</th><th>화면</th><th>횟수</th><th>기기</th><th>마지막</th></tr></thead><tbody>
+      ${list.slice(0, 20).map(e => `<tr><td style="white-space:normal; min-width:240px;"><b>${esc(e.msg)}</b><br><span class="muted" style="font-size:11px;">${esc(e.ua || '')}</span></td>
+        <td class="muted">${esc(String(e.src || '').split('/').pop())}${e.line ? ':' + e.line : ''}</td><td>${esc(e.view || '')}</td><td><b>${fmt(e.n)}</b></td><td>${fmt(e.devices)}대</td><td class="muted">${time(e.last)}</td></tr>`).join('')}
+    </tbody></table></div></section>`;
+}
+
+/* 전광판 — 화면(board.html) 제어 */
+function boardCard(){
+  const b = (D.settings || {}).board || {}, scene = b.scene || 'auto';
+  const url = 'board.html?match=' + encodeURIComponent(mid());
+  const S = [['auto', '자동 순환'], ['qr', '입장 QR'], ['cheer', '응원 수'], ['mvp', 'MVP'], ['winners', '당첨자 발표'], ['message', '메시지']];
+  return `<section class="card"><h2>전광판 <a class="btn small ghost" href="${url}" target="_blank" rel="noopener" style="text-decoration:none;">전광판 화면 열기 ↗</a></h2>
+    <p class="desc">전광판 PC에서 '전광판 화면 열기'를 전체 화면(F11)으로 띄워두세요. 여기서 고르면 3초 안에 바뀌어요. 자동 순환은 QR → 응원 수 → MVP(확정 후) → 당첨자(발표 후) 순서예요.</p>
+    <div class="seg" id="board-scene" style="flex-wrap:wrap;">${S.map(([k, t]) => `<button data-v="${k}" class="${scene === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+    <div class="form" style="grid-template-columns:1fr auto; margin-top:10px;">
+      <div class="field" style="grid-column:auto;"><label for="board-msg">메시지 (메시지 화면에 크게)</label><input id="board-msg" maxlength="80" value="${esc(b.message || '')}" placeholder="예: 3세트 시작 전까지 MVP 투표하세요!"></div>
+      <button class="btn dark" data-act="board-msg" style="grid-column:auto; align-self:end;">저장</button>
+    </div>
+    <p class="muted" style="font-size:13px; margin-top:10px;">당첨 닉네임 공개: <b style="color:var(--ink);">${b.announce ? '공개 중' : '숨김'}</b> — 경품 응모·추첨 화면의 '전광판에 발표'로 바꿔요.</p>
+  </section>`;
+}
+function saveBoard(patch, msg){
+  const b = { scene:'auto', announce:false, message:'', ...((D.settings || {}).board || {}), ...patch };
+  return act(()=> mcall('PUT', 'settings', { board:b }), msg);
+}
+
+/* 설정 › 데이터 초기화 (총괄 관리자) */
+function resetCard(S){
+  const sel = new Set(DR.reset || []);
+  const parts = resetParts(S);
+  const busy = mid() === today() && ((D.visits || {}).unique || 0) > 0;
+  return `<section class="card">
+      <h2>데이터 초기화 <span class="muted" style="font-size:13px; font-weight:600;">${esc(mid())}</span></h2>
+      <p class="desc">리허설이나 테스트가 끝나면 실제 경기 전에 비워주세요. 고른 항목만 지워요. 관람객 휴대폰에 남은 이 경기 진행 기록(미션 완료·설문 답·응모 등)도 다음에 화면을 열거나 20~30초 안에 같이 지워져요. 지운 데이터는 되돌릴 수 없어요.</p>
+      ${busy ? `<div class="winbox" style="background:#FFF1EC; color:#C2410C; margin:12px 0 0;"><b>오늘 경기예요</b><p style="font-size:13px; margin-top:4px;">지금까지 ${fmt(D.visits.unique)}명이 접속했어요. 경기 중에 지우면 관람객의 미션·응모 기록이 사라져요.</p></div>` : ''}
+      <div class="opts" style="margin:14px 0 6px;">
+        <button class="btn small ghost" data-act="rs-all">응답 데이터 모두 고르기</button>
+        <button class="btn small ghost" data-act="rs-none">선택 해제</button>
+        <span style="flex:1"></span>
+        <button class="btn small ghost" data-act="csv-survey">설문 CSV 받아두기</button>
+        <button class="btn small ghost" data-act="csv-predict">예측 CSV 받아두기</button>
+      </div>
+      <div class="rslist">${parts.map(p => `
+        <label class="rsrow${p.cfg ? ' cfg' : ''}${sel.has(p.k) ? ' on' : ''}">
+          <input type="checkbox" data-rs="${p.k}"${sel.has(p.k) ? ' checked' : ''}>
+          <span class="rsrow__t"><b>${p.t}</b>${p.m ? `<em>${esc(p.m)}</em>` : ''}</span>
+          <span class="rsrow__n">${p.n == null ? '설정' : `${fmt(p.n)}${p.u}`}</span>
+        </label>`).join('')}</div>
+      <div class="edfoot"><span class="muted" style="font-size:13px; align-self:center;">${sel.size ? `${sel.size}개 항목을 지워요` : '지울 항목을 골라주세요'}</span>
+        <button class="btn danger" data-act="rs-go"${sel.size ? '' : ' disabled'}>초기화</button></div>
+    </section>
+    <section class="card"><h2>지워지지 않는 것</h2>
+      <p class="desc">설문 보관함(시즌 공통) · 다른 경기 데이터 · 관리자 계정은 그대로예요. 경기 목록에서 이 경기 ID도 남아요.</p></section>`;
+}
+
+/* ================================================================
+   설정 › 계정 · 내 비밀번호 · 닉네임 금칙어 · 작업 기록
+   ================================================================ */
+const EXTRA = { users:null, nick:null, audit:null, auditAt:0, home:null, locks:null, privacy:null };
+const LOADING = new Set();
+// 불러오는 중이면 다시 부르지 않고, 실제로 받아왔을 때만 화면을 다시 그려요 (화면 그리기 ↔ 불러오기가 서로 부르며 맴돌지 않게)
+async function loadExtra(kind, force){
+  if(LOADING.has(kind)) return;
+  const need = force || (kind === 'audit' ? Date.now() - EXTRA.auditAt > 15000 : !EXTRA[kind]);
+  if(!need) return;
+  LOADING.add(kind);
+  try{
+    if(kind === 'users' && (force || !EXTRA.users)) EXTRA.users = (await call('GET', '_/users')).users || [];
+    if(kind === 'nick' && (force || !EXTRA.nick)) EXTRA.nick = await call('GET', '_/nickban');
+    if(kind === 'audit' && (force || Date.now() - EXTRA.auditAt > 15000)){
+      EXTRA.auditAt = Date.now();
+      const [a, b] = await Promise.all([mcall('GET', 'audit').catch(() => ({ audit:[] })), call('GET', '_/audit').catch(() => ({ audit:[] }))]);
+      EXTRA.audit = [...(a.audit || []).map(x => ({ ...x, scope:mid() })), ...(b.audit || []).map(x => ({ ...x, scope:'시즌' }))].sort((x, y) => y.at - x.at);
+    }
+    if(kind === 'home' && (force || !EXTRA.home)) EXTRA.home = await call('GET', '_/home');
+    if(kind === 'locks') EXTRA.locks = (await call('GET', '_/locks')).locks || [];
+    if(kind === 'privacy') EXTRA.privacy = (await call('GET', '_/privacy')).privacy || {};
+    if(kind === 'subway') EXTRA.subway = (await call('GET', '_/subway')).subway || {};
+  }catch(e){ EXTRA[kind] = EXTRA[kind] || { error:e.message }; }
+  finally{ LOADING.delete(kind); }
+  render();
+}
+function accountCards(){
+  const me = `<section class="card"><h2>내 계정 <span class="muted" style="font-size:13px; font-weight:600;">${esc($('who').textContent)}</span></h2>
+    <p class="desc">할 수 있는 일: ${ROLE_DESC[ME.role] || ''}</p>
+    <div class="form" style="grid-template-columns:1fr 1fr auto;">
+      <div class="field" style="grid-column:auto;"><label for="pw-cur">지금 비밀번호</label><input id="pw-cur" type="password" autocomplete="current-password"></div>
+      <div class="field" style="grid-column:auto;"><label for="pw-new">새 비밀번호 (8자 이상)</label><input id="pw-new" type="password" autocomplete="new-password"></div>
+      <button class="btn dark" data-act="pw-save" style="grid-column:auto; align-self:end;">바꾸기</button>
+    </div>
+    <p class="muted" style="font-size:12px; margin-top:8px;">Cloudflare 환경변수로 만든 총괄 관리자 계정은 여기서 못 바꿔요 (ADMIN_KEY).</p></section>`;
+  if(!isOwner()) return me;
+  if(!EXTRA.users){ loadExtra('users'); return me + '<section class="card"><h2>관리자 계정</h2><p class="empty">불러오는 중…</p></section>'; }
+  const list = EXTRA.users.error ? `<p class="empty">${esc(EXTRA.users.error)}</p>` : (EXTRA.users.length ? EXTRA.users.map(u => `<div class="row"><div class="main"><p class="t">${esc(u.name)} <span class="chip role-${esc(u.role)}">${ROLE_NAME[u.role] || u.role}</span></p><p class="m">아이디 ${esc(u.id)} · ${time(u.at)} 생성</p></div>
+      <div class="acts"><select class="in" style="height:32px; width:auto;" data-urole="${esc(u.id)}" aria-label="${esc(u.name)} 권한">${Object.entries(ROLE_NAME).map(([k, t]) => `<option value="${k}"${u.role === k ? ' selected' : ''}>${t}</option>`).join('')}</select>
+        <button class="btn small ghost" data-act="user-pw" data-id="${esc(u.id)}">비밀번호 재설정</button><button class="btn small danger" data-act="user-del" data-id="${esc(u.id)}">삭제</button></div></div>`).join('') : '<p class="empty">아직 만든 계정이 없어요.</p>');
+  return me + `<section class="card"><h2>관리자 계정</h2>
+    <p class="desc">사람마다 계정을 따로 만들면 '작업 기록'에 누가 했는지 남아요.</p>
+    <div class="roles">${Object.entries(ROLE_NAME).map(([k, t]) => `<div><span class="chip role-${k}">${t}</span><p>${ROLE_DESC[k]}</p></div>`).join('')}</div>
+    ${list}
+    <div class="form" style="grid-template-columns:1fr 1fr 1fr 1fr auto; margin-top:12px;">
+      <div class="field" style="grid-column:auto;"><label for="nu-id">아이디</label><input id="nu-id" maxlength="30" placeholder="booth1"></div>
+      <div class="field" style="grid-column:auto;"><label for="nu-name">이름</label><input id="nu-name" maxlength="20" placeholder="1층 부스"></div>
+      <div class="field" style="grid-column:auto;"><label for="nu-role">권한</label><select id="nu-role"><option value="staff">부스 담당</option><option value="manager">일반 관리자</option><option value="owner">총괄 관리자</option></select></div>
+      <div class="field" style="grid-column:auto;"><label for="nu-pw">비밀번호 (8자 이상)</label><input id="nu-pw" type="password" autocomplete="new-password"></div>
+      <button class="btn" data-act="user-add" style="grid-column:auto; align-self:end;">추가</button>
+    </div></section>`;
+}
+/* ================================================================
+   설정 › 막차 시간표 — 부산교통공사 홈페이지 '열차시간표' 표를 그대로 붙여넣으면 읽어요
+   표 모양: 시(05~00) × 평일 · 토요일 · 일요일(공휴일), 칸마다 '수영행05분 출발' 같은 글
+   ================================================================ */
+const TT_DAYS = [['wk', '평일'], ['sa', '토요일'], ['su', '일요일·공휴일']];
+function parseHumetro(text){
+  const out = { wk:[], sa:[], su:[] }, keys = ['wk', 'sa', 'su'];
+  const add = (h, cell, k) => { for(const m of String(cell).matchAll(/(\d{1,2})\s*분/g)){ let t = h * 60 + Number(m[1]); if(h < 4) t += 1440; out[k].push(t); } };
+  let hour = null, col = 0;
+  for(const raw of String(text || '').replace(/\r/g, '').split('\n')){
+    const line = raw.trim(); if(!line) continue;
+    const cells = raw.split('\t').map(x => x.trim());
+    const hm = cells[0].match(/^(\d{1,2})$/);
+    if(hm && cells.length >= 2){ const h = Number(hm[1]); cells.slice(1, 4).forEach((c, i) => add(h, c, keys[i])); hour = null; continue; }   // 한 줄에 시·평일·토·일 (탭으로 구분)
+    if(/^\d{1,2}$/.test(line)){ hour = Number(line); col = 0; continue; }                                                                   // 시만 있는 줄 — 다음 줄들이 평일·토·일
+    if(hour != null && /분/.test(line)){ if(col < 3) add(hour, line, keys[col]); col++; }
+  }
+  for(const k of keys) out[k] = [...new Set(out[k])].sort((a, b) => a - b);
+  return out;
+}
+const ttm = t => { const h = Math.floor(t / 60), m = t % 60; return `${String(h >= 24 ? h - 24 : h).padStart(2, '0')}:${String(m).padStart(2, '0')}${h >= 24 ? '(익일)' : ''}`; };
+function ttSummary(tt){
+  return TT_DAYS.map(([k, t]) => { const a = tt[k] || []; return `${t} ${a.length}편${a.length ? ` · 첫차 ${ttm(a[0])} · 막차 <b>${ttm(a[a.length - 1])}</b>` : ''}`; }).join('<br>');
+}
+function subwayPreview(){
+  const d = DR.sub || {};
+  [0, 1].forEach(i => {
+    const el = $('sub-pv' + i); if(!el) return;
+    const t = parseHumetro(d['t' + i]);
+    const n = t.wk.length + t.sa.length + t.su.length;
+    el.innerHTML = !String(d['t' + i] || '').trim() ? '<span class="muted">붙여넣으면 여기서 읽은 결과를 보여줘요.</span>'
+      : n ? ttSummary(t) + (t.sa.length && t.su.length ? '' : '<br><span style="color:#C2410C;">토요일·일요일 칸이 비었어요 — 표 전체(평일·토·일 세 칸)를 같이 복사해주세요.</span>')
+          : '<span style="color:#C2410C;">시각을 하나도 못 읽었어요. 표에서 시(05, 06…)와 \'○○행 ○○분 출발\' 칸을 같이 복사해주세요.</span>';
+  });
+}
+function subwayCard(){
+  if(!EXTRA.subway){ loadExtra('subway'); return '<section class="card"><p class="empty">불러오는 중…</p></section>'; }
+  const cur = EXTRA.subway.error ? {} : EXTRA.subway;
+  DR.sub = DR.sub || { t0:'', t1:'', hol:(cur.holidays || []).join('\n') };
+  setTimeout(subwayPreview, 0);
+  const saved = cur.tt ? `<div class="grid2" style="margin-top:6px;">${[['0', '수영 방면'], ['1', '대저 방면']].map(([i, t]) => `<div class="rsrow" style="display:block; cursor:default;"><b>${t}</b><p class="muted" style="font-size:13px; line-height:20px; margin-top:4px;">${ttSummary({ wk:(cur.tt.wk || {})[i] || [], sa:(cur.tt.sa || {})[i] || [], su:(cur.tt.su || {})[i] || [] })}</p></div>`).join('')}</div>
+      <p class="muted" style="font-size:12px; margin-top:8px;">${time(cur.updatedAt)} 저장 · 관람객 화면 막차안내에 10분 안에 반영돼요.</p>`
+    : '<p class="empty">아직 저장한 시간표가 없어요. 관람객 화면엔 \'도착 정보 준비 중\'과 기본 막차 시각만 나와요.</p>';
+  return `<section class="card"><h2>지금 쓰는 시간표 <span class="muted" style="font-size:12px; font-weight:600;">체육공원역 · 시즌 공통</span></h2>${saved}</section>
+  <section class="card"><h2>시간표 붙여넣기</h2>
+    <p class="desc">1) <a href="https://www2.humetro.busan.kr/homepage/english/stationtime/page/view.do?menu_no=10060102" target="_blank" rel="noopener">부산교통공사 열차시간표</a>(한글 홈페이지 › 이용안내 › 열차시간표도 같아요)에서 <b>3호선 → 체육공원(Sports Park)</b>을 고르세요.<br>
+      2) 방향(상행·하행)을 고르고, 표 맨 위 '시'부터 맨 아래 '00'까지 드래그해서 복사(Ctrl+C) → 아래 칸에 붙여넣기(Ctrl+V).<br>
+      3) 반대 방향도 똑같이 하고 저장하세요. 평일·토요일·일요일 세 칸을 같이 읽어요. 시간표가 바뀌면 다시 붙여넣기만 하면 돼요.</p>
+    <div class="grid2" style="margin-top:12px;">
+      ${[['0', '수영 방면 (구포·연산·수영행)'], ['1', '대저 방면 (대저행)']].map(([i, t]) => `<div class="field"><label for="sub-t${i}">${t}</label>
+        <textarea class="in" id="sub-t${i}" data-sub="t${i}" rows="8" style="height:auto; padding:10px 12px; font-family:inherit; font-size:12px;" placeholder="05	수영행05분 출발 …	…	…">${esc(DR.sub['t' + i])}</textarea>
+        <p class="muted" id="sub-pv${i}" style="font-size:12px; line-height:19px; margin-top:6px;"></p></div>`).join('')}
+    </div>
+    <div class="field" style="margin-top:12px;"><label for="sub-hol">공휴일 (이날은 일요일 시간표 · 한 줄에 하나, 예: 2026-12-25)</label>
+      <textarea class="in" id="sub-hol" data-sub="hol" rows="3" style="height:auto; padding:10px 12px; font-family:inherit;">${esc(DR.sub.hol)}</textarea></div>
+    <div class="edfoot"><span class="muted" style="font-size:12px; align-self:center;">붙여넣지 않은 방향은 지금 저장된 것을 그대로 둬요.</span><button class="btn" data-act="sub-save">저장</button></div>
+  </section>`;
+}
+function locksCard(){
+  if(!EXTRA.locks){ loadExtra('locks'); return ''; }
+  if(EXTRA.locks.error) return '';
+  return `<section class="card"><h2>잠긴 로그인 <span class="muted" style="font-size:12px; font-weight:600;">아이디 5번 · 접속 주소 20번 틀리면 10분</span></h2>
+    ${EXTRA.locks.length ? EXTRA.locks.map(l => `<div class="row"><div class="main"><p class="t">${l.key.startsWith('ip:') ? '접속 주소' : '아이디'} ${esc(l.key.replace(/^(id|ip):/, ''))}</p>
+      <p class="m">${l.n}번 실패 · ${time(l.until)}까지 잠김</p></div><button class="btn small ghost" data-act="lock-open" data-k="${esc(l.key)}">잠금 풀기</button></div>`).join('')
+      : '<p class="empty">지금 잠긴 로그인이 없어요.</p>'}
+    <div class="edfoot"><span></span><button class="btn small ghost" data-act="lock-refresh">새로 보기</button></div></section>`;
+}
+function privacyCard(){
+  if(!EXTRA.privacy){ loadExtra('privacy'); return '<section class="card"><p class="empty">불러오는 중…</p></section>'; }
+  const p = EXTRA.privacy.error ? {} : EXTRA.privacy;
+  return `<section class="card"><h2>데이터 수집 안내 <span class="muted" style="font-size:12px; font-weight:600;">시즌 공통 · 관람객 화면 '데이터 안내'</span></h2>
+    <p class="desc">관람객 화면 홈 아래 · 출석체크 · 설문 첫 문항 · 경품 응모에 '데이터 안내' 링크가 있어요. 모으는 정보·쓰는 곳·모으지 않는 것은 화면에 고정돼 있고, 아래 세 가지만 여기서 정해요. 준법 검토 결과에 맞게 고쳐주세요.</p>
+    <div class="field" style="margin-top:10px;"><label for="pv-ret">보관 기간</label><input class="in" id="pv-ret" maxlength="120" value="${esc(p.retention || '')}" placeholder="예: 2026-27 시즌이 끝나면 30일 안에 지워요."></div>
+    <div class="field" style="margin-top:10px;"><label for="pv-con">문의</label><input class="in" id="pv-con" maxlength="120" value="${esc(p.contact || '')}" placeholder="예: OK저축은행 AX마케팅부 · 현장 부스"></div>
+    <div class="field" style="margin-top:10px;"><label for="pv-ext">덧붙일 말 (선택)</label><textarea class="in" id="pv-ext" maxlength="600" rows="3" style="height:auto; padding:10px 12px; font-family:inherit;">${esc(p.extra || '')}</textarea></div>
+    <div class="edfoot"><span class="muted" style="font-size:12px; align-self:center;">${p.updatedAt ? time(p.updatedAt) + ' 저장' : '아직 저장 전 — 기본 문구가 나가요 (보관 기간: 시즌이 끝나면 지워요)'}</span><button class="btn" data-act="pv-save">저장</button></div></section>`;
+}
+function saveUsers(users, msg){
+  return act(()=> call('PUT', '_/users', { users }), msg).then(ok => { if(ok) loadExtra('users', true); return ok; });
+}
+function nickBanCard(){
+  if(!EXTRA.nick){ loadExtra('nick'); return '<section class="card"><h2>닉네임 금칙어</h2><p class="empty">불러오는 중…</p></section>'; }
+  const n = EXTRA.nick;
+  return `<section class="card"><h2>닉네임 금칙어 <span class="muted" style="font-size:12px; font-weight:600;">시즌 공통</span></h2>
+    <p class="desc">경품 응모 닉네임은 전광판에 나가요. 기본 금칙어 ${(n.builtin || []).length}개(욕설·비하 등)는 늘 막고, 아래에 더 넣을 수 있어요 (쉼표나 줄바꿈으로 구분 · 포함만 돼도 막아요).</p>
+    <textarea class="in" id="nb-words" rows="3" style="height:auto; padding:10px 12px; font-family:inherit;" placeholder="예: 상대팀 비하 표현, 특정 선수 이름 등">${esc((n.words || []).join(', '))}</textarea>
+    <div class="edfoot"><details class="tlist" style="margin:0;"><summary>기본 금칙어 보기</summary><p style="display:block;">${esc((n.builtin || []).join(', '))}</p></details>
+      <button class="btn" data-act="nb-save">저장</button></div></section>`;
+}
+const ACT_NAME = { events:'현장 이벤트', prizes:'응원 이벤트', settings:'경기 설정', raffle:'추첨', 'raffle-clear':'응모 삭제', 'raffle-hide':'추첨 제외', redeem:'교환',
+  'reset-cheer':'초기화', reset:'초기화', subway:'막차 시간표', 'login-lock':'로그인 잠금', unlock:'잠금 풀기', privacy:'데이터 안내', 'errors-clear':'오류 기록', surveys:'설문 보관함', users:'계정', password:'비밀번호', home:'룰렛·배너', nickban:'금칙어' };
+function auditCard(){
+  if(!EXTRA.audit || Date.now() - EXTRA.auditAt > 15000) loadExtra('audit');
+  const list = EXTRA.audit || [];
+  return `<section class="card"><h2>작업 기록 <span class="muted" style="font-size:12px; font-weight:600;">${esc(mid())} 경기 + 시즌 공통 · 최근 ${Math.min(list.length, 100)}건</span></h2>
+    ${list.length ? `<div class="scroll"><table><thead><tr><th>시각</th><th>누가</th><th>범위</th><th>무엇</th></tr></thead><tbody>
+      ${list.slice(0, 100).map(a => `<tr><td class="muted">${time(a.at)}</td><td><b>${esc(a.who && (a.who.name || a.who.id))}</b></td><td class="muted">${esc(a.scope)}</td><td>${esc(ACT_NAME[a.action] || a.action)} · ${esc(a.detail)}</td></tr>`).join('')}
+    </tbody></table></div>` : `<p class="empty">${EXTRA.audit ? '아직 기록이 없어요. (이번 서버 버전부터 남아요)' : '불러오는 중…'}</p>`}</section>`;
+}
+
+/* ================================================================
+   룰렛·배너 (시즌 공통) — 룰렛 8칸 경품·확률·수량, 굿즈샵·앱 다운로드 배너
+   ================================================================ */
+const RL_IMGS = { soju:'변온 소주잔', doll:'봉제인형', fan:'부채', ticket:'티켓', photo:'사진 촬영권', signball:'사인볼', miss:'꽝' };
+function homeDraft(){
+  if(DR.home) return DR.home;
+  const h = (EXTRA.home && EXTRA.home.home) || {}, def = (EXTRA.home && EXTRA.home.defaults) || {};
+  const r = h.roulette && h.roulette.prizes && h.roulette.prizes.length === 8 ? h.roulette : { ...def.roulette, notices:[] };
+  DR.home = clone({ roulette:{ base:r.base ?? 1, bonus:r.bonus ?? 1, onePerPerson:r.onePerPerson !== false, prizes:r.prizes || [], notices:r.notices || [] },
+                    goods:h.goods || { title:'읏맨 공식 굿즈샵', desc:'유니폼과 응원 도구를 온라인에서 만나보세요.', url:'' },
+                    app:h.app || { title:'OK저축은행 앱 다운로드', desc:'앱에서 더 많은 혜택을 만나보세요.', ios:'', android:'', on:true } });
+  return DR.home;
+}
+function homeView(){
+  if(!EXTRA.home){ loadExtra('home'); return '<p class="page-title">룰렛·배너</p><p class="empty">불러오는 중…</p>'; }
+  if(EXTRA.home.error) return `<p class="page-title">룰렛·배너</p><p class="empty">${esc(EXTRA.home.error)}</p>`;
+  const H = homeDraft(), R = H.roulette, issued = D.rlIssued || {};
+  const total = R.prizes.reduce((a, p) => a + (Number(p.weight) || 0), 0) || 1;
+  const saved = !!(EXTRA.home.home);
+  return `<p class="page-title">룰렛·배너</p><p class="page-sub">시즌 공통 설정이에요. 저장하면 모든 경기 관람객 화면에 1분 안에 반영돼요.${saved ? '' : ' 아직 저장한 적이 없어서 기본값이 쓰이고 있어요.'}</p>
+  <section class="card"><h2>룰렛 경품 <span class="muted" style="font-size:12px; font-weight:600;">휠 8칸 · 12시 오른쪽 칸부터 시계방향</span></h2>
+    <p class="desc">확률은 칸별 가중치 비율이에요. 수량을 넣으면 <b>경기마다</b> 그 개수까지만 나가고, 다 나가면 그 칸은 안 나와요(0 = 무제한). 당첨은 서버가 뽑아서 휴대폰에서 조작할 수 없어요.</p>
+    <div class="form" style="grid-template-columns:1fr 1fr 3fr; margin-bottom:6px;">
+      <div class="field" style="grid-column:auto;"><label for="rl-base">기본 횟수</label><input id="rl-base" data-hf="base" type="number" min="0" max="5" value="${R.base}"></div>
+      <div class="field" style="grid-column:auto;"><label for="rl-bonus">미션 완료 보너스</label><input id="rl-bonus" data-hf="bonus" type="number" min="0" max="5" value="${R.bonus}"></div>
+      <label class="chk" style="grid-column:auto; align-self:end; padding-bottom:12px;"><input type="checkbox" data-hf="onePerPerson"${R.onePerPerson !== false ? ' checked' : ''}>1인 1회 당첨 — 당첨되면 남은 기회가 있어도 더 돌릴 수 없어요</label>
+    </div>
+    <div class="scroll"><table class="rltab"><thead><tr><th>칸</th><th>이미지</th><th>꽝</th><th>경품 이름</th><th>안내</th><th>가중치</th><th>확률</th><th>수량</th><th>${esc(mid())} 나감</th></tr></thead><tbody>
+      ${R.prizes.map((p, i) => `<tr>
+        <td><b>${i + 1}</b></td>
+        <td><div style="display:flex; align-items:center; gap:6px;">${p.image ? `<img class="ckimg" src="${esc(p.image)}" alt="">` : ''}
+          <select class="in" style="height:34px; width:auto;" data-rp="img" data-i="${i}">${Object.entries(RL_IMGS).map(([k, t]) => `<option value="${k}"${p.img === k ? ' selected' : ''}>${t}</option>`).join('')}</select>
+          <label class="btn small ghost" style="cursor:pointer;">${p.image ? '바꾸기' : '올리기'}<input type="file" accept="image/*" data-rpimg="${i}" hidden></label>${p.image ? `<button class="btn small ghost" data-act="rp-imgdel" data-i="${i}">↺</button>` : ''}</div></td>
+        <td><input type="checkbox" data-rp="miss" data-i="${i}"${p.miss ? ' checked' : ''} aria-label="꽝"></td>
+        <td>${p.miss ? '<span class="muted">꽝</span>' : `<input class="in" style="height:34px; min-width:150px;" data-rp="title" data-i="${i}" maxlength="40" value="${esc(String(p.title || '').replace(/\n/g, ' / '))}">`}</td>
+        <td>${p.miss ? '' : `<input class="in" style="height:34px; min-width:150px;" data-rp="desc" data-i="${i}" maxlength="40" value="${esc(p.desc || '')}">`}</td>
+        <td><input class="in" style="height:34px; width:70px;" type="number" min="0" data-rp="weight" data-i="${i}" value="${Number(p.weight) || 0}"></td>
+        <td><b>${(100 * (Number(p.weight) || 0) / total).toFixed(1)}%</b></td>
+        <td>${p.miss ? '' : `<input class="in" style="height:34px; width:70px;" type="number" min="0" data-rp="stock" data-i="${i}" value="${Number(p.stock) || 0}">`}</td>
+        <td class="muted">${p.miss ? '' : `${issued[p.id] || 0}${p.stock ? ' / ' + p.stock : ''}`}</td></tr>`).join('')}
+    </tbody></table></div>
+    <p class="muted" style="font-size:12px; margin-top:6px;">경품 이름에 ' / '를 넣으면 당첨 화면에서 줄이 바뀌어요. 이미지를 올리면 휠과 당첨 화면에 그 이미지가 나와요(정사각형 PNG 권장, 자동으로 줄여요).</p>
+    <div class="field" style="margin-top:12px;"><label for="rl-notices">당첨 화면 유의사항 (한 줄에 하나 · 비우면 기본 문구)</label>
+      <textarea class="in" id="rl-notices" data-hf="notices" rows="4" style="height:auto; padding:10px 12px; font-family:inherit;">${esc((R.notices || []).join('\n'))}</textarea></div>
+  </section>
+  <div class="grid2">
+    <section class="card"><h2>굿즈샵 배너</h2>
+      ${['title:제목', 'desc:설명', 'url:링크 (https://…)'].map(x => { const [k, t] = x.split(':'); return `<div class="field" style="margin-top:8px;"><label>${t}</label><input class="in" data-hb="goods.${k}" value="${esc(H.goods[k] || '')}"></div>`; }).join('')}
+    </section>
+    <section class="card"><h2>앱 다운로드 배너 <label class="chk"><input type="checkbox" data-hb="app.on"${H.app.on !== false ? ' checked' : ''}>보이기</label></h2>
+      ${['title:제목', 'desc:설명', 'ios:App Store 링크 (아이폰)', 'android:Play 스토어 링크 (안드로이드)'].map(x => { const [k, t] = x.split(':'); return `<div class="field" style="margin-top:8px;"><label>${t}</label><input class="in" data-hb="app.${k}" value="${esc(H.app[k] || '')}"></div>`; }).join('')}
+    </section>
+  </div>
+  ${isOwner() ? `<div class="edfoot"><button class="btn ghost" data-act="home-reset">되돌리기</button><button class="btn" data-act="home-save">저장 (모든 경기)</button></div>`
+               : `<p class="muted" style="font-size:13px; margin-top:14px;">룰렛 경품·확률은 모든 경기에 영향을 줘서 총괄 관리자만 저장할 수 있어요. 바꿀 내용은 총괄 관리자에게 알려주세요.</p>`}`;
+}
+
+/* ================================================================
+   설문 이탈 지점 — 관람객 화면이 '어디까지 왔는지'를 화면을 닫을 때 보내요(survey_progress)
+   ================================================================ */
+function dropoutCard(v){
+  if(!v || v.v === 'none') return '';
+  const done = new Set(v.rows.map(r => r.device));
+  const prog = (D.subs.survey_progress || []).filter(r => Number((r.data || {}).ver || 0) === Number(v.v) && !done.has(r.device));
+  const started = done.size + prog.length;
+  if(!started) return '';
+  const items = v.items || [];
+  const at = {}; prog.forEach(r => { const id = String((r.data || {}).last || ''); at[id] = (at[id] || 0) + 1; });
+  // 각 문항까지 온 사람(대략) = 완료 + 그 문항이나 그 뒤에서 그만둔 사람
+  const idx = Object.fromEntries(items.map((q, i) => [String(q.id), i]));
+  const rows = items.map((q, i) => {
+    const dropped = at[String(q.id)] || 0;
+    const reached = done.size + prog.filter(r => (idx[String((r.data || {}).last)] ?? -1) >= i).length;
+    return { q, i, dropped, reached };
+  });
+  const max = Math.max(1, ...rows.map(r => r.dropped));
+  return `<section class="card"><h2>이탈 지점 <span class="muted" style="font-size:13px; font-weight:600;">시작 ${fmt(started)}명 · 완료 ${fmt(done.size)}명 · 완료율 ${pct(done.size, started)}%</span></h2>
+    <p class="desc">설문을 시작했지만 끝내지 않은 사람이 마지막으로 본 문항이에요. 조건부 문항(1-1 등)은 해당하는 사람만 거쳐요. 휴대폰이 화면을 닫을 때 보내는 기록이라 실제보다 조금 적게 잡힐 수 있어요.</p>
+    <div class="scroll"><table><thead><tr><th>문항</th><th>여기까지 온 사람</th><th style="width:40%;">여기서 그만둔 사람</th></tr></thead><tbody>
+      ${rows.map(r => `<tr><td><b>${esc(r.q.id)}.</b> ${esc(String(r.q.q).slice(0, 34))}${String(r.q.q).length > 34 ? '…' : ''}</td><td>${fmt(r.reached)}명 <span class="muted">(${pct(r.reached, started)}%)</span></td>
+        <td><div style="display:flex; align-items:center; gap:8px;"><span class="stack" style="flex:1;"><i style="width:${r.dropped / max * 100}%; opacity:${r.dropped ? 1 : 0}"></i></span><b style="min-width:42px; text-align:right;">${fmt(r.dropped)}명</b></div></td></tr>`).join('')}
+    </tbody></table></div></section>`;
+}
+
+/* ================================================================
+   경기 리포트 (엑셀) — 요약 · 시간대 접속 · 출석 · 예측 · MVP · 설문(버전별·NPS·행렬·이탈) · 경품
+   ================================================================ */
+async function downloadReport(){
+  toast('리포트를 만드는 중…');
+  const X = await loadXlsx();
+  const S = stats(), v = D.visits || {}, u = v.unique || 0, st = D.settings || {};
+  const wb = X.utils.book_new();
+  const sheet = (name, rows, cols) => { const ws = X.utils.aoa_to_sheet(rows); if(cols) ws['!cols'] = cols.map(w => ({ wch:w })); X.utils.book_append_sheet(wb, ws, name.slice(0, 31)); };
+  const rate = n => u ? Math.round(n / u * 1000) / 10 + '%' : '';
+  const nps = S.sv.flatMap(x => x.questions.filter(q => q.type === 'nps' && q.n).map(q => [vLabel(x.v), q.id, q.q, q.n, q.nps, Math.round(q.avg * 10) / 10]));
+  sheet('요약', [
+    ['읏배구놀이터 경기 리포트'], ['경기', mid()], ['상대팀', st.opponent || ''], ['시작 시각', st.start ? fmtStart(st.start) : ''], ['만든 시각', csvTime(Date.now())], [],
+    ['항목', '수', '접속자 대비'],
+    ['고유 접속자', u, ''], ['브라우저 연 횟수', v.sessions || 0, ''],
+    ['출석체크', S.ck.count, rate(S.ck.count)], ['경기 예측', S.pred.count, rate(S.pred.count)], ['MVP 투표', S.mvpRank.reduce((a, b) => a + b.n, 0), ''],
+    ['설문 완료', (D.subs.survey || []).length, rate((D.subs.survey || []).length)], ['경품 응모', S.raffle.length, rate(S.raffle.length)],
+    ['전체 응원 수', D.total || 0, ''], ['응원 당첨', (D.winners || []).length, ''], ['룰렛 당첨', S.rl.wins.length, ''],
+    ['교환 처리', Object.keys(D.redeemed || {}).length, ''], ['추첨 당첨자', (D.raffleWinners || []).length, ''],
+    ['확정 MVP', st.mvp ? `#${st.mvp.num} ${st.mvp.name || ''}` : '', ''], [],
+    ['NPS', '버전', '문항', '질문', '응답', 'NPS', '평균'], ...nps.map(r => ['', ...r]),
+  ], [18, 16, 14, 40, 8, 8, 8]);
+  sheet('시간대별 접속', [['시 (한국 시간)', '첫 접속 수'], ...Object.entries(v.hours || {}).sort().map(([h, n]) => [Number(h) + '시', n])], [16, 12]);
+  const ckQs = (Array.isArray(CT().checkin) && CT().checkin.length) ? CT().checkin : CK_DEF;
+  sheet('출석체크', [['질문', '답', '수', '비율'], ...ckQs.flatMap(q => { const c = S.ck.by[q.key] || {}, t = Object.values(c).reduce((a, b) => a + b, 0);
+    return q.opts.map(o => [q.q, o.label, c[o.label] || 0, t ? Math.round((c[o.label] || 0) / t * 1000) / 10 + '%' : '']); })], [24, 14, 8, 8]);
+  const ans = st.answers || {};
+  sheet('경기 예측', [['버전', '질문', '선택', '수', '정답', '전부 맞힌 사람(버전)'], ...S.pred.versions.flatMap(x => x.questions.flatMap(q =>
+    Object.entries(q.counts).map(([k, n]) => [vLabel(x.v), q.q, k, n, ans[q.key] === k ? 'O' : '', x.allCorrect.size])))], [10, 34, 18, 8, 6, 12]);
+  sheet('MVP 투표', [['순위', '선수', '표'], ...S.mvpRank.map((m, i) => [i + 1, `#${m.num} ${m.name}`, m.n])], [6, 20, 8]);
+  const svRows = [['버전', '설문 제목', '문항', '유형', '질문', '항목', '수', '비율(응답자 대비)', '평균']];
+  for(const x of S.sv) for(const q of x.questions){
+    if(q.type === 'nps') q.dist && q.dist.forEach((c, i) => svRows.push([vLabel(x.v), x.title || '', q.id, 'NPS', q.q, i + '점', c, q.n ? Math.round(c / q.n * 1000) / 10 + '%' : '', i === 0 && q.n ? Math.round(q.avg * 10) / 10 : '']));
+    else if(q.type === 'grid') q.rows.forEach((row, ri) => { const c = q.cells[ri], n = c.reduce((a, b) => a + b, 0);
+      svRows.push([vLabel(x.v), x.title || '', q.id, '행렬 척도', q.q, row, n, '', n ? Math.round(c.reduce((a, y, i) => a + y * (i + 1), 0) / n * 100) / 100 : '']); });
+    else (q.order || Object.keys(q.counts)).forEach(k => svRows.push([vLabel(x.v), x.title || '', q.id, ({ single:'단일', multi:'복수' })[q.type] || '', q.q, k, q.counts[k] || 0, q.n ? Math.round((q.counts[k] || 0) / q.n * 1000) / 10 + '%' : '', '']));
+  }
+  sheet('설문 결과', svRows, [8, 22, 6, 8, 40, 22, 6, 10, 6]);
+  const dRows = [['버전', '문항', '질문', '여기서 그만둔 사람']];
+  for(const x of S.sv){ const done = new Set(x.rows.map(r => r.device));
+    const prog = (D.subs.survey_progress || []).filter(r => Number((r.data || {}).ver || 0) === Number(x.v) && !done.has(r.device));
+    (x.items || []).forEach(q => dRows.push([vLabel(x.v), q.id, q.q, prog.filter(r => String((r.data || {}).last) === String(q.id)).length])); }
+  sheet('설문 이탈', dRows, [8, 6, 44, 12]);
+  const fb = [['버전', '문항', '구분', '내용', '시각']];
+  for(const x of S.sv) for(const q of x.questions){ (q.etc || []).forEach(t => fb.push([vLabel(x.v), q.id, '기타 직접 입력', t.t, csvTime(t.at)])); (q.memo || []).forEach(t => fb.push([vLabel(x.v), q.id, '자유 의견', t.t, csvTime(t.at)])); }
+  sheet('설문 의견', fb, [8, 6, 12, 60, 16]);
+  sheet('경품', [['구분', '경품·닉네임', '코드', '시각', '교환'],
+    ...S.rl.wins.map(w => ['룰렛', w.title, w.code, csvTime(w.at), (D.redeemed || {})[w.code] ? 'O' : '']),
+    ...(D.winners || []).map(w => ['응원 ' + w.n + '번째', w.prize, w.code, csvTime(w.at), (D.redeemed || {})[w.code] ? 'O' : '']),
+    ...(D.raffleWinners || []).map(w => ['추첨 당첨', w.nickname || w.contact, '', csvTime(w.at), ''])], [12, 24, 12, 16, 6]);
+  X.writeFile(wb, `읏배구놀이터_경기리포트_${mid()}.xlsx`);
+}
+
+/* 대시보드 — 오늘 운영 · 홈 미션 순서 */
+function dayCard(){
+  const open = CT().open || 'auto';
+  if(!DR.missions) DR.missions = [...new Set([...(CT().missions || []).filter(id => MISSION_LABEL[id]), ...MISSION_DEF])];
+  const changed = JSON.stringify(DR.missions) !== JSON.stringify([...new Set([...(CT().missions || []).filter(id => MISSION_LABEL[id]), ...MISSION_DEF])]);
+  return `<div class="grid2">
+    <section class="card">
+      <h2>오늘 운영</h2>
+      <p class="desc">'미운영'이면 관람객 화면 홈에 '오늘은 홈 경기가 없어요'와 다음 경기가 보이고, 하단 메뉴는 홈·기록만 남아요. '자동'은 경기 일정에 오늘 홈 경기가 있는지로 정해요.</p>
+      <div class="seg" id="dayopen">
+        <button data-v="auto" class="${open === 'auto' ? 'on' : ''}">자동</button>
+        <button data-v="on" class="${open === 'on' ? 'on live' : ''}">운영</button>
+        <button data-v="off" class="${open === 'off' ? 'on' : ''}">미운영</button>
+      </div>
+    </section>
+    <section class="card">
+      <h2>홈 미션 노출 순서 ${changed ? '<button class="btn small" data-act="ms-save">저장</button>' : ''}</h2>
+      <p class="desc">관람객 홈 '오늘의 직관 미션'에 보이는 순서예요. 경품응모는 나머지 5개를 채우면 열려요.</p>
+      <div class="morder">${DR.missions.map((id, i) => `<div class="mrow"><em>${i + 1}</em><span>${MISSION_LABEL[id]}</span>
+        <button class="btn small ghost" data-act="ms-up" data-i="${i}" aria-label="위로"${i ? '' : ' disabled'}>↑</button>
+        <button class="btn small ghost" data-act="ms-down" data-i="${i}" aria-label="아래로"${i < DR.missions.length - 1 ? '' : ' disabled'}>↓</button></div>`).join('')}</div>
+    </section>
+  </div>`;
+}
+
+const VIEWS = {
+  /* ---------- 대시보드 ---------- */
+  dash: S => {
+    const st = D.settings || {}, phase = st.phase || 'auto';
+    const top = S.mvpRank[0];
+    return `<p class="page-title">대시보드 <button class="btn small ghost" data-act="report" style="vertical-align:4px; margin-left:6px;">경기 리포트 (엑셀)</button></p><p class="page-sub">${esc(mid())} 경기 · 참여 현황과 경기 진행을 한 곳에서 관리해요.</p>
+    ${isAdmin() ? checklistCard(S) : ''}
+    ${errorsCard()}
+    ${visitCard(S)}
+    <div class="kpis">
+      <div class="kpi hot"><span>전체 응원</span><b>${fmt(D.total)}</b></div>
+      <div class="kpi"><span>출석체크</span><b>${fmt(S.ck.count)}</b></div>
+      <div class="kpi"><span>경기 예측</span><b>${fmt(S.pred.count)}</b></div>
+      <div class="kpi"><span>MVP 투표</span><b>${fmt(S.mvpRank.reduce((a, b) => a + b.n, 0))}</b></div>
+      <div class="kpi"><span>설문 응답</span><b>${fmt((D.subs.survey || []).length)}</b></div>
+      <div class="kpi"><span>경품 응모</span><b>${fmt(S.raffle.length)}</b></div>
+      <div class="kpi"><span>룰렛 당첨</span><b>${fmt(S.rl.wins.length)}</b></div>
+      <div class="kpi"><span>응원 당첨</span><b>${fmt((D.winners || []).length)}</b></div>
+    </div>
+    <div class="grid2">
+      <section class="card">
+        <h2>경기 진행</h2>
+        <p class="desc">'경기 시작'을 누르면 관람객 화면의 이벤트 탭이 경기 예측 → MVP 투표로 바로 바뀌어요(20초 안). '자동'은 시작 시각 기준이에요.</p>
+        <div class="seg" id="phase">
+          <button data-v="auto" class="${phase === 'auto' ? 'on' : ''}">자동</button>
+          <button data-v="before" class="${phase === 'before' ? 'on' : ''}">시작 전</button>
+          <button data-v="live" class="${phase === 'live' ? 'on live' : ''}">경기 시작</button>
+        </div>
+        <div class="form" style="grid-template-columns:1fr auto;">
+          <div class="field" style="grid-column:auto;"><label>경기 시작 시각 (자동일 때 기준 · 비우면 일정표 기준)</label><input id="start" type="datetime-local" value="${esc(st.start || '')}"></div>
+          <p class="muted" style="grid-column:1 / -1; font-size:12px;">${st.start ? `저장된 시각: <b style="color:var(--ink);">${esc(fmtStart(st.start))}</b> · 관람객 화면 상단 날짜와 '예측 마감까지'가 이 시각 기준이에요 <button class="btn small ghost" data-act="clear-start" style="margin-left:6px;">지우기</button>` : '저장된 시각이 없어요. 날짜와 시각을 모두 넣고 저장해주세요.'}</p>
+          <button class="btn dark" id="save-start" data-act="save-start" style="grid-column:auto; align-self:end;">저장</button>
+        </div>
+        <div class="form" style="grid-template-columns:1fr auto; margin-top:10px;">
+          <div class="field" style="grid-column:auto;"><label for="opp">상대팀 (비우면 경기 일정표 기준)</label>
+            <input id="opp" list="opp-list" maxlength="20" value="${esc(st.opponent || '')}" placeholder="예: 대한항공">
+            <datalist id="opp-list">${['대한항공', '현대캐피탈', 'KB손해보험', '우리카드', '한국전력', '삼성화재'].map(t => `<option value="${t}">`).join('')}</datalist></div>
+          <button class="btn dark" data-act="save-opp" style="grid-column:auto; align-self:end;">저장</button>
+          <p class="muted" style="grid-column:1 / -1; font-size:12px;">관람객 화면 상단 경기 정보와 AI 승부예측이 이 팀 기준으로 바뀌어요.</p>
+        </div>
+      </section>
+      <section class="card">
+        <h2>MVP 카드</h2>
+        <p class="desc">확정한 선수는 기록 탭에서 검정·금색 MVP 카드로 바뀌어요.</p>
+        ${st.mvp ? `<div class="row"><div class="main"><p class="t"><span class="chip gold">${esc(st.mvp.title || 'MVP')}</span>#${esc(st.mvp.num)} ${esc(st.mvp.name)}</p><p class="m">현재 MVP 카드</p></div><button class="btn small ghost" data-act="mvp-clear">해제</button></div>`
+                 : `<p class="empty">아직 확정한 MVP가 없어요.</p>`}
+        ${top ? `<div class="row"><div class="main"><p class="t">투표 1위 · #${esc(top.num)} ${esc(top.name)}</p><p class="m">${top.n}표</p></div>${st.mvp && String(st.mvp.num) === String(top.num) ? '' : `<button class="btn small" data-act="mvp-set" data-num="${esc(top.num)}" data-name="${esc(top.name)}">MVP로 확정</button>`}</div>` : ''}
+      </section>
+    </div>
+    ${dayCard()}
+    ${boardCard()}
+    ${matchVisitsCard()}`;
+  },
+
+  /* ---------- 현장 이벤트 ---------- */
+  events: () => {
+    const evs = D.events || [];
+    return `<p class="page-title">현장 이벤트</p><p class="page-sub">올리면 관람객 화면 홈 맨 위에 보이고, 처음 보는 사람에게는 팝업으로 알려줘요.</p>
+    <section class="card">
+      ${evs.length ? evs.map((e, i) => `<div class="row">
+        <div class="main"><p class="t">${e.limit ? `<span class="chip${e.active === false ? ' off' : ''}">${esc(e.limit)}</span>` : ''}${esc(e.title)}</p>
+        <p class="m">${esc(e.place)}${e.startsAt || e.endsAt ? ` · ${hm(e.startsAt) || '바로'} ~ ${hm(e.endsAt) || '끌 때까지'}` : ''}</p></div>
+        <button class="toggle${e.active === false ? '' : ' on'}" data-act="ev-toggle" data-i="${i}" aria-label="보이기"></button>
+        <button class="btn small ghost" data-act="ev-del" data-i="${i}">삭제</button></div>`).join('') : `<p class="empty">올린 이벤트가 없어요.</p>`}
+      <div class="form">
+        <div class="field"><label>제목</label><input id="ev-title" maxlength="40" placeholder="읏맨 티셔츠 증정"></div>
+        <div class="field"><label>인원·조건</label><input id="ev-limit" maxlength="20" placeholder="선착순 3명"></div>
+        <div class="field full"><label>장소</label><input id="ev-place" maxlength="40" placeholder="1층 OK저축은행 부스"></div>
+        <div class="field full"><label>설명</label><textarea id="ev-desc" maxlength="200" placeholder="경기 시작 전까지 부스에 오셔서 이 화면을 보여주세요."></textarea></div>
+        <div class="field"><label>보이기 시작 (비우면 바로)</label><input id="ev-start" type="datetime-local"></div>
+        <div class="field"><label>보이기 끝 (비우면 끌 때까지)</label><input id="ev-end" type="datetime-local"></div>
+        <button class="btn" data-act="ev-add">이벤트 올리기</button>
+      </div>
+    </section>`;
+  },
+
+  /* ---------- 응원 이벤트 ---------- */
+  cheer: () => {
+    const won = new Map((D.winners || []).map(w => [w.n, w]));
+    const pz = D.prizes || [];
+    const extra = (D.winners || []).filter(w => !pz.some(p => p.n === w.n));
+    return `<p class="page-title">응원 이벤트</p><p class="page-sub">오늘 경기 <b>전체</b> 응원 클릭 중 n번째에 누른 사람이 당첨돼요. 번호는 관람객에게 공개되지 않고, 한 사람은 한 번만 당첨돼요.</p>
+    <div class="kpis" style="grid-template-columns:1fr 1fr;"><div class="kpi hot"><span>지금까지 전체 응원</span><b>${fmt(D.total)}</b></div><div class="kpi"><span>당첨</span><b>${(D.winners || []).length} / ${pz.length + extra.length}</b></div></div>
+    <section class="card">
+      ${(pz.length || extra.length) ? [...pz.map((p, i) => { const w = won.get(p.n); return `<div class="row">
+        <div class="main"><p class="t"><span class="chip ${w ? 'gold' : 'off'}">${fmt(p.n)}번째</span>${esc(p.prize)}</p>
+        <p class="m">${esc(p.place)}${w ? ` · ${time(w.at)} 당첨 · 기기 …${esc(w.device)}` : (D.total >= p.n ? ' · 지나감' : ` · ${fmt(p.n - D.total)}번 남음`)}</p></div>
+        ${w ? `<span class="code">${esc(w.code)}</span>${redeemBtn(w.code)}` : `<button class="btn small ghost" data-act="pz-del" data-i="${i}">삭제</button>`}</div>`; }),
+        ...extra.map(w => `<div class="row"><div class="main"><p class="t"><span class="chip gold">${fmt(w.n)}번째</span>${esc(w.prize)}</p><p class="m">${esc(w.place)} · ${time(w.at)}</p></div><span class="code">${esc(w.code)}</span>${redeemBtn(w.code)}</div>`)].join('')
+        : `<p class="empty">등록한 당첨 번호가 없어요.</p>`}
+      <div class="form">
+        <div class="field"><label>몇 번째</label><input id="pz-n" type="number" min="1" placeholder="1000"></div>
+        <div class="field"><label>선물</label><input id="pz-prize" maxlength="40" placeholder="읏맨 응원 티셔츠"></div>
+        <div class="field full"><label>수령 장소</label><input id="pz-place" maxlength="40" placeholder="1층 OK저축은행 부스"></div>
+        <button class="btn" data-act="pz-add">당첨 번호 추가</button>
+      </div>
+      <div style="margin-top:14px; display:flex; justify-content:flex-end;">${isOwner() ? '<button class="btn small danger" data-act="reset-cheer">응원 수·당첨 초기화 (리허설용)</button>' : ''}</div>
+    </section>`;
+  },
+
+  /* ---------- 경기 예측 ---------- */
+  predict: S => {
+    const reg = Array.isArray(CT().predict) && CT().predict.length;
+    if(!DR.predict) DR.predict = clone(reg ? CT().predict : PRED_DEF);
+    const editor = `<section class="card">
+      <h2>예측 등록하기 ${reg ? '<span class="chip ok">등록됨</span>' : '<span class="chip off">기본 문항이 나가는 중</span>'}</h2>
+      <p class="desc">관람객 화면 이벤트 › 경기 예측에 20초 안에 반영돼요. 이미 고르기 시작한 관람객 화면은 그대로 둬요. 경기가 시작되면 예측은 자동으로 마감돼요.<br>
+      'AI추천 사용'을 켜면 팀·선수 기록으로 계산한 추천이 문항 위에 함께 보여요(첫 득점 팀·세트 스코어·선수 문항).</p>
+      ${qEditor('predict')}
+      <div class="edfoot">${DR.predict.length < LIMIT.predictQ ? `<button class="btn ghost" data-act="ed-add" data-ed="predict">+ 질문 추가</button>` : '<span></span>'}
+        <button class="btn" data-act="pred-save">예측 등록하기</button></div>
+    </section>`;
+    return `<p class="page-title">경기 예측 <button class="btn small ghost" data-act="csv-predict" style="vertical-align:4px; margin-left:6px;">CSV 내려받기</button></p><p class="page-sub">참여 ${fmt(S.pred.count)}명 · 문항을 바꿀 때마다 버전이 따로 쌓여요. 정답은 버전마다 입력하고, '전부 맞힌 사람'은 각자 예측한 버전 기준이에요.</p>
+    ${editor}
+    ${predResults(S)}`;
+  },
+
+  /* ---------- MVP ---------- */
+  mvp: S => {
+    const total = S.mvpRank.reduce((a, b) => a + b.n, 0), max = Math.max(1, ...S.mvpRank.map(r => r.n));
+    const cur = (D.settings || {}).mvp;
+    return `<p class="page-title">MVP 투표</p><p class="page-sub">총 ${fmt(total)}표 · 확정한 선수는 관람객 화면 기록 탭에서 MVP 카드로 바뀌어요.</p>
+    <section class="card">
+      ${S.mvpRank.length ? S.mvpRank.map((r, i) => `<div class="row">
+        <div class="main"><div class="bar${i === 0 ? ' top' : ''}" style="margin:0;"><span class="l"><b>${i + 1}</b> · #${esc(r.num)} ${esc(r.name)}</span><span class="tr"><span class="f" style="width:${r.n / max * 100}%"></span></span><span class="n">${r.n}표 · ${pct(r.n, total)}%</span></div></div>
+        ${cur && String(cur.num) === String(r.num) ? `<span class="chip gold">MVP</span>` : `<button class="btn small ghost" data-act="mvp-set" data-num="${esc(r.num)}" data-name="${esc(r.name)}">MVP로 확정</button>`}
+      </div>`).join('') : `<p class="empty">아직 투표가 없어요. MVP 투표는 경기가 시작되면 열려요.</p>`}
+      ${cur ? `<div style="margin-top:12px; display:flex; justify-content:flex-end;"><button class="btn small ghost" data-act="mvp-clear">MVP 카드 해제</button></div>` : ''}
+    </section>`;
+  },
+
+  /* ---------- 설문 ---------- */
+  survey: S => {
+    if(!LIB.at) loadLib();
+    const n = (D.subs.survey || []).length;
+    const live = D.survey;
+    const results = survResults(S);
+    const head = `<p class="page-title">설문 <button class="btn small ghost" data-act="csv-survey" style="vertical-align:4px; margin-left:6px;">응답 CSV 내려받기</button></p>`;
+
+    // 편집 중 — 보관함의 설문 하나를 고치거나 새로 만들어요
+    if(DR.svEdit) return `${head}<p class="page-sub">설문 보관함 › ${DR.svEdit.id ? '고치기' : '새 설문'}</p>
+      <section class="card">
+        <h2>설문 편집 <span style="display:flex; gap:8px;"><button class="btn small ghost" data-act="sv-xlsx">엑셀 양식으로 내려받기</button><button class="btn small dark" data-act="sv-ai">AI로 설문 생성하기</button></span></h2>
+        <div class="field"><label for="sv-title">설문 제목 (보관함·버전에 보이는 이름)</label><input class="in" id="sv-title" maxlength="60" value="${esc(DR.svEdit.title || '')}" placeholder="예: 26-27 시즌초반 관람객설문"></div>
+        <p class="desc" style="margin-top:10px;">문항은 ${LIMIT.surveyQ}개, 선택 항목은 ${LIMIT.surveyO}개까지. 조건(앞 문항 답에 따라 보이기)은 엑셀 번호를 '1-1'처럼 붙여서 만들어요.</p>
+        ${sEditor()}
+        <div class="edfoot">${DR.survey.length < LIMIT.surveyQ ? `<button class="btn ghost" data-act="ed-add" data-ed="survey">+ 문항 추가</button>` : '<span></span>'}
+          <span style="display:flex; gap:8px;"><button class="btn ghost" data-act="sv-cancel">취소</button><button class="btn" data-act="sv-save">보관함에 저장</button></span></div>
+      </section>`;
+
+    const liveCard = live
+      ? `<section class="card"><h2><span>${esc(live.title || '제목 없는 설문')} <span class="chip">${vLabel(live.v)}</span> <span class="chip ${live.source === 'match' ? '' : 'ok'}">${live.source === 'match' ? '이 경기만 따로 지정' : '보관함 기본 설문'}</span></span>
+          ${live.source === 'match' ? `<button class="btn small ghost" data-act="lib-match-reset">보관함 기본 설문으로 되돌리기</button>` : ''}</h2>
+          <p class="desc">${esc(mid())} 경기 관람객에게 지금 나가는 설문이에요 · ${live.items.length}문항 · 응답 ${fmt(n)}명 · 같은 설문이 다시 나가면 같은 버전으로 묶여요. 문항은 아래 보관함의 '미리보기'로 볼 수 있어요.</p></section>`
+      : `<section class="card"><h2>지금 나가는 설문 <span class="chip off">비상용 기본 문항</span></h2>
+          <p class="desc">보관함에 기본 설문이 없어서 짧은 기본 문항 ${SURV_DEF.length}개가 나가고 있어요. 아래 보관함에서 엑셀로 불러오고 '기본으로 지정'을 눌러주세요.</p></section>`;
+
+    const rows = LIB.surveys.map((e, i) => {
+      const isDef = e.id === LIB.defaultId, isLive = live && live.lib === e.id && canon(live.items) === canon(e.items);
+      return `<div class="row"><div class="main">
+          <p class="t">${esc(e.title)} ${isDef ? '<span class="chip ok">기본</span>' : ''} ${isLive ? '<span class="chip">지금 이 경기에 나가는 중</span>' : ''}</p>
+          <p class="m">${e.items.length}문항 · ${time(e.updatedAt || e.at)} 수정</p></div>
+        <div class="acts">
+          <button class="btn small ghost" data-act="lib-preview" data-i="${i}">미리보기</button>
+          ${isDef ? '' : `<button class="btn small ghost" data-act="lib-default" data-i="${i}">기본으로 지정</button>`}
+          ${isLive ? '' : `<button class="btn small ghost" data-act="lib-use" data-i="${i}">이 경기에만 내보내기</button>`}
+          <button class="btn small ghost" data-act="lib-edit" data-i="${i}">고치기</button>
+          <button class="btn small ghost" data-act="lib-xlsx" data-i="${i}">엑셀</button>
+          <button class="btn small danger" data-act="lib-del" data-i="${i}">삭제</button>
+        </div></div>`; }).join('');
+    const libCard = `<section class="card">
+      <h2>설문 보관함 <span class="muted" style="font-size:12px; font-weight:600;">시즌 전체 공통</span></h2>
+      <div class="opts" style="margin:0 0 6px;">
+        <button class="btn small dark" data-act="sv-import">엑셀로 불러오기</button>
+        <button class="btn small ghost" data-act="lib-new">새 설문 만들기</button>
+      </div>
+      <p class="desc">'기본'으로 지정한 설문이 모든 경기에 나가요(경기에 따로 내보낸 설문이 있으면 그게 먼저). 엑셀 열: 번호 · 문항 · 응답 유형 · 선택지 · 기타.</p>
+      ${!LIB.at ? '<p class="empty">불러오는 중…</p>' : LIB.err && !LIB.surveys.length ? `<p class="empty">보관함을 불러오지 못했어요 — 서버(okman-live)를 이번 버전으로 배포했는지 확인해주세요.</p>` : rows || '<p class="empty">보관함이 비어 있어요. 엑셀로 불러오기부터 해주세요.</p>'}
+    </section>`;
+    return `${head}<p class="page-sub">응답 ${fmt(n)}명 · 설문은 보관함에 여러 개 넣어두고 골라서 내보내요. 나간 설문은 경기마다 버전으로 따로 집계돼요.</p>
+      ${liveCard}${libCard}${results}`;
+  },
+
+  home: () => homeView(),
+
+  /* ---------- 설정 ---------- */
+  settings: S => {
+    // 탭: 데이터 초기화(총괄) · 계정 · 닉네임 금칙어(총괄·일반) · 작업 기록
+    const tabs = [
+      isOwner() && ['reset', '데이터 초기화'],
+      ['account', isOwner() ? '계정 관리' : '내 계정'],
+      isOwner() && ['privacy', '데이터 안내'],
+      isAdmin() && ['nickban', '닉네임 금칙어'],
+      isAdmin() && ['subway', '막차 시간표'],
+      ['audit', '작업 기록'],
+    ].filter(Boolean);
+    const tab = tabs.some(([k]) => k === DR.setTab) ? DR.setTab : tabs[0][0];
+    const body = { reset:() => resetCard(S), account:() => accountCards() + (isOwner() ? locksCard() : ''), privacy:() => privacyCard(), nickban:() => nickBanCard(), subway:() => subwayCard(), audit:() => auditCard() }[tab]();
+    return `<p class="page-title">설정</p><p class="page-sub">${esc($('who').textContent)} 계정으로 로그인했어요.</p>
+      <div class="settabs" role="tablist">${tabs.map(([k, t]) => `<button role="tab" aria-selected="${k === tab}" class="${k === tab ? 'on' : ''}" data-settab="${k}">${t}</button>`).join('')}</div>
+      ${body}`;
+  },
+
+  /* ---------- 경품 응모 · 추첨 ---------- */
+  raffle: S => {
+    const saved = D.raffleWinners || [];
+    const route = r => [r.viaPredict ? '예측' : '', r.viaSurvey ? '설문' : ''].filter(Boolean).join(' · ') || '—';
+    return `<p class="page-title">경품 응모 · 추첨</p><p class="page-sub">응모 ${fmt(S.raffle.length)}건 · 관람객은 홈 미션 5개를 채운 뒤 닉네임으로 응모해요(연락처는 받지 않아요). 한 기기·한 닉네임은 한 번만 뽑혀요. 당첨자는 전광판에 닉네임으로 안내해주세요.</p>
+    <section class="card">
+      <h2>추첨하기</h2>
+      <div class="form" style="grid-template-columns:1fr 1fr 1fr auto;">
+        <div class="field" style="grid-column:auto;"><label>응모 경로</label><select id="rf-src"><option value="">전체</option><option value="predict">예측</option><option value="survey">설문</option></select></div>
+        <div class="field" style="grid-column:auto;"><label>대상</label><select id="rf-only"><option value="">응모자 전체</option><option value="correct">예측 전부 맞힌 사람만</option></select></div>
+        <div class="field" style="grid-column:auto;"><label>뽑을 인원</label><input id="rf-n" type="number" min="1" value="3"></div>
+        <button class="btn" data-act="rf-draw" style="grid-column:auto; align-self:end;">추첨하기</button>
+      </div>
+    </section>
+    <section class="card">
+      <h2><span>저장한 당첨자 <span class="muted" style="font-size:13px; font-weight:600;">${saved.length}명</span></span>
+        ${saved.length ? `<button class="btn small ${((D.settings || {}).board || {}).announce ? 'ghost' : ''}" data-act="rf-announce">${((D.settings || {}).board || {}).announce ? '전광판 발표 내리기' : '전광판에 발표'}</button>` : ''}</h2>
+      ${saved.length ? saved.map(w => { const nm = w.nickname || w.contact; return `<div class="row"><div class="main"><p class="t">${esc(nm)}</p><p class="m">${esc(w.route || ({ predict:'예측', survey:'설문' })[w.source] || '')}${w.at ? ' · ' + time(w.at) + ' 응모' : ''}</p></div><button class="btn small ghost" data-copy="${esc(nm)}">복사</button></div>`; }).join('') : `<p class="empty">저장한 당첨자가 없어요.</p>`}
+    </section>
+    <section class="card">
+      <h2>응모 목록 ${isOwner() ? '<button class="btn small danger" data-act="rf-clear">응모 닉네임 삭제</button>' : ''}</h2>
+      <p class="desc">전광판에 부적절한 닉네임이 나가지 않게, 추첨 전에 훑어보고 '추첨에서 빼기'를 눌러주세요. 금칙어가 들어간 닉네임은 응모 단계에서 막혀요.</p>
+      ${S.raffle.length ? `<div class="scroll"><table><thead><tr><th>닉네임</th><th>경로</th><th>예측 정답</th><th>응모 시각</th><th></th></tr></thead><tbody>
+        ${S.raffle.slice().sort((a, b) => (b.at || 0) - (a.at || 0)).map(r => { const hid = (D.raffleHidden || {})[r.device]; return `<tr class="${hid ? 'hid' : ''}"><td><b>${esc(r.name)}</b>${hid ? ' <span class="chip off">추첨 제외</span>' : ''}</td><td>${route(r)}</td><td>${S.pred.allCorrect.has(r.device) ? '<span class="chip ok">전부 정답</span>' : '<span class="muted">—</span>'}</td><td class="muted">${time(r.at)}</td><td><button class="btn small ghost" data-act="rf-hide" data-dev="${esc(r.device)}" data-h="${hid ? 0 : 1}">${hid ? '다시 넣기' : '추첨에서 빼기'}</button></td></tr>`; }).join('')}
+      </tbody></table></div>` : `<p class="empty">아직 응모 내역이 없어요.</p>`}
+    </section>`;
+  },
+
+  /* ---------- 룰렛 · 교환 코드 ---------- */
+  codes: S => {
+    const all = [...S.rl.wins, ...(D.winners || []).map(w => ({ code:w.code, title:w.prize, at:w.at, device:w.device, type:'응원' }))].sort((a, b) => b.at - a.at);
+    const red = D.redeemed || {};
+    return `<p class="page-title">룰렛 · 교환 코드</p><p class="page-sub">부스에서 관람객이 보여준 교환 코드를 확인하고 '교환 완료'로 처리해요. 한 코드는 한 번만 교환돼요.</p>
+    <section class="card">
+      <h2>교환 코드 확인</h2>
+      <div class="form" style="grid-template-columns:1fr auto; margin-top:0;">
+        <div class="field" style="grid-column:auto;"><label>코드</label><input id="code-q" maxlength="12" placeholder="예: X7QK" style="text-transform:uppercase; font-size:18px; font-weight:800; letter-spacing:.12em;"></div>
+        <button class="btn" data-act="code-find" style="grid-column:auto; align-self:end;">확인</button>
+      </div>
+      <div id="code-result"></div>
+    </section>
+    <div class="grid2">
+      <section class="card"><h2>룰렛 결과 <span class="muted" style="font-size:13px; font-weight:600;">${fmt(S.rl.spins)}회</span></h2>${bars(S.rl.byTitle)}</section>
+      <section class="card"><h2>교환 현황</h2>
+        <div class="kpis" style="grid-template-columns:1fr 1fr; margin:0;"><div class="kpi"><span>발급</span><b>${all.length}</b></div><div class="kpi hot"><span>교환 완료</span><b>${all.filter(w => red[w.code]).length}</b></div></div></section>
+    </div>
+    <section class="card"><h2>발급된 코드</h2>
+      ${all.length ? `<div class="scroll"><table><thead><tr><th>코드</th><th>구분</th><th>경품</th><th>발급</th><th>상태</th></tr></thead><tbody>
+        ${all.map(w => `<tr><td><span class="code">${esc(w.code)}</span></td><td>${w.type}</td><td>${esc(w.title)}</td><td class="muted">${time(w.at)}</td><td>${redeemBtn(w.code)}</td></tr>`).join('')}
+      </tbody></table></div>` : `<p class="empty">아직 발급된 코드가 없어요.</p>`}
+    </section>`;
+  },
+
+  /* ---------- 출석체크 ---------- */
+  checkin: S => {
+    const qs = (Array.isArray(CT().checkin) && CT().checkin.length) ? CT().checkin : CK_DEF;
+    return `<p class="page-title">출석체크</p><p class="page-sub">${fmt(S.ck.count)}명 · 홈의 '출석체크'에서 고른 답이에요. 한 기기에 한 번만 집계돼요. 질문은 ${LIMIT.ckQ}개까지 둘 수 있어요(출석 확인용이라 짧게).</p>
+    <div class="grid2">
+      ${qs.map((q, i) => `<section class="card"><h2>${esc(q.q)} <button class="btn small ghost" data-act="ck-edit" data-i="${i}">편집하기</button></h2>
+        ${bars(S.ck.by[q.key] || {}, { order:q.opts.map(o => o.label) })}</section>`).join('')}
+    </div>
+    ${qs.length < LIMIT.ckQ ? `<button class="btn ghost" data-act="ck-edit" data-i="new">+ 질문 추가</button>` : ''}`;
+  },
+};
+
+function redeemBtn(code){
+  const at = (D.redeemed || {})[code];
+  return at ? `<button class="btn small ghost" data-act="redeem" data-code="${esc(code)}" data-v="0" title="${time(at)} 교환">교환 완료 ✓</button>`
+            : `<button class="btn small" data-act="redeem" data-code="${esc(code)}" data-v="1">교환 처리</button>`;
+}
+
+const AFTER = {
+  raffle: S => { window.__raffleS = S; },
+};
+
+/* ================================================================
+   동작
+   ================================================================ */
+async function act(fn, okMsg, keepForm){
+  busy = true;
+  try{ await fn(); if(!keepForm) render.last = null; await load(true); if(okMsg) toast(okMsg); return true; }
+  catch(e){ toast(e.message, true); return false; }
+  finally{ busy = false; }
+}
+const val = id => ($(id) || {}).value || '';
+
+document.addEventListener('click', e=>{
+  const cp = e.target.closest('[data-copy]');
+  if(cp){ navigator.clipboard.writeText(cp.dataset.copy).then(()=> toast('복사했어요')); return; }
+  const b = e.target.closest('[data-act]'); if(!b) return;
+  const i = Number(b.dataset.i);
+  switch(b.dataset.act){
+    case 'ev-add': {
+      const ev = { title:val('ev-title').trim(), limit:val('ev-limit').trim(), place:val('ev-place').trim(), desc:val('ev-desc').trim(),
+                   startsAt:val('ev-start'), endsAt:val('ev-end'), active:true, createdAt:Date.now() };
+      if(!ev.title) return toast('이벤트 제목을 넣어주세요.', true);
+      return act(()=> mcall('PUT', 'events', { events:[...(D.events || []), ev] }), '이벤트를 올렸어요. 관람객 화면엔 20초 안에 보여요.');
+    }
+    case 'ev-toggle': return act(()=> mcall('PUT', 'events', { events:(D.events || []).map((x, j) => j === i ? { ...x, active:x.active === false } : x) }));
+    case 'ev-del': if(!confirm('이 이벤트를 삭제할까요?')) return; return act(()=> mcall('PUT', 'events', { events:(D.events || []).filter((_, j) => j !== i) }), '삭제했어요.');
+    case 'pz-add': {
+      const p = { n:Number(val('pz-n')), prize:val('pz-prize').trim(), place:val('pz-place').trim() };
+      if(!(p.n > 0) || !p.prize) return toast('몇 번째와 선물을 넣어주세요.', true);
+      if((D.prizes || []).some(x => x.n === p.n)) return toast('이미 등록된 번호예요.', true);
+      if(p.n <= (D.total || 0)) return toast(`이미 ${fmt(D.total)}번째까지 눌렸어요. 더 큰 번호를 넣어주세요.`, true);
+      return act(()=> mcall('PUT', 'prizes', { prizes:[...(D.prizes || []), p] }), '당첨 번호를 추가했어요.');
+    }
+    case 'pz-del': return act(()=> mcall('PUT', 'prizes', { prizes:(D.prizes || []).filter((_, j) => j !== i) }));
+    case 'reset-cheer': if(!confirm('이 경기의 응원 수와 응원 당첨 기록을 0으로 되돌릴까요? 리허설 때만 쓰세요.')) return; return act(()=> mcall('POST', 'reset-cheer'), '초기화했어요.');
+    case 'mvp-set': if(!confirm(`#${b.dataset.num} ${b.dataset.name} 선수를 MVP로 확정할까요?`)) return;
+      return act(()=> mcall('PUT', 'settings', { mvp:{ num:Number(b.dataset.num), name:b.dataset.name, title:'MVP' } }), 'MVP를 확정했어요.');
+    case 'mvp-clear': return act(()=> mcall('PUT', 'settings', { mvp:null }), 'MVP 카드를 해제했어요.');
+    case 'save-start': {
+      const el = $('start');
+      // 날짜만 넣고 시각을 비우면 브라우저가 값을 빈칸으로 줘요 — 그대로 저장하면 지워지니 막아요
+      if(el.validity.badInput || !el.value) return toast('날짜와 시각(시·분, 오전/오후)을 모두 넣어주세요.', true);
+      return act(()=> mcall('PUT', 'settings', { start:el.value }), `시작 시각을 ${fmtStart(el.value)}로 저장했어요.`);
+    }
+    case 'clear-start': if(!confirm('저장한 시작 시각을 지울까요? 경기 일정표 기준으로 돌아가요.')) return;
+      return act(()=> mcall('PUT', 'settings', { start:'' }), '시작 시각을 지웠어요.');
+    case 'ans-save': {
+      // 지금 보는 버전의 정답만 바꾸고, 다른 버전 정답은 그대로 둬요
+      const answers = { ...((D.settings || {}).answers || {}) };
+      document.querySelectorAll('[data-ans]').forEach(s => { if(s.value) answers[s.dataset.ans] = s.value; else delete answers[s.dataset.ans]; });
+      return act(()=> mcall('PUT', 'settings', { answers }), '정답을 저장했어요.');
+    }
+    case 'rf-draw': return drawRaffle();
+    case 'rf-save': {
+      const w = window.__draw || []; if(!w.length) return;
+      closeModal();
+      // nickname이 기준이고, contact에도 같은 값을 넣어 예전 서버(연락처 필드만 저장)에서도 이름이 남게 해요
+      return act(()=> mcall('PUT', 'raffle', { winners:[...(D.raffleWinners || []), ...w.map(x => ({ nickname:x.name, contact:x.name, device:x.device, route:x.route, at:x.at }))] }), '당첨자를 저장했어요.');
+    }
+    case 'rf-clear': if(!confirm('응모 닉네임 목록을 모두 삭제할까요? 추첨이 끝난 뒤에 지워주세요. 되돌릴 수 없어요.')) return;
+      return act(()=> mcall('POST', 'raffle-clear'), '응모 닉네임을 삭제했어요.');
+
+    /* --- 문항 편집기 (예측 · 설문) --- */
+    case 'ed-add': {
+      const k = b.dataset.ed;
+      DR[k].push(k === 'predict' ? { id:'q' + Date.now().toString(36), q:'', options:['OK저축은행 읏맨', '상대팀'], ai:true } : { id:svNextId(), q:'', type:'single', options:['', '', ''] });
+      return render();
+    }
+    case 'ed-del': { const k = b.dataset.ed; if(DR[k].length > 1) DR[k].splice(i, 1); return render(); }
+    case 'ed-oadd': { const k = b.dataset.k || 'options'; DR[b.dataset.ed][i][k].push(''); render(); const ins = document.querySelectorAll(`[data-ed="${b.dataset.ed}"][data-i="${i}"][data-f="${k === 'options' ? (b.dataset.ed === 'survey' ? 'options' : 'opt') : k}"]`); ins[ins.length - 1]?.focus(); return; }
+    case 'ed-odel': { const k = b.dataset.k || 'options', arr = DR[b.dataset.ed][i][k], min = k === 'rows' ? 1 : 2; if(arr.length > min) arr.splice(Number(b.dataset.j), 1); return render(); }
+    case 'sv-nocond': delete DR.survey[i].cond; return render();
+    case 'sv-xlsx': return downloadSurveyXlsx(cleanSurvey(DR.survey), (DR.svEdit || {}).title).catch(e => toast(e.message, true));
+
+    /* --- 설문 보관함 --- */
+    case 'lib-add': case 'lib-add-edit': {
+      const imp = window.__svImport; if(!imp) return;
+      const title = (val('imp-title') || '').trim() || imp.title;
+      if(b.dataset.act === 'lib-add-edit'){ closeModal(); DR.svEdit = { id:'', title, makeDefault:$('imp-def') && $('imp-def').checked }; DR.survey = clone(imp.items); return render(); }
+      const e = { id:'s' + Date.now().toString(36), title, items:imp.items, at:Date.now(), updatedAt:Date.now() };
+      const makeDef = $('imp-def') && $('imp-def').checked;
+      closeModal();
+      return saveLib({ surveys:[...LIB.surveys, e], defaultId:makeDef ? e.id : LIB.defaultId }, makeDef ? `'${title}'을 보관함에 넣고 기본 설문으로 지정했어요. 관람객 화면엔 1분 안에 보여요.` : `'${title}'을 보관함에 넣었어요.`);
+    }
+    case 'sv-import': loadXlsx().catch(()=>{}); return $('sv-file').click();   // 엑셀 도구도 미리 불러둬요
+    case 'lib-new': DR.svEdit = { id:'', title:'' }; DR.survey = [{ id:'1', q:'', type:'single', options:['', '', ''] }]; return render();
+    case 'lib-edit': { const e = libIdx(i); if(!e) return; DR.svEdit = { id:e.id, title:e.title }; DR.survey = clone(e.items); scrollTo(0, 0); return render(); }
+    case 'lib-preview': { const e = libIdx(i); if(!e) return;
+      openModal(`<div class="modal__head"><h3>${esc(e.title)}</h3><button class="modal__x" data-act="modal-x" aria-label="닫기">×</button></div>
+        <p class="desc">${e.items.length}문항</p><div style="max-height:60vh; overflow:auto;">${svList(e.items)}</div>`); $('modal-box').style.maxWidth = '640px'; return; }
+    case 'lib-xlsx': { const e = libIdx(i); if(e) downloadSurveyXlsx(e.items, e.title).catch(err => toast(err.message, true)); return; }
+    case 'lib-default': { const e = libIdx(i); if(!e) return;
+      if(!confirm(`'${e.title}'을 기본 설문으로 지정할까요?
+따로 설문을 내보낸 경기를 빼고, 모든 경기 관람객에게 1분 안에 이 설문이 나가요.
+이미 답한 관람객은 다시 답하지 않아요.`)) return;
+      return saveLib({ surveys:LIB.surveys, defaultId:e.id }, `'${e.title}'을 기본 설문으로 지정했어요.`); }
+    case 'lib-use': { const e = libIdx(i); if(!e) return;
+      const cv = S0().sv.find(v => v.current);
+      if(!confirm(`'${e.title}'을 ${mid()} 경기에만 내보낼까요?${cv && cv.rows.length ? `
+지금 설문에 ${cv.rows.length}명이 답했어요. 새 설문은 따로 집계되고, 이미 답한 분은 다시 답하지 않아요.` : ''}`)) return;
+      return saveContent({ survey:e.items, surveyTitle:e.title, surveyLib:e.id }, `'${e.title}'을 이 경기에 내보냈어요. 관람객 화면엔 20초 안에 보여요.`); }
+    case 'lib-match-reset': if(!confirm('이 경기에 따로 내보낸 설문을 빼고 보관함 기본 설문으로 되돌릴까요?')) return;
+      return saveContent({ survey:undefined, surveyTitle:undefined, surveyLib:undefined }, '보관함 기본 설문으로 되돌렸어요.');
+    case 'lib-del': { const e = libIdx(i); if(!e) return;
+      if(!confirm(`'${e.title}'을 보관함에서 삭제할까요?${e.id === LIB.defaultId ? '\n기본 설문이라, 지우면 따로 지정하지 않은 경기엔 비상용 기본 문항이 나가요.' : ''}
+이미 받은 응답과 버전 기록은 그대로 남아요.`)) return;
+      return saveLib({ surveys:LIB.surveys.filter(x => x.id !== e.id), defaultId:e.id === LIB.defaultId ? '' : LIB.defaultId }, '보관함에서 삭제했어요.'); }
+    case 'ed-player': { const q = DR[b.dataset.ed][i]; q._opts = q.options; q.type = 'player'; delete q.options; return render(); }
+    case 'ed-noplayer': { const q = DR[b.dataset.ed][i]; delete q.type; q.options = q._opts || ['', '']; delete q._opts; return render(); }
+    case 'pred-save': {
+      const err = validQs(DR.predict); if(err) return toast(err, true);
+      { const cv = S0().pred.versions.find(v => v.current); const nv = Math.max(0, ...S0().pred.versions.map(v => v.v === 'none' ? 0 : v.v)) + 1;
+        if(cv && cv.rows.length && canon(cleanQs(DR.predict)) !== canon(CT().predict || null)
+           && !confirm(`지금 문항(${vLabel(cv.v)})에 ${cv.rows.length}명이 예측했어요.\n새로 등록하면 v${nv}로 따로 집계되고, 이미 예측한 분은 그대로예요. 등록할까요?`)) return; }
+      const predict = cleanQs(DR.predict);
+      return saveContent({ predict }, '예측을 등록했어요. 관람객 화면엔 20초 안에 보여요.').then(ok=>{ if(ok){ DR.predict = null; render(); } });
+    }
+    case 'sv-ai': return openModal(`<div class="modal__head"><h3>AI로 설문 생성하기</h3><button class="modal__x" data-act="modal-x" aria-label="닫기">×</button></div>
+      <div class="field" style="margin-bottom:10px;"><label for="ai-nq">문항 수 (1~5개)</label><input class="in" id="ai-nq" type="number" min="1" max="5" value="4"></div>
+      <div class="field"><label for="ai-na">답변 수 (3~5개)</label><input class="in" id="ai-na" type="number" min="3" max="5" value="4"></div>
+      <p class="desc" style="margin:10px 0 0;">직관 경험(좌석·응원·편의시설·교통 등)에 맞춘 문항으로 채워요. 채운 뒤 고쳐서 등록하면 돼요.</p>
+      <div class="modal__foot"><button class="btn" data-act="sv-gen">생성하기</button></div>`);
+    case 'sv-gen': {
+      const nq = Math.round(Number(val('ai-nq'))), na = Math.round(Number(val('ai-na')));
+      if(!(nq >= 1 && nq <= 5)) return toast('문항 수는 1~5개로 넣어주세요.', true);
+      if(!(na >= 3 && na <= 5)) return toast('답변 수는 3~5개로 넣어주세요.', true);
+      DR.survey = genSurvey(nq, na); DR.svEdit = { ...(DR.svEdit || { id:'' }), title:(DR.svEdit && DR.svEdit.title) || 'AI 생성 설문' }; closeModal(); render(); return toast('설문을 채웠어요. 확인하고 보관함에 저장해주세요.');
+    }
+    case 'sv-cancel': DR.svEdit = null; DR.survey = null; return render();
+    case 'sv-save': {
+      const title = (DR.svEdit.title || '').trim();
+      if(!title) return toast('설문 제목을 넣어주세요.', true);
+      const err = validSurvey(DR.survey); if(err) return toast(err, true);
+      const items = cleanSurvey(DR.survey), id = DR.svEdit.id;
+      const surveys = id ? LIB.surveys.map(x => x.id === id ? { ...x, title, items, updatedAt:Date.now() } : x)
+                         : [...LIB.surveys, { id:'s' + Date.now().toString(36), title, items, at:Date.now(), updatedAt:Date.now() }];
+      const newId = id || surveys[surveys.length - 1].id;
+      const defaultId = DR.svEdit.makeDefault ? newId : LIB.defaultId;
+      const live = D.survey, pushMatch = live && live.source === 'match' && live.lib === id && id;
+      const msg = id === LIB.defaultId && id ? `저장했어요. 기본 설문이라 모든 경기에 1분 안에 바뀐 설문(새 버전)이 나가요.` : '보관함에 저장했어요.';
+      return saveLib({ surveys, defaultId }, msg).then(async ok =>{
+        if(!ok) return;
+        if(pushMatch && confirm('이 경기에 따로 내보낸 설문이에요. 이 경기에도 고친 설문을 바로 내보낼까요?')) await saveContent({ survey:items, surveyTitle:title, surveyLib:id }, '이 경기에도 내보냈어요.');
+        DR.svEdit = null; DR.survey = null; render();
+      });
+    }
+
+    /* --- 대시보드: 미션 순서 --- */
+    case 'ms-up': case 'ms-down': {
+      const j = b.dataset.act === 'ms-up' ? i - 1 : i + 1;
+      [DR.missions[i], DR.missions[j]] = [DR.missions[j], DR.missions[i]]; return render();
+    }
+    case 'ms-save': return saveContent({ missions:DR.missions.slice() }, '미션 순서를 저장했어요.');
+
+    /* --- 출석체크 편집 --- */
+    case 'ck-edit': {
+      const qs = (Array.isArray(CT().checkin) && CT().checkin.length) ? CT().checkin : CK_DEF;
+      MOD = { kind:'ck', i:b.dataset.i === 'new' ? qs.length : i, qs:clone(qs) };
+      if(b.dataset.i === 'new') MOD.qs.push({ key:'q' + Date.now().toString(36), q:'', opts:[{ label:'' }, { label:'' }] });
+      return ckModal();
+    }
+    case 'ck-oadd': if(MOD.qs[MOD.i].opts.length < LIMIT.ckO){ MOD.qs[MOD.i].opts.push({ label:'' }); ckModal(); } return;
+    case 'ck-odel': { const o = MOD.qs[MOD.i].opts; if(o.length > 2){ o.splice(Number(b.dataset.j), 1); ckModal(); } return; }
+    case 'ck-imgdel': delete MOD.qs[MOD.i].opts[Number(b.dataset.j)].img; return ckModal();
+    case 'ck-qdel': {
+      if(MOD.qs.length <= 1) return toast('질문은 1개 이상 있어야 해요.', true);
+      if(!confirm('이 질문을 삭제할까요?')) return;
+      MOD.qs.splice(MOD.i, 1); const qs = MOD.qs; closeModal();
+      return saveContent({ checkin:qs }, '질문을 삭제했어요.');
+    }
+    case 'ck-save': {
+      const q = MOD.qs[MOD.i];
+      q.q = q.q.trim(); q.opts = q.opts.map(o => ({ ...o, label:o.label.trim() })).filter(o => o.label);
+      if(!q.q) return toast('질문을 입력해주세요.', true);
+      if(q.opts.length < 2) return toast('답변을 2개 이상 넣어주세요.', true);
+      if(new Set(q.opts.map(o => o.label)).size !== q.opts.length) return toast('같은 답변이 있어요.', true);
+      const qs = MOD.qs.slice(0, LIMIT.ckQ); closeModal();
+      return saveContent({ checkin:qs }, '출석 질문을 등록했어요.');
+    }
+    case 'redeem': return act(()=> mcall('PUT', 'redeem', { code:b.dataset.code, redeemed:b.dataset.v === '1' }), b.dataset.v === '1' ? '교환 완료로 처리했어요.' : '교환 처리를 취소했어요.', true).then(()=>{ if($('code-result') && $('code-result').innerHTML) findCode(); });
+    case 'code-find': return findCode();
+    case 'rf-swap': return swapDraw(i);
+    case 'lock-refresh': return loadExtra('locks', true);
+    case 'sub-save': {
+      const cur = (EXTRA.subway && !EXTRA.subway.error && EXTRA.subway.tt) || {};
+      const p0 = parseHumetro(DR.sub.t0), p1 = parseHumetro(DR.sub.t1);
+      const has = p => p.wk.length + p.sa.length + p.su.length > 0;
+      if(String(DR.sub.t0 || '').trim() && !has(p0)) return toast('수영 방면 칸에서 시각을 못 읽었어요. 표를 다시 복사해주세요.', true);
+      if(String(DR.sub.t1 || '').trim() && !has(p1)) return toast('대저 방면 칸에서 시각을 못 읽었어요. 표를 다시 복사해주세요.', true);
+      const tt = {};
+      for(const [k] of TT_DAYS) tt[k] = { 0: has(p0) ? p0[k] : ((cur[k] || {})[0] || []), 1: has(p1) ? p1[k] : ((cur[k] || {})[1] || []) };
+      const holidays = String(DR.sub.hol || '').split(/[\s,]+/).filter(Boolean);
+      return act(()=> call('PUT', '_/subway', { subway:{ tt, holidays } }), '막차 시간표를 저장했어요. 관람객 화면엔 10분 안에 반영돼요.').then(ok => { if(ok){ DR.sub = null; loadExtra('subway', true); } });
+    }
+    case 'err-clear': if(!confirm('관람객 화면 오류 기록을 비울까요?')) return; return act(()=> mcall('POST', 'errors-clear'), '오류 기록을 비웠어요.');
+    case 'lock-open': return act(()=> call('POST', '_/unlock', { key:b.dataset.k }), '잠금을 풀었어요.').then(ok => { if(ok) loadExtra('locks', true); });
+    case 'pv-save': return act(()=> call('PUT', '_/privacy', { privacy:{ retention:val('pv-ret').trim(), contact:val('pv-con').trim(), extra:val('pv-ext').trim() } }), '데이터 안내를 저장했어요. 관람객 화면엔 1분 안에 바뀌어요.').then(ok => { if(ok) loadExtra('privacy', true); });
+    case 'pw-save': return act(()=> call('POST', '_/password', { current:val('pw-cur'), next:val('pw-new') }), '비밀번호를 바꿨어요. 다음 로그인부터 새 비밀번호를 쓰세요.').then(ok => { if(ok){ sessionStorage.setItem('adm_key', val('pw-new')); $('pw-cur').value = ''; $('pw-new').value = ''; } });
+    case 'user-add': {
+      const u = { id:val('nu-id').trim(), name:val('nu-name').trim(), role:val('nu-role'), password:val('nu-pw') };
+      if(!u.id || !u.password) return toast('아이디와 비밀번호를 넣어주세요.', true);
+      return saveUsers([...(EXTRA.users || []).map(x => ({ id:x.id, name:x.name, role:x.role })), u], `${u.name || u.id} 계정을 만들었어요.`);
+    }
+    case 'user-pw': { const id = b.dataset.id, pw = prompt(`${id} 계정의 새 비밀번호 (8자 이상)`); if(!pw) return;
+      return saveUsers((EXTRA.users || []).map(x => ({ id:x.id, name:x.name, role:x.role, ...(x.id === id ? { password:pw } : {}) })), '비밀번호를 재설정했어요.'); }
+    case 'user-del': { const id = b.dataset.id; if(!confirm(`${id} 계정을 삭제할까요?`)) return;
+      return saveUsers((EXTRA.users || []).filter(x => x.id !== id).map(x => ({ id:x.id, name:x.name, role:x.role })), '계정을 삭제했어요.'); }
+    case 'nb-save': { const words = val('nb-words').split(/[,\n]/).map(w => w.trim()).filter(Boolean);
+      return act(()=> call('PUT', '_/nickban', { words }), `금칙어 ${words.length}개를 저장했어요.`).then(ok => { if(ok) loadExtra('nick', true); }); }
+    case 'rp-imgdel': delete homeDraft().roulette.prizes[i].image; return render();
+    case 'home-reset': DR.home = null; return render();
+    case 'home-save': {
+      const H = homeDraft();
+      const body = { home:{ ...H, roulette:{ ...H.roulette, prizes:H.roulette.prizes.map(p => ({ ...p, title:String(p.title || '').replace(/\s*\/\s*/g, '\n') })) } } };
+      if(!confirm('룰렛·배너를 저장할까요? 모든 경기 관람객 화면에 1분 안에 반영돼요.')) return;
+      return act(()=> call('PUT', '_/home', body), '룰렛·배너를 저장했어요.').then(ok => { if(ok){ DR.home = null; loadExtra('home', true); } });
+    }
+    case 'rf-hide': return act(()=> mcall('PUT', 'raffle-hide', { device:b.dataset.dev, hidden:b.dataset.h === '1' }), b.dataset.h === '1' ? '추첨에서 뺐어요.' : '추첨 대상에 다시 넣었어요.');
+    case 'rf-announce': { const on = !((D.settings || {}).board || {}).announce;
+      if(on && !confirm('전광판에 당첨 닉네임을 공개할까요? 전광판 화면이 당첨자 발표로 바뀌어요.')) return;
+      return saveBoard(on ? { announce:true, scene:'winners' } : { announce:false, scene:'auto' }, on ? '전광판에 당첨자를 발표했어요.' : '전광판에서 당첨자를 내렸어요.'); }
+    case 'board-msg': return saveBoard({ message:val('board-msg').trim(), scene:'message' }, '전광판 메시지를 띄웠어요.');
+    case 'save-opp': return act(()=> mcall('PUT', 'settings', { opponent:val('opp').trim() }), val('opp').trim() ? `상대팀을 ${val('opp').trim()}(으)로 저장했어요.` : '상대팀을 지웠어요 (일정표 기준).');
+    case 'report': return downloadReport().catch(e => toast(e.message, true));
+    case 'csv-survey': return csvSurvey();
+    case 'rs-all': DR.reset = [...DATA_PARTS]; return render();
+    case 'rs-none': DR.reset = []; return render();
+    case 'rs-go': {
+      const parts = DR.reset || []; if(!parts.length) return;
+      const names = resetParts(S0()).filter(p => parts.includes(p.k)).map(p => `· ${p.t}`).join('<br>');
+      return openModal(`<div class="modal__head"><h3>데이터 초기화</h3><button class="modal__x" data-act="modal-x" aria-label="닫기">×</button></div>
+        <p class="desc"><b style="color:var(--ink);">${esc(mid())}</b> 경기의 아래 항목을 지워요. 되돌릴 수 없어요.</p>
+        <p style="font-size:14px; line-height:24px; margin:10px 0 14px;">${names}</p>
+        <div class="field"><label for="rs-confirm">확인을 위해 경기 ID <b>${esc(mid())}</b>를 입력해주세요</label><input class="in" id="rs-confirm" autocomplete="off" placeholder="${esc(mid())}"></div>
+        <div class="modal__foot"><button class="btn ghost" data-act="modal-x">취소</button><button class="btn danger" id="rs-do" data-act="rs-do" disabled>지우기</button></div>`);
+    }
+    case 'rs-do': {
+      if(val('rs-confirm').trim() !== mid()) return toast('경기 ID가 맞지 않아요.', true);
+      const parts = DR.reset || []; closeModal();
+      return act(()=> mcall('POST', 'reset', { parts }).then(r =>{ DR.resetDone = r.deleted; }), '초기화했어요. 관람객 휴대폰 기록도 20~30초 안에 지워져요.').then(ok =>{ if(ok){ DR.reset = []; DR.predict = null; render(); } });
+    }
+    case 'csv-predict': return csvPredict();
+  }
+});
+document.addEventListener('click', e=>{
+  const s = e.target.closest('#phase [data-v]'); if(!s) return;
+  const v = s.dataset.v;
+  if(v === 'live' && !confirm('경기 시작으로 바꿀까요? 관람객 화면의 경기 예측이 마감되고 MVP 투표가 열려요.')) return;
+  act(()=> mcall('PUT', 'settings', { phase:v }), { auto:'자동으로 바꿨어요.', before:'시작 전으로 바꿨어요.', live:'경기 시작! MVP 투표가 열렸어요.' }[v]);
+});
+document.addEventListener('click', e=>{
+  const t = e.target.closest('[data-settab]'); if(!t) return;
+  DR.setTab = t.dataset.settab; render();
+});
+document.addEventListener('change', e=>{
+  const sel = e.target.closest('[data-urole]'); if(!sel) return;
+  const id = sel.dataset.urole, role = sel.value;
+  if(!confirm(`${id} 계정을 '${ROLE_NAME[role]}'(으)로 바꿀까요?`)){ render(); return; }
+  saveUsers((EXTRA.users || []).map(x => ({ id:x.id, name:x.name, role:x.id === id ? role : x.role })), '권한을 바꿨어요.');
+});
+document.addEventListener('click', e=>{
+  const t = e.target.closest('#board-scene [data-v]'); if(!t) return;
+  saveBoard({ scene:t.dataset.v }, '전광판 화면을 바꿨어요.');
+});
+document.addEventListener('click', e=>{
+  const s = e.target.closest('#dayopen [data-v]'); if(!s) return;
+  const v = s.dataset.v;
+  if(v === 'off' && !confirm('미운영으로 바꿀까요? 관람객 화면이 홈·기록만 남은 화면으로 바뀌어요.')) return;
+  saveContent({ open:v }, { auto:'경기 일정 기준으로 바꿨어요.', on:'오늘 운영으로 바꿨어요.', off:'미운영으로 바꿨어요.' }[v]);
+});
+document.addEventListener('keydown', e=>{ if(e.key === 'Enter' && e.target.id === 'code-q') findCode(); });
+document.addEventListener('click', e=>{
+  const t = e.target.closest('[data-vtab]'); if(!t) return;
+  DR.tab = { ...(DR.tab || {}), [t.dataset.vtab]:t.dataset.v }; render();
+});
+
+/* 편집기 입력 → 편집 중인 값(DR · MOD)에 바로 반영 */
+document.addEventListener('input', e=>{
+  const t = e.target;
+  if(t.dataset.ed){
+    const q = DR[t.dataset.ed] && DR[t.dataset.ed][Number(t.dataset.i)]; if(!q) return;
+    const f = t.dataset.f;
+    if(f === 'q') q.q = t.value;
+    else if(f === 'opt') q.options[Number(t.dataset.j)] = t.value;
+    else if(['options', 'rows', 'cols'].includes(f)) q[f][Number(t.dataset.j)] = t.value;
+    else if(f === 'ai') q.ai = t.checked;
+    else if(f === 'other' || f === 'comment') q[f] = t.checked;
+    else if(f === 'low' || f === 'high') q[f] = t.value;
+    else if(f === 'max') q.max = Number(t.value) || 0;
+    else if(f === 'type'){ setSvType(q, t.value); render(); }
+  } else if(t.dataset.sub){
+    DR.sub = DR.sub || {}; DR.sub[t.dataset.sub] = t.value; subwayPreview();
+  } else if(t.dataset.rp != null){
+    const p = homeDraft().roulette.prizes[Number(t.dataset.i)], f = t.dataset.rp;
+    if(f === 'miss'){ p.miss = t.checked; if(p.miss) p.img = 'miss'; else if(p.img === 'miss') p.img = 'soju'; render(); }
+    else if(f === 'weight' || f === 'stock'){ p[f] = Math.max(0, Number(t.value) || 0); if(f === 'weight') clearTimeout(window.__rpT), window.__rpT = setTimeout(render, 600); }
+    else if(f === 'img'){ p.img = t.value; }
+    else p[f] = t.value;
+  } else if(t.dataset.hf != null){
+    const R = homeDraft().roulette;
+    if(t.dataset.hf === 'notices') R.notices = t.value.split('\n').map(x => x.trim()).filter(Boolean);
+    else if(t.dataset.hf === 'onePerPerson') R.onePerPerson = t.checked;
+    else R[t.dataset.hf] = Math.max(0, Number(t.value) || 0);
+  } else if(t.dataset.hb != null){
+    const [g, k] = t.dataset.hb.split('.'); homeDraft()[g][k] = t.type === 'checkbox' ? t.checked : t.value;
+  } else if(t.dataset.rs){
+    const set = new Set(DR.reset || []); t.checked ? set.add(t.dataset.rs) : set.delete(t.dataset.rs); DR.reset = [...set]; render();
+  } else if(t.id === 'rs-confirm'){ $('rs-do').disabled = t.value.trim() !== mid();
+  } else if(t.id === 'sv-title' && DR.svEdit){ DR.svEdit.title = t.value;
+  } else if(t.dataset.ck && MOD){
+    const q = MOD.qs[MOD.i];
+    if(t.dataset.ck === 'q') q.q = t.value; else if(t.dataset.ck === 'o') q.opts[Number(t.dataset.j)].label = t.value;
+  }
+});
+document.addEventListener('change', async e=>{
+  if(e.target.id === 'sv-file' && e.target.files[0]){
+    const f = e.target.files[0]; e.target.value = '';
+    try{
+      toast('엑셀을 읽는 중…');
+      const r = await readSurveyFile(f);
+      window.__svImport = { items:r.items, title:f.name.replace(/\.(xlsx|xls|csv)$/i, '').replace(/_/g, ' ').trim() };
+      openModal(`<div class="modal__head"><h3>엑셀 미리보기</h3><button class="modal__x" data-act="modal-x" aria-label="닫기">×</button></div>
+        <p class="desc">${esc(f.name)} · '${esc(r.sheet)}' 시트 · ${r.items.length}문항</p>
+        ${r.warn.length ? `<div class="winbox" style="background:#FFF8E1; color:#7A5B00; margin:0 0 12px;"><b>확인해 주세요</b>${r.warn.map(w => `<p style="font-size:13px; margin-top:6px;">· ${esc(w)}</p>`).join('')}</div>` : ''}
+        <div style="max-height:52vh; overflow:auto;">${r.items.map(q => `<div class="row"><div class="main"><p class="t">${esc(q.id)}. ${esc(q.q)}</p><p class="m" style="margin-top:4px;">${svBadges(q)}</p><p class="m">${esc(svOptsText(q))}</p></div></div>`).join('')}</div>
+        <div class="field" style="margin-top:14px;"><label for="imp-title">설문 제목</label><input class="in" id="imp-title" maxlength="60" value="${esc(window.__svImport.title)}"></div>
+        <label class="chk" style="margin-top:10px;"><input type="checkbox" id="imp-def"${LIB.defaultId ? '' : ' checked'}>기본 설문으로 지정 (모든 경기에 나가요)</label>
+        <div class="modal__foot"><button class="btn ghost" data-act="lib-add-edit">고쳐서 넣기</button><button class="btn" data-act="lib-add">보관함에 넣기</button></div>`);
+      $('modal-box').style.maxWidth = '640px';
+    }catch(err){ toast(err.message, true); }
+    return;
+  }
+  if(e.target.dataset.rpimg != null && e.target.files[0]){
+    try{ homeDraft().roulette.prizes[Number(e.target.dataset.rpimg)].image = await shrinkImage(e.target.files[0], 160); render(); }
+    catch(err){ toast(err.message, true); }
+    return;
+  }
+  const t = e.target; if(t.dataset.ckimg == null || !MOD || !t.files[0]) return;
+  try{ MOD.qs[MOD.i].opts[Number(t.dataset.ckimg)].img = await shrinkImage(t.files[0]); ckModal(); }
+  catch(err){ toast(err.message, true); }
+});
+const S0 = () => window.__S || stats();
+
+function ckModal(){
+  const q = MOD.qs[MOD.i];
+  openModal(`<div class="modal__head"><h3>출석 질문 ${MOD.i + 1}</h3><button class="modal__x" data-act="modal-x" aria-label="닫기">×</button></div>
+    <div class="field"><label for="ck-q">질문</label><input class="in" id="ck-q" data-ck="q" value="${esc(q.q)}" maxlength="30" placeholder="질문을 입력해주세요"></div>
+    <div class="field" style="margin-top:14px;"><label>답변 <span class="muted" style="font-weight:600;">· 이미지가 없으면 같은 이름의 기본 아이콘(없으면 배구공)이 보여요</span></label>
+      ${q.opts.map((o, j) => `<div class="ans">
+        ${o.img ? `<img class="ckimg" src="${esc(o.img)}" alt="">` : `<span class="ckimg" aria-hidden="true"></span>`}
+        <input class="in" data-ck="o" data-j="${j}" value="${esc(o.label)}" maxlength="10" placeholder="답변을 입력해주세요" aria-label="답변 ${j + 1}">
+        <label class="btn small ghost" style="display:inline-flex; align-items:center; cursor:pointer;">이미지등록<input type="file" accept="image/*" data-ckimg="${j}" hidden></label>
+        ${o.img ? `<button class="btn small ghost" data-act="ck-imgdel" data-j="${j}" aria-label="이미지 빼기">↺</button>` : ''}
+        <button class="btn small ghost" data-act="ck-odel" data-j="${j}" aria-label="답변 삭제"${q.opts.length <= 2 ? ' disabled' : ''}>×</button></div>`).join('')}
+      ${q.opts.length < LIMIT.ckO ? `<button class="btn small ghost" data-act="ck-oadd" style="margin-top:10px;">답변 추가</button>` : ''}
+    </div>
+    <div class="modal__foot">${MOD.qs.length > 1 && MOD.i < ((CT().checkin || CK_DEF).length) ? `<button class="btn danger" data-act="ck-qdel">질문 삭제</button>` : ''}
+      <button class="btn ghost" data-act="modal-x">취소</button><button class="btn" data-act="ck-save">등록</button></div>`);
+}
+
+function drawRaffle(){
+  const S = window.__raffleS || stats();
+  const srcF = val('rf-src'), only = val('rf-only'), n = Math.max(1, Number(val('rf-n')) || 1);
+  const done = D.raffleWinners || [];
+  const doneDev = new Set(done.map(w => w.device).filter(Boolean)), doneName = new Set(done.map(w => w.nickname || w.contact));
+  const seen = new Set();
+  const pool = S.raffle.filter(r => (!srcF || (srcF === 'predict' ? r.viaPredict : r.viaSurvey)) && (!only || S.pred.allCorrect.has(r.device))
+                                   && !doneDev.has(r.device) && !doneName.has(r.name) && !(D.raffleHidden || {})[r.device])
+                       .filter(r => !seen.has(r.device + '|' + r.name) && !seen.has(r.name) && seen.add(r.name) && seen.add(r.device + '|' + r.name));
+  const arr = pool.slice();
+  const rnd = new Uint32Array(arr.length);
+  crypto.getRandomValues(rnd);
+  for(let k = arr.length - 1; k > 0; k--){ const j = rnd[k] % (k + 1); [arr[k], arr[j]] = [arr[j], arr[k]]; }
+  const withRoute = r => ({ ...r, route:[r.viaPredict ? '예측' : '', r.viaSurvey ? '설문' : ''].filter(Boolean).join(' · ') });
+  const pick = arr.slice(0, n).map(withRoute);
+  window.__draw = pick; window.__drawRest = arr.slice(n).map(withRoute); window.__drawPool = pool.length;
+  showDraw();
+}
+// 한 명만 빼고 다시 — 남은 대상에서 한 명을 새로 뽑아 그 자리에 넣어요
+function swapDraw(i){
+  const rest = window.__drawRest || [];
+  if(!rest.length) return toast('더 뽑을 대상이 없어요.', true);
+  window.__draw[i] = rest.shift();
+  showDraw();
+}
+function showDraw(){
+  const pick = window.__draw || [], pool = { length:window.__drawPool || 0 };
+  openModal(`<div class="modal__head"><h3>추첨결과</h3><button class="modal__x" data-act="modal-x" aria-label="닫기">×</button></div>
+    ${pick.length ? `<p style="font-size:14px; color:var(--gold); font-weight:700; margin-bottom:6px;">대상 ${pool.length}명 중 ${pick.length}명 당첨</p>
+      ${pick.map((w, i) => `<div class="row"><div class="main"><p class="t">${esc(w.name)}</p><p class="m">${w.route || '—'} · ${time(w.at)} 응모</p></div><button class="btn small ghost" data-act="rf-swap" data-i="${i}" title="부적절한 닉네임이면 이 사람만 빼고 다시 뽑아요">빼고 다시</button><button class="btn small ghost" data-copy="${esc(w.name)}">복사</button></div>`).join('')}
+      <div class="modal__foot"><button class="btn ghost" data-act="rf-draw">다시 뽑기</button><button class="btn" data-act="rf-save">이 결과 저장</button></div>`
+    : `<p class="empty" style="color:rgba(255,255,255,.7);">조건에 맞는 응모자가 없어요.</p>`}`, true);
+}
+
+function findCode(){
+  const q = val('code-q').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if(!q) return;
+  const S = stats();
+  const all = [...S.rl.wins, ...(D.winners || []).map(w => ({ code:w.code, title:w.prize, at:w.at, type:'응원' }))];
+  const hit = all.find(w => w.code === q);
+  const red = (D.redeemed || {})[q];
+  $('code-result').innerHTML = !hit ? `<p class="status err">이 경기에서 발급된 코드가 아니에요. 경기 ID를 확인해주세요.</p>`
+    : `<div class="row" style="border:0;"><div class="main"><p class="t"><span class="chip ${red ? 'off' : 'ok'}">${red ? '이미 교환됨' : '교환 가능'}</span>${esc(hit.title)}</p>
+       <p class="m">${hit.type} · ${time(hit.at)} 발급${red ? ` · ${time(red)} 교환` : ''}</p></div>${redeemBtn(q)}</div>`;
+}
