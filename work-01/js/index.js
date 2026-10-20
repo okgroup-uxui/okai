@@ -532,16 +532,40 @@ const LIVE = (function(){
   const emit = (k, v)=> L[k].forEach(f=>{ try{ f(v); }catch(e){ console.error(e); } });
   let state = { events:[], total:0 };
 
+  /* 통신 오류도 관리자 '관람객 화면 오류'에 남겨요
+     · 응원·참여 기록·룰렛은 실패해도 화면이 멈추지 않게 조용히 다시 보내기 때문에, 그냥 두면 오류 목록에 안 잡혀요
+     · 한두 번 끊기는 건 경기장에선 흔해서, 연속으로 실패할 때만 남겨요
+     · 서버가 응답은 했는데 거절(HTTP 오류)했으면 바로 보내고, 인터넷이 아예 안 되면 연결이 돌아온 뒤에 보내요 */
+  const NET_LABEL = { cheer:'응원 전송', refresh:'실시간 정보 불러오기', submit:'참여 기록 전송', spin:'룰렛', outbox:'못 보낸 참여 기록 다시 보내기' };
+  const NET_LIMIT = { cheer:3, refresh:3, submit:1, spin:1, outbox:3 };
+  const netFails = {}, netWaiting = [];
+  function netFail(where, detail, httpStatus){
+    if(demo) return;
+    const n = netFails[where] = (netFails[where] || 0) + 1;
+    if(n !== (NET_LIMIT[where] || 1)) return;
+    const err = { msg:`[통신] ${NET_LABEL[where] || where} 실패${n > 1 ? ` (${n}회 연속)` : ''} — ${detail}`, src:'api/' + where, line:0 };
+    if(httpStatus && window.__reportErr) window.__reportErr(err);
+    else if(netWaiting.length < 5) netWaiting.push(err);
+  }
+  function netOk(where){
+    netFails[where] = 0;
+    if(netWaiting.length && window.__reportErr) netWaiting.splice(0).forEach(window.__reportErr);
+  }
+  const errText = e=> String((e && e.message) || e || '알 수 없음').slice(0, 80);
+
   async function refresh(){
     try{
       if(demo){
         state = { events:(CONFIG.LIVE_DEMO || {}).events || [], total:Number(localStorage.getItem(DEMO_TOTAL)) || 0, phase:'auto', mvp:undefined, start:'' };
       } else {
-        const d = await (await fetch(`${base}/live/${encodeURIComponent(MATCH_KEY)}`)).json();
+        const r = await fetch(`${base}/live/${encodeURIComponent(MATCH_KEY)}`);
+        if(!r.ok){ netFail('refresh', 'HTTP ' + r.status, r.status); return; }
+        const d = await r.json();
+        netOk('refresh');
         state = { events:d.events || [], total:(d.cheer || {}).total || 0, phase:d.phase || 'auto', mvp:d.mvp || null, start:d.start || '', content:d.content || null, epoch:Number(d.epoch) || 0, opponent:d.opponent || '', home:d.home || null, privacy:d.privacy || null };
       }
       emit('state', state);
-    }catch(e){}
+    }catch(e){ netFail('refresh', errText(e)); }
   }
 
   /* 응원 묶어 보내기 — 동시 접속 수천 명을 버티도록
@@ -581,8 +605,9 @@ const LIVE = (function(){
         const r = await fetch(`${base}/live/${encodeURIComponent(MATCH_KEY)}/cheer`, {
           method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ device, count:n }),
         });
-        if(!r.ok) throw new Error('busy');
+        if(!r.ok){ const err = new Error('HTTP ' + r.status); err.status = r.status; throw err; }
         res = await r.json();
+        netOk('cheer');
       }
       backoff = 0;
       if(res && res.total){ state.total = res.total; optimistic = Math.max(optimistic, res.to || 0); emit('total', res); }
@@ -592,6 +617,7 @@ const LIVE = (function(){
       }
     }catch(e){
       pending += n;                                   // 못 보낸 클릭은 다음에 같이
+      netFail('cheer', errText(e), e && e.status);
       backoff = Math.min(8000, backoff ? backoff * 2 : 1000) + Math.random() * 400;
     }
     finally{
@@ -622,7 +648,10 @@ const LIVE = (function(){
     if(demo) return { ok:true };
     const queue = !opts || opts.queue !== false;
     let res;
-    try{ res = await post(type, data); }catch(e){ res = { ok:false, error:'network' }; }
+    try{ res = await post(type, data); }catch(e){ res = { ok:false, error:'network', detail:errText(e) }; }
+    if(res.ok) netOk('submit');
+    // 마감·중복 같은 정상 거절(403·409 등)은 빼고, 연결 끊김·서버 오류·주소 오류만 남겨요
+    else if(res.error === 'network' || !res.status || res.status >= 500 || [400, 404, 405, 429].includes(res.status)) netFail('submit', `${type} · ${res.status ? 'HTTP ' + res.status + ' ' : ''}${res.error}${res.detail ? ' (' + res.detail + ')' : ''}`, res.status);
     const retry = !res.ok && (res.error === 'network' || res.error === 'busy' || res.status >= 500 || res.status === 429);
     const b = readBox();
     if(res.ok){ if(b[type]){ delete b[type]; writeBox(b); } }
@@ -637,6 +666,7 @@ const LIVE = (function(){
     try{
       for(const type of types){
         let res; try{ res = await post(type, b[type].data); }catch(e){ res = { ok:false, error:'network' }; }
+        if(res.ok) netOk('outbox'); else netFail('outbox', `${type} · ${res.status ? 'HTTP ' + res.status : res.error}`, res.status);
         const cur = readBox();
         // 보냈거나, 다시 보내도 안 될 오류(형식·권한)면 우편함에서 빼요
         if(res.ok || (res.status && res.status < 500 && res.status !== 429)){ if(cur[type] && cur[type].t === b[type].t){ delete cur[type]; writeBox(cur); } }
@@ -663,8 +693,10 @@ const LIVE = (function(){
         method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ device, bonus:!!bonus }),
       });
       const d = await r.json().catch(()=> ({}));
+      if(r.ok) netOk('spin');
+      else if(d.error !== 'no_spins') netFail('spin', `HTTP ${r.status} ${d.error || ''}`.trim(), r.status);
       return r.ok ? d : { ok:false, error:d.error || 'http_' + r.status };
-    }catch(e){ return { ok:false, error:'network' }; }
+    }catch(e){ netFail('spin', errText(e)); return { ok:false, error:'network' }; }
   }
 
   // 접속 기록 — 관리자 대시보드 '접속자'용. 브라우저를 새로 열 때마다 한 번만, 몰리지 않게 0~4초 사이에 보내요.
@@ -2508,7 +2540,7 @@ const findTeamBrand = name=> TEAM_BRANDS.find(b=> b.keys.some(k=> String(name ||
     }
     prevDone = Object.fromEntries(MISSIONS.map((m, i)=> [m.id, doneList[i]]));
 
-    subEl.textContent = `${doneCount}/${MISSIONS.length} 완료 *미션완료하면 룰렛 한번더!`;
+    subEl.textContent = `${doneCount}/${MISSIONS.length} 완료`;
     ringFg.style.strokeDashoffset = `${CIRC * (1 - doneCount / MISSIONS.length)}`;
     ringLabel.textContent = `${Math.round((doneCount / MISSIONS.length) * 100)}%`;
 
