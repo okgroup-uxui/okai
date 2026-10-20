@@ -651,9 +651,16 @@ body.no-game .tabbar__btn[data-view="survey"]{
 }
 @media (min-width:640px){
   #app{
-    max-width:480px; border-radius:32px; background:#fff; box-shadow:0 20px 60px rgba(22,28,38,.10);
-    height:calc(100vh - 56px); min-height:0; margin:28px auto; overflow-y:auto; overflow-x:hidden;
-    overscroll-behavior:contain; scrollbar-width:none;
+    max-width:480px;
+    border-radius:32px;
+    box-shadow:0 20px 60px rgba(22,28,38,.10);
+    height:calc(100vh - 56px);
+    min-height:0;
+    margin:28px auto;
+    overflow-y:auto;
+    overflow-x:hidden;
+    overscroll-behavior:contain;
+    scrollbar-width:none;
   }
 }
 
