@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>읏배구놀이터</title>
+<meta name="apple-mobile-web-app-title" content="읏배구놀이터">
+<meta name="application-name" content="읏배구놀이터">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="css/index.css">
+<link rel="stylesheet" href="css/home-night.css"><!-- 새 홈 디자인(다크 · 히어로 사진) — 빼면 예전 홈으로 돌아가요 -->
+</head>
+<body>
+
+<div id="splash" class="splash" role="img" aria-label="읏배구놀이터 — OK저축은행 읏맨 오늘의 선수 소개. 화면을 탭하면 시작해요">
+  <div class="sx-bg" aria-hidden="true"><i class="sx-stripe s1"></i><i class="sx-stripe s2"></i><i class="sx-stripe s3"></i></div>
+  <div class="sx-grain" aria-hidden="true"></div>
+  <div class="sx-open" aria-hidden="true">
+    <p class="k">BUSAN OK SAVINGS BANK</p>
+    <p class="t">OK저축은행 <b>읏맨</b></p>
+    <p class="s">읏배구놀이터 · 오늘의 선수</p>
+  </div>
+  <div class="sx-player" id="sx-p1" aria-hidden="true"></div>
+  <div class="sx-player left" id="sx-p2" aria-hidden="true"></div>
+  <div class="sx-bottom"><div class="sx-load" aria-hidden="true"><i id="sx-load"></i></div><p class="splash__tap">화면을 탭하면 바로 시작해요</p></div>
+  <div class="sx-flash" id="sx-flash" aria-hidden="true"></div>
+  <button class="sx-skip" type="button">건너뛰기</button>
+</div>
+
+
+<div id="app">
+
+  <!-- ============ 홈 히어로 — 선수 사진 (홈 탭에서만 보여요) ============ -->
+  <div class="home-hero" aria-hidden="true"><img src="images/home/hero.webp" alt="" decoding="async" fetchpriority="high"></div>
+
+  <!-- ============ 브랜드 로고 ============ -->
+  <div class="brand-header">
+    <img class="brand-header__logo" src="images/brand/logo.webp" alt="부산 OK저축은행 읏맨 프로배구단">
+    <img class="brand-header__logo--white" src="images/home/logo-white.webp" alt="부산 OK저축은행 읏맨 프로배구단">
+  </div>
+
+  <!-- ============ 상단 매치 정보 ============ -->
+  <div class="matchbar" data-float>
+    <div class="mb-board">
+      <div class="mb-team home">
+        <span class="mb-crest" id="mb-home-crest" aria-hidden="true"><img src="images/brand/emblem.webp" alt=""></span>
+        <span class="mb-name" id="mb-home">OK저축은행</span>
+        <span class="mb-nick" id="mb-home-nick">읏맨</span>
+      </div>
+      <div class="mb-vs"><b>VS</b></div>
+      <div class="mb-team away">
+        <span class="mb-crest" id="mb-away-crest" aria-hidden="true"></span>
+        <span class="mb-name" id="mb-away">상대팀</span>
+        <span class="mb-nick" id="mb-away-nick"></span>
+      </div>
+    </div>
+    <div class="matchbar__meta">
+      <span id="mb-venue">부산 강서실내체육관</span><i aria-hidden="true"></i><span id="mb-date">경기 정보 입력 필요</span>
+    </div>
+  </div>
+
+  <!-- ============ 홈 — 직관 미션 · 룰렛 · 굿즈샵 ============ -->
+  <div class="view active" id="view-home">
+
+    <!-- 현장 이벤트 — 관리자 페이지에서 올린 이벤트 -->
+    <section class="live-events" id="live-events" hidden>
+      <div class="live-events__head"><span class="live-dot" aria-hidden="true"></span><p>현장 이벤트</p></div>
+      <div id="live-event-list"></div>
+    </section>
+    <button class="cheer-win-link" id="cheer-win-link" hidden></button>
+
+    <!-- 홈 경기가 없는 날 — 관리자 '오늘 운영'(자동이면 경기 일정 기준) -->
+    <section class="no-game-card" id="no-game" hidden>
+      <span class="no-game-card__ic" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><rect x="3.5" y="5" width="25" height="24" rx="5.5" fill="#fff" stroke="#E3E6EC" stroke-width="1"/><path d="M3.5 10.5V10a5 5 0 0 1 5-5h15a5 5 0 0 1 5 5v.5z" fill="#FF571F"/><rect x="9" y="2.5" width="2.4" height="5.4" rx="1.2" fill="#C93A0C"/><rect x="20.6" y="2.5" width="2.4" height="5.4" rx="1.2" fill="#C93A0C"/><circle cx="16" cy="19.8" r="6.6" fill="#FFF4EE" stroke="#FF571F" stroke-width="1.6"/><path d="M16.00 19.80 Q20.57 14.98 13.74 13.60 M16.00 19.80 Q17.89 26.17 22.50 20.95 M16.00 19.80 Q9.54 18.26 11.76 24.86" stroke="#FF571F" stroke-width="1.36" stroke-linecap="round" fill="none"/></svg></span>
+      <p class="no-game-card__t">오늘은 홈 경기가 없어요</p>
+      <p class="no-game-card__d">다음에 경기장에서 만나요</p>
+      <p class="no-game-card__next" id="no-game-next" hidden></p>
+    </section>
+    
+    <div class="mission-card" id="mission-card">
+      <div class="mission-card__head">
+        <div>
+          <p class="mission-card__title">오늘의 직관 MISSION</p>
+          <p class="mission-card__desc">오늘의 직관 미션을 채우고 경품에 응모해 보세요!</p>
+          <p class="mission-card__sub" id="mission-sub">0/6 완료</p>
+        </div>
+        <div class="mission-ring">
+          <svg viewBox="0 0 40 40">
+            <circle class="mission-ring__bg" cx="20" cy="20" r="17"/>
+            <circle class="mission-ring__fg" id="mission-ring-fg" cx="20" cy="20" r="17"/>
+          </svg>
+          <span class="mission-ring__label" id="mission-ring-label">0%</span>
+        </div>
+      </div>
+      <ul class="mission-list" id="mission-list"><!-- JS로 채움 --></ul>
+    </div>
+
+    <!-- 룰렛 -->
+    <section class="rl-stage" aria-labelledby="rl-title">
+      <h2 class="rl-title" id="rl-title">
+        <span class="rl-title__l3">부산OK<br>응원 경품 뽑기</span>
+        <span class="rl-title__l1">OK읏맨 서포터즈라면 지금 바로 룰렛 돌리자</span>
+      </h2>
+      <div class="rl-wheel-wrap" id="rl-wrap">
+        <div class="rl-wheel" id="roulette-wheel"><!-- JS로 채움 --></div>
+        <img class="rl-pointer" id="rl-pointer" alt="">
+        <img class="rl-mascot" id="rl-mascot" alt="">
+      </div>
+      <button class="btn rl-cta" id="roulette-spin">룰렛 돌리기</button>
+      <p class="rl-chance" id="roulette-chance">남은 기회 1회</p>
+      <p class="rl-sub" id="roulette-sub"></p>
+      <button class="rl-last" id="rl-last" hidden>지난 당첨 교환권 보기</button>
+    </section>
+
+    <a class="goods-card goods-banner" id="goods-link" target="_blank" rel="noopener">
+      <img class="goods-banner__img" id="goods-img" src="images/banners/goods-2026-27.webp" width="1440" height="346" alt="2026-2027 시즌 유니폼 출시 — OK저축은행 읏맨 배구단" loading="lazy" decoding="async">
+      <div class="goods-banner__row">
+        <div class="goods-banner__text">
+          <p class="goods-card__title" id="goods-title">읏맨 공식 굿즈샵</p>
+          <p class="goods-card__desc" id="goods-desc">유니폼과 응원 도구를 온라인에서 만나보세요.</p>
+        </div>
+        <span class="goods-card__cta" id="goods-cta">굿즈샵 가기
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+        </span>
+      </div>
+    </a>
+
+    <!-- OK저축은행 앱 다운로드 — 휴대폰 종류에 맞는 스토어로 (관리자 › 룰렛·배너) -->
+    <a class="goods-card app-card" id="app-link" target="_blank" rel="noopener">
+      <div class="goods-card__text">
+        <span class="goods-card__ic" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><rect x="8" y="2.5" width="16" height="27" rx="4.5" fill="#FF571F"/><rect x="10.5" y="6" width="11" height="17" rx="1.6" fill="#FFE3D8"/><circle cx="16" cy="26" r="1.4" fill="#fff"/><path d="M16 9.6v8m0 0-3-3m3 3 3-3" stroke="#FF571F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <p class="goods-card__title" id="app-title">OK저축은행 앱 다운로드</p>
+        <p class="goods-card__desc" id="app-desc">앱에서 더 많은 혜택을 만나보세요.</p>
+        <span class="goods-card__cta" id="app-cta">앱스토어 바로가기
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+        </span>
+      </div>
+    </a>
+
+    <!-- <p class="home-foot"><button class="data-link" type="button" data-privacy>데이터 수집 안내</button> · 개인정보(이름·연락처)는 받지 않아요</p> -->
+  </div>
+
+  <!-- ============ 안내 — 자리안내 · 막차안내 ============ -->
+  <div class="view" id="view-guide">
+    <h1 class="pagehead">경기장 안내</h1>
+    <p class="pagesub">내 자리부터 돌아가는 막차까지 여기서 확인하세요.</p>
+
+    <div class="seg" data-seg="guide" data-target="guide-panels" role="tablist">
+      <div class="seg__thumb"></div>
+      <button class="seg__btn active" data-key="seat" role="tab">자리 안내</button>
+      <button class="seg__btn" data-key="lastrain" role="tab">막차 안내</button>
+    </div>
+
+    <div id="guide-panels">
+      <!-- 자리안내 -->
+      <div class="seg-panel active" data-key="seat">
+        <div class="card">
+          <div class="seatmode-toggle">
+            <div class="seatmode-thumb" id="seatmode-thumb"></div>
+            <button class="seatmode-btn active" data-mode="manual"><span class="tab-ic" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><rect x="7" y="3" width="18" height="15" rx="5" fill="#FF9876"/><rect x="4" y="15" width="24" height="8" rx="4" fill="#FF571F"/><rect x="8" y="21" width="3" height="8" rx="1.5" fill="#545964"/><rect x="21" y="21" width="3" height="8" rx="1.5" fill="#545964"/></svg></span>구역 선택</button>
+            <button class="seatmode-btn" data-mode="photo"><span class="tab-ic" aria-hidden="true"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAACXBIWXMAACE4AAAhOAFFljFgAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAA8dJREFUeAHt3D9oFEEUBvBvgogYCLGwE3J1KgULu6QSYmOKoLFL0lkZwVov1oKmsktSJpIiaRSszs5CiFVaN8HO5hAUtLhx3l0WgznIm7vdnbfe94PFP2z2yPt2du7t7Q1ARERERERERERERFQ6B4P8fGMSl7AKj5nwr0b4rwYG0w7b5/Br7oXfdN9tZxmMMRWAX2w0QtE3w99mUQq3FX7jNUtBjMEI/6ARznh/UF7xu6+yhI4/8PfCaxlhYgSEM78Ziv8MVXI+jITjJhJLHkD3zO/4l0jBu8fuTfYKCSUNoHfNl8sOJpGCD5P0mLuRck5IOwd4yGUnTfGFC6/t/SYSSjYCTs7+L7Dgl7vi9rI2Ekg3AjzuwoqLnUdIZOgRUGDTVBeFNncDB1B+01QXwzV3A12Cqmma6mK45i56BCRpmupigOYuKoCkTVNdRDZ36gCSN011Ednc6eeA1E1TXUQ2d6oRYKppqgtlc6cbAZaaprpQNnfaS9A8KI5zs5rdlAH466BYDc1O2hHAyTdeQ7OTmY8kRxUDSIwBJHYBdTJ9C7h5O1xdp4Gr13qb+PkdyA5726f3wOFH1IWuEbs/5ZGSFH5htfenxrevwG64HfNhFym5naNz62t7BMgZ/vCFvvD9fk6CkECMsjsHSBGfbscX/7SZhd4x8kuVQTYDyItfROGKPFYJbAZQdMHyEC5PwBp7AchkW8bZKse8swJrbAUgRVoo8bnZuRVzo8BWAGUWX4xPmBsFtgIY5h2P1hwD6C/vbssmo8DQOyI7AVRZlCpGmpKdAKamURlDE/Fo3g0dZwBnyR3NEWQngB8VBiC3rY2wE0CV9/AN3R21E4AUpYrLkLzOEUdAf283UDpjn5bZCuDdRvmjYDfpt1LPsBWATMRljgKDn47Z6wNkFJRRpPxzYmPsBSCj4PlisSHIseSYBtnshPOCFRFCkccqgd1bEXnhhnm0RN7xGC6+sP1YihTu9ZNeIWM+qpT95Xpfgwe06vFgVu70k3Gy5Xc1JSjZjD0ZV/8Hs/4lha3RY4cafDg3MQaQGANITBtABorjoVp/SBmAy0BxnCxpcz7t94RboEhuT7OXLoDLWAfFcdjX7KYKwG3JV+5dC6Tkt4pfrMNhGdBNLCOuDTe2pt1ZHUA3Ue/UBx5dvhmzfFlUH9BdiMi7Jqg/H4q/cxw1Xw60aF93fTTnuX7QX+3umR9ZfDHkqomdEIJbwmhrwbnlQVdNHH7d0N7ylbKe0PzJqir/+6jIupv3LfweW0+14i4RERERERERERERUYQ/5J5RIGmD6/sAAAAASUVORK5CYII=" alt=""></span>티켓 촬영</button>
+          </div>
+
+          <div class="seatmode-panel active" id="seatmode-manual">
+            <div class="level-tabs" id="level-tabs"><!-- JS로 채움 --></div>
+            <div class="zone-grid" id="zone-grid"><!-- JS로 채움 --></div>
+          </div>
+
+          <div class="seatmode-panel" id="seatmode-photo">
+            <label class="photo-drop" id="photo-drop">
+              <input type="file" accept="image/*" capture="environment" id="seat-photo-input" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z"/>
+                <circle cx="12" cy="13" r="3.5"/>
+              </svg>
+              <span>티켓을 촬영하거나 사진을 선택하세요</span>
+            </label>
+            <div class="photo-preview" id="photo-preview" style="display:none;">
+              <img id="photo-preview-img" alt="촬영한 티켓 사진">
+              <p class="photo-note" id="photo-note"></p>
+              <button class="btn ghost small full photo-retake" id="photo-retake">다시 촬영</button>
+            </div>
+          </div>
+
+          <div class="zone-detail" id="zone-detail"></div>
+
+          <div class="seat-action-row">
+            <button class="btn ghost" id="seat-guide-submit">자리 안내</button>
+            <button class="btn" id="seat-view-submit">시야 보기</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 막차안내 -->
+      <div class="seg-panel" data-key="lastrain">
+        <p class="pagesub" style="margin-bottom:14px;">경기가 길어지면 화면에 알림이 떠요.<br>언제든 여기서 지하철 시간표를 확인할 수 있어요.</p>
+        <div class="card clock-card">
+          <span class="clock-card__ic" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" fill="#E9EBF0"/><path d="M16 8.5V16l5 3" stroke="#4D5764" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="16" r="2" fill="#FF571F"/></svg></span>
+          <div class="now" id="clock-now">--:--</div>
+          <div class="lbl">현재 시각</div>
+        </div>
+        <div id="subway-list" class="st-list"><!-- 방향별 카드 — JS로 채움 --></div>
+        <p class="config-note" id="subway-config-note"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PICK — 경기 예측 · MVP ============ -->
+  <div class="view" id="view-pick">
+    <h1 class="pagehead">읏맨 PICK</h1>
+    <p class="pagesub">경기 전엔 예측, 경기 후엔 MVP. 참여하면 경품 추첨에 응모할 수 있어요.</p>
+
+    <div class="seg" data-seg="pick" data-target="pick-panels" role="tablist">
+      <div class="seg__thumb"></div>
+      <button class="seg__btn active" data-key="predict" role="tab">경기 예측</button>
+      <button class="seg__btn" data-key="mvp" role="tab">MVP 투표</button>
+    </div>
+
+    <div id="pick-panels">
+      <div class="seg-panel active" data-key="predict">
+        <div class="countdown-banner">
+          <span class="lbl"><span class="tab-ic" aria-hidden="true"><svg data-k="cd" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" fill="#E9EBF0"/><path d="M16 8.5V16l5 3" stroke="#4D5764" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="16" r="2" fill="#FF571F"/></svg></span>예측 마감까지</span>
+          <span class="val" id="predict-countdown">--:--:--</span>
+        </div>
+        <div class="card ai-card" id="ai-predict" hidden><!-- AI 예측 요약 (JS) --></div>
+        <div id="predict-list"><!-- JS로 채움 --></div>
+        <button class="btn full" id="predict-submit" style="margin-top:6px;">예측 제출하기</button>
+        <p class="predict-status" id="predict-status">예측을 제출했어요. 경기 중 결과를 확인하세요!</p>
+        <div class="card raffle-card" id="predict-raffle" style="display:none;"></div>
+      </div>
+
+      <div class="seg-panel" data-key="mvp">
+        <div id="mvp-list"><!-- JS로 채움 --></div>
+        <p class="mvp-note" id="mvp-note"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 기록 — 우리 선수 · 우리 경기(경기 일정 + 리그 순위, 달력은 팝업) ============ -->
+  <div class="view" id="view-players">
+    <h1 class="pagehead">선수 · 리그 기록</h1>
+    <p class="pagesub">선수를 누르면 능력치 카드가 열려요.</p>
+
+    <div class="seg" data-seg="players" data-target="players-panels" role="tablist">
+      <div class="seg__thumb"></div>
+      <button class="seg__btn active" data-key="squad" role="tab">우리 선수</button>
+      <button class="seg__btn" data-key="games" role="tab">우리 경기</button>
+    </div>
+
+    <div id="players-panels">
+      <div class="seg-panel active" data-key="squad">
+        <div class="chip-row" id="pos-chips"><!-- JS로 채움 --></div>
+        <div class="squad-grid" id="squad-grid"><!-- JS로 채움 --></div>
+      </div>
+      <div class="seg-panel" data-key="games">
+        <div class="season-banner" data-season-banner hidden></div>
+
+        <!-- 경기 일정 — 날짜를 고르면 그날 리그 경기 전체 (네이버 일정표 방식) -->
+        <div class="sched-head">
+          <p class="section-label">경기 일정</p>
+          <button class="cal-open" id="cal-open" aria-label="우리 경기 달력 열기" title="우리 경기 달력"><img src="data:image/png;base64,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" alt=""></button>
+        </div>
+        <div class="date-strip" id="date-strip"><!-- JS로 채움 --></div>
+        <div id="day-games"><!-- JS로 채움 --></div>
+
+        <!-- 리그 순위 -->
+        <p class="section-label">리그 순위</p>
+        <div class="us-rank" id="us-rank" hidden></div>
+        <div class="card stand-card">
+          <table class="stand-table" id="stand-table"><!-- JS로 채움 --></table>
+        </div>
+        <p class="data-hint"><b class="ps-key">1~3위</b> 봄배구권 · 팀을 누르면 시즌 기록을 리그 평균과 비교해 보여드려요.</p>
+
+        <!-- 경기 결과 -->
+        <p class="section-label">경기 결과</p>
+        <div class="chip-row" id="result-chips">
+          <button class="chip active" data-filter="all">전체 경기</button>
+          <button class="chip" data-filter="us">읏맨 경기</button>
+        </div>
+        <div id="results-list"><!-- JS로 채움 --></div>
+      </div>
+    </div>
+    <p class="data-note" id="stats-note"></p>
+  </div>
+
+  <!-- ============ 설문조사 (기존과 동일) ============ -->
+  <div class="view" id="view-survey">
+    <h1 class="pagehead">관람 설문</h1>
+    <p class="pagesub">오늘 직관은 어떠셨나요? 1분이면 충분해요.</p>
+
+    <div class="progress-track"><div class="progress-fill" id="survey-progress"></div></div>
+    <div id="survey-body"><!-- JS로 채움 --></div>
+  </div>
+
+  <!-- ============ 하단 탭바 ============ -->
+  <nav class="tabbar" aria-label="하단 메뉴">
+    <button class="tabbar__btn active" data-view="home">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M3.44312 6.257C2.20603 7.1345 1.47095 8.55715 1.47095 10.0739V18.3207C1.47095 20.9052 3.56606 23.0003 6.15052 23.0003H9V19C9 17.8954 9.89543 17 11 17H13C14.1046 17 15 17.8954 15 19V23.0003H17.8494C20.4339 23.0003 22.529 20.9052 22.529 18.3207V10.0739C22.529 8.55715 21.7939 7.1345 20.5568 6.257L14.7074 2.10783C13.0857 0.957546 10.9142 0.957547 9.29258 2.10783L3.44312 6.257Z"/></svg>
+      <span>홈</span>
+    </button>
+    <button class="tabbar__btn" data-view="guide">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 1.5C7.3 1.5 3.5 5.2 3.5 9.9c0 5.6 6.4 11.2 7.6 12.2.5.4 1.3.4 1.8 0 1.2-1 7.6-6.6 7.6-12.2 0-4.7-3.8-8.4-8.5-8.4Zm0 5.25a3.25 3.25 0 1 0 0 6.5 3.25 3.25 0 0 0 0-6.5Z"/></svg>
+      <span>안내</span>
+    </button>
+    <button class="tabbar__btn" data-view="pick">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.43999 3.07802C4.78408 2.41565 5.46838 2 6.2148 2H12H17.7852C18.5316 2 19.2159 2.41565 19.56 3.07802L23.3055 10.288C23.7167 11.0796 23.5539 12.0478 22.9066 12.6615L13.3759 21.6958C12.6044 22.4271 11.3956 22.4271 10.6241 21.6958L1.09344 12.6615C0.446051 12.0478 0.283326 11.0796 0.694542 10.288L4.43999 3.07802Z"/><path fill-rule="evenodd" clip-rule="evenodd" d="M9.7337 15.0831C9.37498 14.876 9.25207 14.4173 9.45918 14.0586L13.1592 7.65003C13.3663 7.29131 13.825 7.1684 14.1837 7.37551C14.5424 7.58262 14.6653 8.04131 14.4582 8.40003L10.7582 14.8086C10.5511 15.1673 10.0924 15.2902 9.7337 15.0831ZM9.13253 8.42784C9.7304 8.77301 9.93524 9.5375 9.59006 10.1354C9.24489 10.7332 8.4804 10.9381 7.88253 10.5929C7.28467 10.2477 7.07982 9.48323 7.425 8.88537C7.77018 8.2875 8.53467 8.08266 9.13253 8.42784ZM16.5901 13.1354C16.9352 12.5375 16.7304 11.773 16.1325 11.4278C15.5347 11.0827 14.7702 11.2875 14.425 11.8854C14.0798 12.4832 14.2847 13.2477 14.8825 13.5929C15.4804 13.9381 16.2449 13.7332 16.5901 13.1354Z" fill="#fff"/></svg>
+      <span>이벤트</span>
+    </button>
+    <button class="tabbar__btn" data-view="players">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M15.884 12.9999C15.4593 14.7216 13.9046 15.9984 12.0517 15.9984C9.87179 15.9984 8.10464 14.2313 8.10464 12.0514C8.10464 10.2357 9.33065 8.70631 11 8.24598V4.49983V1.04911C10.9512 1.04848 11.049 1.04911 11 1.04911C5.38961 1.57874 1 6.30258 1 12.0515C1 18.1552 5.94802 23.1033 12.0517 23.1033C17.8359 23.1033 22.5823 18.6596 23.0633 12.9999H19.5H15.884Z"/><path fill-rule="evenodd" clip-rule="evenodd" d="M12.9998 8.21789C14.3843 8.55877 15.4813 9.63023 15.8586 11H19.4998H23.0557C22.5558 5.70033 18.3136 1.48976 12.9998 1.03906L12.9998 4.50005L12.9998 8.21789Z"/></svg>
+      <span>기록</span>
+    </button>
+    <button class="tabbar__btn" data-view="survey">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 1.5h8.1c.66 0 1.3.26 1.77.73l4.4 4.4c.47.47.73 1.1.73 1.77V19.5a3 3 0 0 1-3 3h-12a3 3 0 0 1-3-3v-15a3 3 0 0 1 3-3Z"/><rect x="7.5" y="11" width="9" height="2" rx="1" fill="#fff"/><rect x="7.5" y="15.5" width="6" height="2" rx="1" fill="#fff"/></svg>
+      <span>설문</span>
+    </button>
+  </nav>
+
+  <!-- ============ 응원 버튼 (플로팅) ============ -->
+  <div class="cheer-phrase" id="cheer-phrase"></div>
+  <button class="cheer-fab" id="cheer-fab" aria-label="응원하기">
+    <span class="cheer-fab__ring"></span>
+    <span class="cheer-fab__ring cheer-fab__ring--2"></span>
+    <span class="cheer-fab__ball" id="cheer-ball" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M38.4518 13.3816C38.2024 12.6648 37.9115 11.9791 37.5791 11.3141C34.8051 5.67264 29.3714 1.53762 22.8364 0.612953C22.2338 0.529837 21.6208 0.4675 20.9974 0.436332C17.4546 0.2701 14.0988 1.0597 11.1586 2.56618C8.44692 3.95837 6.09889 5.97393 4.3119 8.44663C3.83398 9.10117 3.39763 9.77649 3.01321 10.483C3.33529 10.3895 3.64697 10.3167 3.96905 10.2648C3.65736 10.3167 3.33529 10.3895 3.0236 10.483C1.62102 13.018 0.769083 15.9063 0.62363 18.992C0.62363 19.1894 0.613241 19.3764 0.602851 19.5634C0.498957 25.2984 2.89893 30.5243 6.81577 34.171C9.39236 36.571 12.6235 38.2853 16.239 39.0125C16.8105 39.1268 17.3923 39.2203 17.9845 39.2826C18.3793 39.3346 18.7845 39.3554 19.1897 39.3762C26.4 39.719 32.8934 36.0827 36.5193 30.41C36.5401 30.3892 36.5505 30.3685 36.5505 30.3685C37.9843 28.1243 38.9713 25.5685 39.3868 22.8049C39.4907 22.1608 39.5531 21.4958 39.5842 20.8205C39.7089 18.2024 39.3037 15.6881 38.4829 13.3713L38.4518 13.3816Z" fill="white"/> <path d="M14.2441 32.3113V27.1795C14.2441 28.2184 21.5388 30.7692 28.27 29.7139C32.3961 29.067 37.2742 25.7313 39.1789 23.9997L38.14 27.636L35.385 31.7949C33.8265 32.8338 30.31 34.5534 26.1542 35.3846C21.9984 36.2158 16.4952 33.8697 14.2441 32.3113Z" fill="#FF571F"/> <path d="M23.0771 1.02561C20.168 -0.221128 13.2049 0.623293 11.127 2.70119C21.0258 2.70119 26.9932 14.2857 28.2053 20L32.9449 18.2855C33.3335 7.17947 26.7134 2.58404 23.0771 1.02561Z" fill="#FF571F"/> <path d="M13.8463 14.359L10.2565 11.282C6.15397 11.282 1.60252 17.0733 0.217586 19.8439C-0.613574 25.2464 3.6805 31.0992 5.93143 33.3502C3.85415 22.9607 9.74372 15.8974 13.8463 14.359Z" fill="#FF571F"/> <path d="M14.1299 32.0092C14.1299 32.0092 14.1299 31.9682 14.1299 31.9477C14.1299 31.9682 14.1299 31.9887 14.1299 32.0092Z" stroke="#DCDDDD" stroke-width="1.02564" stroke-linecap="round" stroke-linejoin="round"/> <path d="M0.512695 20.5128C2.49709 12.2324 9.74346 11.282 9.74346 11.282" stroke="#FF571F" stroke-width="1.02564" stroke-linecap="round" stroke-linejoin="round"/> <path d="M27.7917 20.4673C27.7917 20.4673 25.8275 3.91472 11.2822 2.56409" stroke="#FF571F" stroke-width="1.02564" stroke-linecap="round" stroke-linejoin="round"/> <path d="M23.0771 1.02563C23.233 1.09836 34.872 5.1282 32.8311 18.5972" stroke="#FF571F" stroke-width="1.02564" stroke-linecap="round" stroke-linejoin="round"/> <path d="M35.0888 32.0101C35.0888 32.0101 31.2816 35.8974 23.5893 35.3846C18.7735 35.0635 15.6048 33.5581 14.1191 32.0101" stroke="#FF571F" stroke-width="1.02564" stroke-linecap="round" stroke-linejoin="round"/> <path d="M38.9742 24.1025C37.9486 25.641 35.574 27.9062 27.8962 29.5165C20.2391 31.1269 14.234 27.1685 14.2236 27.1581" stroke="#FF571F" stroke-width="1.02564" stroke-linecap="round" stroke-linejoin="round"/> <path d="M13.8469 14.8718C2.56413 20 6.34929 33.815 6.35968 33.8461" stroke="#FF571F" stroke-width="1.02564" stroke-linecap="round" stroke-linejoin="round"/> <path d="M17.6406 39.1795C16.8406 38.5354 14.0774 36.2282 13.9631 29.9322C13.8488 23.5011 18.3267 20.5193 18.3267 20.5193" stroke="#FF571F" stroke-width="1.02564" stroke-linecap="round" stroke-linejoin="round"/> <path d="M38.4617 13.8462C38.389 13.9709 37.9425 15.5843 32.5192 18.7842C31.1997 19.4803 29.6413 20.0829 27.8024 20.4673C25.2154 21.018 22.0881 21.1426 18.3375 20.5193C18.3375 20.5193 16.9557 17.5167 14.4519 14.7427C11.8025 11.8129 8.04061 9.16553 3.28223 10.2564" stroke="#FF571F" stroke-width="1.02564" stroke-linecap="round" stroke-linejoin="round"/> <circle cx="20" cy="20" r="19.4872" stroke="#E9EBF0" stroke-width="1.02564"/> </svg></span>
+    <span class="ball-shade" aria-hidden="true"></span>
+    <span class="cheer-fab__label">응원</span>
+    <span class="cheer-fab__badge" id="cheer-badge"></span>
+  </button>
+
+</div>
+
+<!-- ============ 막차 토스트 ============ -->
+<div class="toast" id="subway-toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <div class="toast-body">
+    <p class="toast-t">경기가 길어지고 있어요</p>
+    <p class="toast-d" id="toast-desc">막차 시간을 확인해보세요.</p>
+  </div>
+  <button class="toast-action" id="toast-action">확인</button>
+  <button class="toast-close" id="toast-close" aria-label="닫기">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+</div>
+
+<!-- ============ 자리 시야 풀팝업 ============ -->
+<div class="seat-modal" id="seat-modal">
+  <div class="seat-modal__bar">
+    <span class="seat-modal__label" id="seat-modal-label"></span>
+    <button class="seat-modal__close" id="seat-modal-close" aria-label="닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <iframe id="seat-modal-iframe" loading="lazy" allowfullscreen></iframe>
+</div>
+
+<!-- ============ 자리 안내 풀팝업 ============ -->
+<!-- 출석체크 — 3D 아이콘을 눌러 한 단계씩 (성별 → 나이 → 누구와) -->
+<div class="ck" id="ck" role="dialog" aria-modal="true" aria-labelledby="ck-q">
+  <div class="ck__bar">
+    <button class="ck__icon-btn" id="ck-back" aria-label="이전"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="ck__progress" aria-hidden="true"><i id="ck-prog"></i></div>
+    <button class="ck__icon-btn" id="ck-close" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="ck__body" id="ck-body"><!-- JS로 채움 --></div>
+</div>
+
+<!-- 새 현장 이벤트 알림 -->
+<div class="pop-dim" id="ev-pop" role="dialog" aria-modal="true">
+  <div class="pop">
+    <p class="pop__eyebrow"><span class="live-dot" aria-hidden="true"></span>새 현장 이벤트</p>
+    <div id="ev-pop-body"></div>
+    <button class="btn full" id="ev-pop-ok">확인했어요</button>
+  </div>
+</div>
+
+<!-- 응원 이벤트 당첨 -->
+<div class="pop-dim" id="cw-pop" role="dialog" aria-modal="true">
+  <div class="pop cw">
+    <p class="pop__eyebrow">응원 이벤트 당첨</p>
+    <p class="cw__n"><b id="cw-n">0</b>번째 응원 주인공!</p>
+    <p class="cw__prize" id="cw-prize"></p>
+    <p class="cw__place" id="cw-place"></p>
+    <div class="cw__code"><span>교환 코드</span><b id="cw-code">----</b></div>
+    <p class="cw__note">이 화면을 수령 장소 직원에게 보여주세요. 화면을 닫아도 홈에서 다시 볼 수 있어요.</p>
+    <button class="btn full" id="cw-ok">확인</button>
+  </div>
+</div>
+
+<div class="cal-modal" id="cal-modal" role="dialog" aria-modal="true" aria-labelledby="cal-modal-title">
+  <div class="cal-modal__bar">
+    <p class="cal-modal__title" id="cal-modal-title">우리 경기 일정</p>
+    <button class="cal-modal__close" id="cal-close" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="cal-modal__body">
+        <div class="card cal-card">
+      <div class="cal-head">
+        <button class="icon-btn cal-nav" id="cal-prev" aria-label="이전 달"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <p class="cal-title" id="cal-title"></p>
+        <button class="icon-btn cal-nav" id="cal-next" aria-label="다음 달"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+      </div>
+      <div class="cal-week"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-legend"><span><i class="home"></i>홈</span><span><i class="away"></i>원정</span></div>
+    </div>
+    <div id="games-list"><!-- JS로 채움 --></div>
+  </div>
+</div>
+
+<div class="seat-modal route-modal" id="route-modal">
+  <div class="seat-modal__bar">
+    <span class="seat-modal__label" id="route-modal-label">내 자리 가는 길</span>
+    <button class="seat-modal__close" id="route-modal-close" aria-label="닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="route-modal__body">
+    <div class="route-map" id="route-map">
+      <img id="route-map-img" alt="경기장 배치도">
+      <svg class="route-map-overlay" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <polyline id="route-line" points=""/>
+        <circle id="route-walker" class="route-walker" r="1.8" cx="-10" cy="-10"></circle>
+      </svg>
+      <div class="route-pin gate" id="route-pin-gate"><span class="dot"></span><span class="label" id="route-pin-gate-label"></span></div>
+      <div class="route-pin seat" id="route-pin-seat"><span class="dot"></span><span class="label" id="route-pin-seat-label"></span></div>
+    </div>
+    <div class="route-track" id="route-track"></div>
+    <ol class="route-steps" id="route-steps"></ol>
+    <p class="route-note">배치도상 위치를 기준으로 추정한 경로예요. 실제 동선은 현장 안내 표지판을 따라주세요.</p>
+  </div>
+</div>
+
+<!-- ============ 선수 능력치 카드 (FIFA 스타일) ============ -->
+<div class="pcard-modal" id="pcard-modal" role="dialog" aria-modal="true" aria-labelledby="pc-name">
+  <div class="pcard-modal__bar">
+    <button class="icon-btn" id="pc-close" aria-label="닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <span class="pcard-modal__count" id="pc-count">1 / 17</span>
+    <div class="pcard-modal__nav">
+      <button class="icon-btn" id="pc-prev" aria-label="이전 선수">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      </button>
+      <button class="icon-btn" id="pc-next" aria-label="다음 선수">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="pcard-modal__body">
+    <div class="pcard" id="pcard" role="button" tabindex="0" aria-pressed="false" aria-label="카드 뒤집기 — 뒷면에 오늘의 운세">
+      <div class="pcard__bg"></div>
+      <div class="pcard__top">
+        <span class="pcard__ovr" id="pc-ovr">--</span>
+        <span class="pcard__luck" id="pc-luck" hidden></span>
+        <span class="pcard__pos" id="pc-pos">--</span>
+        <span class="pcard__tier" id="pc-tier"></span>
+      </div>
+      <div class="pcard__stage" id="pc-stage"></div>
+      <div class="pcard__plate">
+        <p class="pcard__name" id="pc-name">선수</p>
+        <p class="pcard__meta" id="pc-meta"></p>
+      </div>
+      <div class="pcard__stats" id="pc-stats"></div>
+      <span class="pcard__num" id="pc-num"></span>
+      <div class="pcard__back" id="pc-back" aria-live="polite"></div>
+      <div class="pcard__shine" id="pc-shine"></div>
+    </div>
+    <p class="pcard-hint" id="pc-hint">카드를 끌어서 기울여 보세요</p>
+
+    <div class="pc-panel">
+      <p class="pc-panel__title" id="pc-ab-title">능력치</p>
+      <div class="pc-radar" id="pc-radar"></div>
+    </div>
+
+    <div class="pc-panel">
+      <p class="pc-panel__title" id="pc-season-title">시즌 기록</p>
+      <div class="pc-season" id="pc-season"></div>
+    </div>
+
+    <button class="btn full" id="pc-mvp" style="margin-top:18px;">이 선수에게 MVP 투표하기</button>
+    <button class="btn full" id="pc-event" style="margin-top:18px;" hidden>이벤트 투표하러 가기</button>
+  </div>
+</div>
+
+<!-- ============ 룰렛 결과 — 당첨(교환권) ============ -->
+<div class="rl-win" id="rl-win" role="dialog" aria-modal="true" aria-labelledby="rlw-title">
+  <div class="rl-win__bar">
+    <span class="rl-win__bar-t">교환권</span>
+    <button class="icon-btn rl-win__close" id="rlw-close" aria-label="닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="rl-win__body">
+    <div class="rlw-pager" id="rlw-pager" hidden>
+      <button class="rlw-pager__b" id="rlw-prev" aria-label="이전 교환권"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <span id="rlw-page" aria-live="polite">1 / 1</span>
+      <button class="rlw-pager__b" id="rlw-next" aria-label="다음 교환권"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+    </div>
+    <div class="rl-win__chip"><span>교환권번호</span><b id="rlw-code">-</b></div>
+    <p class="rl-win__title" id="rlw-title">-</p>
+    <p class="rl-win__desc" id="rlw-desc"></p>
+    <div class="rl-win__img">
+      <img class="rl-win__box" id="rlw-box" alt="">
+      <img class="rl-win__item" id="rlw-item" alt="">
+    </div>
+    <ul class="rl-notice" id="rlw-notice"></ul>
+  </div>
+  <button class="rl-win__save" id="rlw-save">이미지 저장</button>
+</div>
+
+<!-- ============ 룰렛 결과 — 꽝 ============ -->
+<div class="rl-lose" id="rl-lose" role="dialog" aria-modal="true" aria-labelledby="rll-title">
+  <div class="rl-lose__con">
+    <img class="rl-lose__img" id="rll-img" alt="">
+    <p class="rl-lose__title" id="rll-title">아쉽게도 꽝!</p>
+    <p class="rl-lose__desc">다음 기회에 행운을<br>잡아보세요!</p>
+    <button class="rl-lose__close" id="rll-close">닫기</button>
+  </div>
+</div>
+
+<!-- ============ 데이터 수집 안내 ============ -->
+<div class="pop-dim" id="privacy" role="dialog" aria-modal="true" aria-labelledby="pv-title">
+  <div class="pop pv">
+    <div class="rfc__bar">
+      <p class="rfc__title" id="pv-title">데이터 수집 안내</p>
+      <button class="rfc__close" id="pv-close" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="pv__body">
+      <p class="pv__lead">읏배구놀이터는 <b>이름·연락처 같은 개인정보를 받지 않아요.</b> 이벤트 운영과 통계를 위해 아래 정보만 모아요.</p>
+      <dl class="pv__list">
+        <dt>모으는 정보</dt><dd>이 휴대폰에 만든 임시 번호(기기 ID) · 접속 시각 · 출석체크·설문·경기 예측·MVP 투표 답 · 응원 횟수 · 룰렛 결과 · 경품 응모 닉네임</dd>
+        <dt>쓰는 곳</dt><dd>경기별 참여 통계, 경품 추첨·교환, 다음 경기 운영 개선</dd>
+        <dt>보관 기간</dt><dd id="pv-retention">시즌이 끝나면 지워요.</dd>
+        <dt>모으지 않는 것</dt><dd>이름, 전화번호, 이메일, 위치 · <span id="pv-photo">티켓 촬영 사진은 이 휴대폰 안에서만 보여주고 보내지 않아요</span></dd>
+        <dt>문의</dt><dd id="pv-contact">OK저축은행 읏맨 배구단 현장 부스</dd>
+      </dl>
+      <p class="pv__extra" id="pv-extra" hidden></p>
+      <p class="pv__note">경품 응모 닉네임은 당첨자 발표 때 전광판에 나갈 수 있어요.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 경품 응모 — 닉네임 입력 바텀시트 ============ -->
+<div class="sheet-dim" id="rf-sheet" role="dialog" aria-modal="true" aria-labelledby="rf-title">
+  <div class="sheet">
+    <span class="sheet__grab" aria-hidden="true"></span>
+    <p class="sheet__title" id="rf-title">경품 응모</p>
+    <p class="sheet__desc">응모 결과는 닉네임으로 전광판에 안내돼요.<br>닉네임으로 응모한 뒤 카드를 저장해주세요. <button class="data-link" type="button" data-privacy>데이터 안내</button></p>
+    <div class="nick-row">
+      <input class="glass-input" id="rf-nick" maxlength="10" placeholder="닉네임 입력" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-describedby="rf-help">
+      <button class="btn ghost" id="rf-check" type="button">중복확인</button>
+    </div>
+    <p class="nick-help" id="rf-help" aria-live="polite">한글 또는 영문으로 10글자까지 입력할 수 있어요</p>
+    <button class="btn full" id="rf-submit" disabled>응모하기</button>
+    <button class="sheet__later" id="rf-later" type="button">다음에 할게요</button>
+  </div>
+</div>
+
+<!-- ============ 경품 응모 — 직관인증 카드 ============ -->
+<div class="pop-dim" id="rf-card" role="dialog" aria-modal="true" aria-labelledby="rfc-title">
+  <div class="pop rfc">
+    <div class="rfc__bar">
+      <p class="rfc__title" id="rfc-title">응모 완료!</p>
+      <button class="rfc__close" id="rfc-close" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <img class="rfc__img" id="rfc-img" alt="">
+    <p class="rfc__note">경기가 끝나면 당첨자를 전광판에 닉네임으로 안내해요.<br>경품 수령처에서 이 카드를 보여주세요.</p>
+    <button class="btn full" id="rfc-save">내 카드 저장하기</button>
+  </div>
+</div>
+
+<script src="js/index.js"></script>
+</body>
+</html>
