@@ -647,7 +647,7 @@ body.no-game .tabbar__btn[data-view="survey"]{
 }
 #app{
   max-width:520px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; position:relative;
-  z-index:1; background:transparent;
+  z-index:1; background:var(--surface);
 }
 @media (min-width:640px){
   #app{
