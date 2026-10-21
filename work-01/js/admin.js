@@ -306,8 +306,15 @@ async function start(){
 }
 $('match').addEventListener('change', ()=>{
   if($('match').value === '__new'){
-    const v = (prompt('경기 ID를 입력하세요 (index.html의 MATCH_ID, 비워두면 날짜 예: 2026-10-31)') || '').trim();
-    if(v){ const o = document.createElement('option'); o.value = v; o.textContent = v; $('match').insertBefore(o, $('match').firstChild); $('match').value = v; }
+    // 경기 ID는 영문·숫자·_·- 만 쓸 수 있어요. 관람객 화면(?match=)과 서버 주소가 이 규칙이라,
+    //  한글·띄어쓰기가 들어가면 관리자에선 저장돼 보여도 관람객 화면과 연결되지 않아요.
+    const raw = (prompt('경기 ID를 입력하세요 — 영문·숫자·_·- 만 (예: test-1, 2026-10-31)') || '').trim();
+    const v = raw.replace(/[^\w-]/g, '').slice(0, 64);
+    if(raw && v !== raw) alert(`경기 ID에는 영문·숫자·_·- 만 쓸 수 있어요.\n'${v || '(빈 값)'}'(으)로 바꿨어요.`);
+    if(v){
+      if(![...$('match').options].some(o => o.value === v)){ const o = document.createElement('option'); o.value = v; o.textContent = v + ' (테스트)'; $('match').insertBefore(o, $('match').firstChild); }
+      $('match').value = v;
+    }
     else $('match').value = today();
   }
   DR = {}; SUBC.mid = '';
@@ -1093,7 +1100,7 @@ function homeView(){
         <td><b>${i + 1}</b></td>
         <td><div style="display:flex; align-items:center; gap:6px;">${p.image ? `<img class="ckimg" src="${esc(p.image)}" alt="">` : ''}
           <select class="in" style="height:34px; width:auto;" data-rp="img" data-i="${i}">${Object.entries(RL_IMGS).map(([k, t]) => `<option value="${k}"${p.img === k ? ' selected' : ''}>${t}</option>`).join('')}</select>
-          <label class="btn small ghost" style="cursor:pointer;">${p.image ? '바꾸기' : '올리기'}<input type="file" accept="image/*" data-rpimg="${i}" hidden></label>${p.image ? `<button class="btn small ghost" data-act="rp-imgdel" data-i="${i}">↺</button>` : ''}</div></td>
+          <button class="btn small ghost" data-act="rp-imgpick" data-i="${i}">${p.image ? '바꾸기' : '올리기'}</button>${p.image ? `<button class="btn small ghost" data-act="rp-imgdel" data-i="${i}">↺</button>` : ''}</div></td>
         <td><input type="checkbox" data-rp="miss" data-i="${i}"${p.miss ? ' checked' : ''} aria-label="꽝"></td>
         <td>${p.miss ? '<span class="muted">꽝</span>' : `<input class="in" style="height:34px; min-width:150px;" data-rp="title" data-i="${i}" maxlength="40" value="${esc(String(p.title || '').replace(/\n/g, ' / '))}">`}</td>
         <td>${p.miss ? '' : `<input class="in" style="height:34px; min-width:150px;" data-rp="desc" data-i="${i}" maxlength="40" value="${esc(p.desc || '')}">`}</td>
@@ -1710,6 +1717,9 @@ document.addEventListener('click', e=>{
     case 'nb-save': { const words = val('nb-words').split(/[,\n]/).map(w => w.trim()).filter(Boolean);
       return act(()=> call('PUT', '_/nickban', { words }), `금칙어 ${words.length}개를 저장했어요.`).then(ok => { if(ok) loadExtra('nick', true); }); }
     case 'rp-imgdel': delete homeDraft().roulette.prizes[i].image; return render();
+    // 룰렛 경품 이미지 — 파일 선택 칸(#rp-file)은 5초마다 다시 그려지는 화면 밖에 있어요.
+    //  (예전엔 화면 안에 있어서, 파일을 고르는 사이 새로고침되면 고른 파일이 버려졌어요)
+    case 'rp-imgpick': RP_PICK = i; return $('rp-file').click();
     case 'home-reset': DR.home = null; return render();
     case 'home-save': {
       const H = homeDraft();
@@ -1814,7 +1824,15 @@ document.addEventListener('input', e=>{
     if(t.dataset.ck === 'q') q.q = t.value; else if(t.dataset.ck === 'o') q.opts[Number(t.dataset.j)].label = t.value;
   }
 });
+let RP_PICK = -1;   // 이미지를 넣을 룰렛 칸
 document.addEventListener('change', async e=>{
+  if(e.target.id === 'rp-file' && e.target.files[0]){
+    const f = e.target.files[0], idx = RP_PICK; e.target.value = '';
+    const prize = homeDraft().roulette.prizes[idx]; if(!prize) return;
+    try{ prize.image = await shrinkImage(f, 160); render(); toast(`${idx + 1}번 칸 이미지를 넣었어요. 아래 '저장'을 눌러야 관람객 화면에 반영돼요.`); }
+    catch(err){ toast(err.message, true); }
+    return;
+  }
   if(e.target.id === 'sv-file' && e.target.files[0]){
     const f = e.target.files[0]; e.target.value = '';
     try{
@@ -1830,11 +1848,6 @@ document.addEventListener('change', async e=>{
         <div class="modal__foot"><button class="btn ghost" data-act="lib-add-edit">고쳐서 넣기</button><button class="btn" data-act="lib-add">보관함에 넣기</button></div>`);
       $('modal-box').style.maxWidth = '640px';
     }catch(err){ toast(err.message, true); }
-    return;
-  }
-  if(e.target.dataset.rpimg != null && e.target.files[0]){
-    try{ homeDraft().roulette.prizes[Number(e.target.dataset.rpimg)].image = await shrinkImage(e.target.files[0], 160); render(); }
-    catch(err){ toast(err.message, true); }
     return;
   }
   const t = e.target; if(t.dataset.ckimg == null || !MOD || !t.files[0]) return;

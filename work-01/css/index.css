@@ -2067,3 +2067,43 @@ p.pagesub{font-size:14px; line-height:22px; margin:0 0 20px; color:var(--ink-dim
 .survey-q .qnum{font-size:12px; font-weight:600; color:var(--brand-dark); margin-bottom:8px; line-height:18px;}
 .survey-q .qtext{font-size:18px; font-weight:600; margin:0 0 18px; color:var(--ink); line-height:26px;}
 .survey-nav{display:flex; gap:8px; margin-top:20px;}
+
+/* ============================================================
+   막차안내 — 체육공원을 가운데에 두고 [이전역 → 체육공원 → 다음역]
+   · 왼쪽에서 오는 열차(진한 색) · 오른쪽으로 떠난 열차(흐린 색)
+   · 방면마다 색이 달라요 (--dc: 방면 이름 · 열차 · 화살표)
+   ============================================================ */
+.st-dir{display:flex; align-items:center; gap:6px;}
+.st-dir b{font-size:15px; line-height:22px; font-weight:800; color:var(--dc, var(--ink));}
+.st-dir__arrow{font-weight:800; color:var(--dc, var(--ink));}
+.st-card{box-shadow:inset 4px 0 0 var(--dc, transparent);}
+.sw-track{position:relative; height:86px; margin:14px 6px 6px;}
+.sw-rail{position:absolute; left:0; right:0; top:34px; height:4px; margin-top:-2px; border-radius:4px;
+  background:linear-gradient(90deg, #D9DDE3, var(--dc, #BB8C00) 50%, #D9DDE3);}
+.sw-end, .sw-stop{position:absolute; top:34px; display:flex; flex-direction:column; align-items:center; transform:translate(-50%, -7px); white-space:nowrap;}
+.sw-end.l{left:0; align-items:flex-start; transform:translate(0, -7px);}
+.sw-end.r{left:100%; align-items:flex-end; transform:translate(-100%, -7px);}
+.sw-stop{left:50%;}
+.sw-end i, .sw-stop i{display:block; width:14px; height:14px; border-radius:50%; background:#fff; box-shadow:inset 0 0 0 3px #B5BAC2;}
+.sw-stop i{width:18px; height:18px; margin-top:-2px; box-shadow:inset 0 0 0 5px var(--dc, #BB8C00), 0 0 0 4px rgba(255,255,255,.9);}
+.sw-end small{margin-top:6px; font-size:10px; line-height:14px; font-weight:600; color:var(--ink-faint);}
+.sw-end b{font-size:12px; line-height:16px; font-weight:700; color:var(--ink-dim);}
+.sw-stop b{margin-top:8px; font-size:13px; line-height:18px; font-weight:800; color:var(--ink);}
+.sw-train{position:absolute; top:13px; left:calc(var(--x, 0) * 1%); transform:translateX(-50%); display:flex; flex-direction:column; align-items:center;
+  color:var(--dc, #BB8C00); transition:left 1s linear; z-index:2;}
+.sw-train[hidden]{display:none;}
+.sw-train svg{width:30px; height:22px; filter:drop-shadow(0 2px 3px rgba(0,0,0,.18));}
+.sw-train small{position:absolute; bottom:100%; margin-bottom:2px; padding:1px 6px; border-radius:100px; background:var(--dc, #BB8C00); color:#fff;
+  font-size:10px; line-height:14px; font-weight:800; white-space:nowrap;}
+.sw-train.out{opacity:.45;}
+.sw-train.out small{background:#8C939E;}
+.sw-train.in{left:max(15px, calc(var(--x, 0) * 1%));}
+.sw-train.out{left:min(calc(100% - 15px), calc(var(--x, 0) * 1%));}
+.st-card.idle .sw-train{display:none;}
+@media (prefers-reduced-motion: reduce){ .sw-train{transition:none;} }
+
+/* 숨김 속성이 있는 버튼은 꼭 숨겨요 — .btn{display:flex}가 [hidden]보다 이겨서 두 버튼이 함께 보이던 문제 */
+.btn[hidden], button[hidden]{display:none !important;}
+
+/* PC — 떠 있는 하단바(바닥에서 40px)에 페이지 끝 버튼이 가리지 않게 아래 여백을 충분히 */
+@media (min-width:640px){ .view{padding-bottom:150px;} }

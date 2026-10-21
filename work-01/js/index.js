@@ -480,14 +480,16 @@ const CONFIG = {
      · 열차 시각은 부산교통공사 '열차시각표 조회' API를 서버(okman-live)가 대신 받아와요 (/live/_/subway).
        서버에 SUBWAY_KEY(공공데이터포털 인증키)가 없으면 '도착 정보 준비 중'과 아래 막차 시각만 보여줘요.
      · scode: 역 외부코드 (체육공원 316) · updown: API의 상하행 값 (0 상행 · 1 하행) — 방면과 맞는지 서버 /live/_/subway?debug=1 로 확인해주세요.
-     · last: API를 못 받을 때 쓰는 막차 시각 (24:36 = 다음 날 00:36) */
+     · last: API를 못 받을 때 쓰는 막차 시각 (24:36 = 다음 날 00:36)
+     · prev / next: 열차가 오는 쪽 이전역 · 떠나가는 쪽 다음역 (3호선: … 구포 – 강서구청 – 체육공원 – 대저)
+     · color: 방면 구분 색 — 방면 이름·열차·화살표에 써요 */
   SUBWAY: {
     station: '체육공원역',
     scode: '316',
     alertAfter: '22:00',   // 기획서: 경기가 밤 10시를 넘기면 토스트
     lines: [
-      { tag:'3호선', dir:'구포 ∙ 연산 ∙ 수영 방면', updown:0, last:'23:41' },
-      { tag:'3호선', dir:'대저 방면', updown:1, last:'24:36' },
+      { tag:'3호선', dir:'구포 ∙ 연산 ∙ 수영 방면', updown:0, last:'23:41', prev:'대저', next:'강서구청', color:'#2F6FE4' },
+      { tag:'3호선', dir:'대저 방면', updown:1, last:'24:36', prev:'강서구청', next:'대저', color:'#E8590C' },
     ]
   }
 };
@@ -2109,18 +2111,23 @@ const findTeamBrand = name=> TEAM_BRANDS.find(b=> b.keys.some(k=> String(name ||
   const lastOf = l => (TT && TT[l.updown] && TT[l.updown].length) ? Math.max(...TT[l.updown]) : toMin(l.last);
 
   // 방향별 카드 — 기획서 10-2 · 10-3
+  // 열차 아이콘 — 방면 색(currentColor)으로 칠해져요
+  const SW_TRAIN = '<svg viewBox="0 0 32 24" fill="none"><rect x="1" y="2" width="30" height="17" rx="6" fill="currentColor"/><rect x="5" y="6" width="9" height="6" rx="1.6" fill="#fff" opacity=".92"/><rect x="18" y="6" width="9" height="6" rx="1.6" fill="#fff" opacity=".92"/><circle cx="8" cy="21" r="2" fill="#6C7080"/><circle cx="24" cy="21" r="2" fill="#6C7080"/></svg>';
   listEl.innerHTML = SW.lines.map((l, i)=> `
-    <section class="st-card" data-i="${i}" aria-live="polite">
+    <section class="st-card" data-i="${i}" style="--dc:${escHtml(l.color || '#BB8C00')}" aria-live="polite">
       <div class="st-card__head">
         <span class="st-line">${escHtml(l.tag)}</span>
         <b class="st-station">${escHtml(SW.station)}</b>
         <span class="st-kind">지하철</span>
       </div>
-      <p class="st-dir">${escHtml(l.dir)}</p>
-      <div class="st-track" aria-hidden="true">
-        <span class="st-rail"></span>
-        <span class="st-stop"><i></i><em>${escHtml(SW.station.replace(/역$/, ''))}</em></span>
-        <span class="st-train">${UI_ICON.subway}</span>
+      <p class="st-dir"><b>${escHtml(l.dir)}</b><span class="st-dir__arrow" aria-hidden="true">→</span></p>
+      <div class="sw-track" aria-hidden="true">
+        <span class="sw-rail"></span>
+        <span class="sw-end l"><i></i><small>이전역</small><b>${escHtml(l.prev || '')}</b></span>
+        <span class="sw-stop"><i></i><b>${escHtml(SW.station.replace(/역$/, ''))}</b></span>
+        <span class="sw-end r"><i></i><small>다음역</small><b>${escHtml(l.next || '')}</b></span>
+        <span class="sw-train in" data-in hidden>${SW_TRAIN}<small data-in-l></small></span>
+        <span class="sw-train out" data-out hidden>${SW_TRAIN}<small data-out-l></small></span>
       </div>
       <div class="st-foot">
         <p class="st-eta" data-eta>도착 정보 확인 중…</p>
@@ -2138,21 +2145,33 @@ const findTeamBrand = name=> TEAM_BRANDS.find(b=> b.keys.some(k=> String(name ||
       const times = TT && TT[l.updown];
       const last = lastOf(l);
       card.classList.toggle('soon', last * 60 - now <= 30 * 60 && last * 60 - now >= 0);
+      const inEl = card.querySelector('[data-in]'), outEl = card.querySelector('[data-out]');
       if(!times || !times.length){
         etaEl.textContent = '도착 정보 준비 중';
         nextEl.textContent = `막차 ${fmt(last)}`;
-        card.classList.add('idle'); card.style.setProperty('--p', '0');
+        card.classList.add('idle'); inEl.hidden = outEl.hidden = true;
         return;
       }
       card.classList.remove('idle');
+      // 지나간 열차 — 체육공원을 떠나 다음역으로 (떠난 지 5분까지 보여줘요)
+      const gone = times.filter(t => t * 60 < now - 20);
+      const dep = gone.length ? gone[gone.length - 1] * 60 + 20 : null;
+      const since = dep == null ? Infinity : now - dep;
+      outEl.hidden = since > 300;
+      if(!outEl.hidden){
+        outEl.style.setProperty('--x', String(50 + 50 * Math.min(1, since / 180)));      // 약 3분 만에 다음역
+        card.querySelector('[data-out-l]').textContent = since < 60 ? '방금 출발' : `${Math.floor(since / 60)}분 전 출발`;
+      }
       const up = times.filter(t => t * 60 >= now - 20);   // 막 도착한 열차는 20초 동안 '곧 도착'
-      if(!up.length){ etaEl.textContent = '오늘 운행이 끝났어요'; nextEl.textContent = `막차 ${fmt(last)}`; card.style.setProperty('--p', '0'); return; }
+      if(!up.length){ etaEl.textContent = '오늘 운행이 끝났어요'; nextEl.textContent = `막차 ${fmt(last)}`; inEl.hidden = true; return; }
       const left = up[0] * 60 - now;
       const m = Math.ceil(left / 60);
       etaEl.textContent = left <= 30 ? '곧 도착해요' : `${m}분 후 도착 예정`;
       etaEl.classList.toggle('now', left <= 60);
-      // 열차 위치 — 10분 전부터 역으로 다가와요
-      card.style.setProperty('--p', String(Math.max(0, Math.min(1, 1 - left / 600))));
+      // 오는 열차 — 이전역 쪽에서 체육공원으로 (5분 전부터 다가와요, 그 전엔 이전역에 대기)
+      inEl.hidden = false;
+      inEl.style.setProperty('--x', String(Math.max(0, 50 * (1 - left / 300))));
+      card.querySelector('[data-in-l]').textContent = left <= 30 ? '곧 도착' : `${m}분 후`;
       const after = up.slice(1, 3).filter(t => t !== last).map(fmt).join(' · ');   // 막차는 따로 보여줘요
       nextEl.textContent = `${after ? '다음 ' + after + ' · ' : ''}막차 ${fmt(last)}`;
     });
