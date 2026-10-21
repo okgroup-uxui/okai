@@ -1,0 +1,208 @@
+/* ============================================================
+   읏배구놀이터 — 새 홈 디자인 (Figma 금강 1367:3)
+   · 다크 배경(#121212) + 상단 선수 사진 히어로 + 라운드 미션 패널 + 룰렛
+   · index.css 다음에 불러와요. 이 파일을 빼면 예전 홈 그대로예요
+   · 홈 탭일 때만 바깥(로고 · 매치 · 탭바 · 배경)이 바뀌어요 — #app:has(#view-home.active)
+   · 다른 탭(안내 · 이벤트 · 기록 · 설문)은 기존 밝은 화면 그대로
+   ============================================================ */
+
+/* 제목 서체 — OK CHAN (기기에 깔려 있으면 그걸, 없으면 fonts/ 폴더 파일, 그것도 없으면 Pretendard 굵게)
+   · 굵기 범위를 1~1000으로 열어둬서, 대체 서체용 font-weight:800이 OK CHAN을 가짜 볼드로 만들지 않아요 */
+@font-face{
+  font-family:'OK CHAN';
+  src:local('OK CHAN'), local('OKCHAN'), local('OK CHAN Regular'), local('OKCHAN-Regular'),
+      url('../fonts/OKCHAN.woff2') format('woff2');
+  font-weight:1 1000; font-display:swap;
+}
+
+:root{
+  --night:#121212;
+  --night-2:#1C1C1C;               /* 카드 면 */
+  --night-line:rgba(255,255,255,.08);
+  --night-ink:#FFFFFF;
+  --night-dim:rgba(255,255,255,.64);
+  --night-faint:rgba(255,255,255,.42);
+  --point:#FF571F;                  /* Figma Semetic/Point/Normal */
+  --font-display:'OK CHAN', 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  --hw:min(100vw, 430px);           /* 히어로 기준 폭 (Figma 360) */
+  --hero-h:calc(var(--hw) * 514 / 360);
+  --panel-top:calc(var(--hw) * 464 / 360);
+}
+@media (min-width:640px){ :root{ --hw:430px; } }
+
+/* 홈이 아닐 땐 히어로 · 흰 로고 숨김 */
+.home-hero, .brand-header__logo--white{display:none;}
+
+/* ============================================================
+   바깥 — 홈 탭일 때만
+   ============================================================ */
+@media (max-width:639px){ body:has(#view-home.active){background:var(--night);} }
+#app:has(#view-home.active){background:var(--night);}
+
+/* 히어로 사진 + 위 오렌지 · 아래 다크 그라데이션 */
+#app:has(#view-home.active) .home-hero{
+  display:block; position:absolute; left:0; right:0; top:0; z-index:0;
+  height:calc(var(--hero-h) + var(--court-h)); overflow:hidden; pointer-events:none;
+}
+.home-hero img{
+  position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 100%;
+  animation:heroIn 1.1s var(--ease-out) both;
+}
+.home-hero::before{   /* 위 — 로고 · 매치가 읽히게 */
+  content:''; position:absolute; left:0; right:0; top:0; z-index:1;
+  height:calc(var(--hw) * 260 / 360 + var(--court-h));
+  background:linear-gradient(180deg, var(--point) 21%, rgba(255,87,31,0) 100%);
+}
+.home-hero::after{    /* 아래 — 패널로 자연스럽게 */
+  content:''; position:absolute; left:0; right:0; bottom:-6px; z-index:1; height:118px;
+  background:linear-gradient(0deg, var(--night) 21%, rgba(18,18,18,0) 100%);
+}
+@keyframes heroIn{ from{opacity:0; transform:scale(1.06);} to{opacity:1; transform:none;} }
+
+/* 로고 — 왼쪽 위, 흰색 */
+#app:has(#view-home.active) .brand-header{
+  position:absolute; left:0; right:0; top:0; z-index:2; height:calc(48px + var(--court-h));
+  padding:var(--court-h) 20px 0; display:flex; align-items:center; text-align:left;
+}
+#app:has(#view-home.active) .brand-header__logo{display:none;}
+#app:has(#view-home.active) .brand-header__logo--white{display:block; height:28px; width:auto;}
+
+/* 오늘의 매치 — 카드 없이 사진 위에 한 줄 */
+#app:has(#view-home.active) .matchbar{
+  position:absolute; left:0; right:0; top:calc(72px + var(--court-h)); z-index:2;
+  margin:0; padding:0 24px; border-radius:0; background:none; box-shadow:none;
+}
+#app:has(#view-home.active) .matchbar::before{content:none;}
+#app:has(#view-home.active) .mb-board{display:flex; align-items:center; justify-content:center; gap:24px;}
+#app:has(#view-home.active) .mb-team{
+  display:grid; grid-template-columns:24px auto; grid-auto-rows:auto; column-gap:12px; row-gap:0;
+  align-items:center; text-align:left; min-width:0;
+}
+#app:has(#view-home.active) .mb-crest{
+  grid-row:1 / span 2; width:24px; height:24px; margin:0; padding:2px; box-shadow:none;
+}
+#app:has(#view-home.active) .mb-crest .mb-init{font-size:8px;}
+#app:has(#view-home.active) .mb-name,
+#app:has(#view-home.active) .mb-nick{
+  margin:0; font-size:14px; line-height:17px; font-weight:400; letter-spacing:0; color:#fff;
+  -webkit-line-clamp:1; white-space:nowrap; max-width:7.5em; text-overflow:ellipsis;
+}
+#app:has(#view-home.active) .mb-vs{padding:0;}
+#app:has(#view-home.active) .mb-vs b{font-family:var(--font-display); font-size:24px; line-height:28px; font-weight:800; letter-spacing:0;}
+#app:has(#view-home.active) .matchbar .matchbar__meta{
+  margin-top:10px; font-size:12px; line-height:16px; opacity:.82; text-shadow:0 1px 6px rgba(0,0,0,.25);
+}
+#app:has(#view-home.active) .matchbar .matchbar__meta #mb-date{font-weight:600;}
+
+/* 탭바 — 어두운 유리 */
+#app:has(#view-home.active) .tabbar{
+  background:rgba(34,34,34,.72); border-color:rgba(255,255,255,.08); border-top-color:rgba(255,255,255,.16);
+  box-shadow:0 14px 36px rgba(0,0,0,.5);
+}
+
+/* ============================================================
+   홈 본문 — 사진 위로 올라오는 라운드 패널
+   ============================================================ */
+#view-home.active{
+  position:relative; z-index:1; margin-top:calc(var(--panel-top) + var(--court-h));
+  padding:28px 24px 140px; border-radius:40px 40px 0 0; background:var(--night); color:var(--night-ink);
+}
+@media (min-width:640px){ #view-home.active{padding-bottom:40px;} }
+
+/* ---------- 오늘의 직관 MISSION ---------- */
+#view-home .mission-card{
+  overflow:visible; background:none; padding:0; margin:0; border-radius:0; text-align:center;
+}
+/* 위에 현장 이벤트 · 휴무 카드가 없으면 패널 맨 위에 붙는 탭 모양 */
+#view-home #live-events[hidden] + #cheer-win-link[hidden] + #no-game[hidden] + .mission-card{margin-top:-28px;}
+#view-home .mission-card__head{display:block; margin:0;}
+#view-home .mission-card__title{
+  display:inline-block; margin:0; padding:4px 16px 2px; border-radius:12px; background:var(--point); color:#000;
+  font-family:var(--font-display); font-size:16px; line-height:20px; font-weight:800; letter-spacing:-.02em;
+}
+#view-home #live-events[hidden] + #cheer-win-link[hidden] + #no-game[hidden] + .mission-card .mission-card__title{
+  border-radius:0 0 12px 12px;
+}
+#view-home .mission-card__desc{
+  margin:18px 0 0; font-size:13px; line-height:16px; font-weight:300; color:#fff; word-break:keep-all;
+}
+#view-home .mission-card__sub{
+  margin:6px 0 0; font-size:12px; line-height:16px; font-weight:600; color:var(--brand-light);
+}
+#view-home .mission-card__head::after{   /* 구분선 */
+  content:''; display:block; height:1px; margin:16px 20px 24px;
+  background:linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.22) 20%, rgba(255,255,255,.22) 80%, rgba(255,255,255,0));
+}
+#view-home .mission-ring{display:none;}
+
+#view-home .mission-list{gap:12px;}
+#view-home .mission-item{
+  padding:16px 8px; gap:8px; border-radius:200px;
+  background:radial-gradient(110% 90% at 30% 0%, rgba(255,255,255,.10) 0%, rgba(255,255,255,.02) 60%), #161616;
+  box-shadow:inset 0 0 0 1px var(--night-line), 0 6px 14px rgba(0,0,0,.35);
+}
+#view-home .mission-item__icon{width:24px; height:24px;}
+#view-home .mission-item__icon svg{width:100%; height:100%; display:block;}
+#view-home .mission-item__label{font-size:14px; line-height:17px; font-weight:400; color:#fff; white-space:nowrap;}
+#view-home .mission-item.done{
+  background:radial-gradient(110% 90% at 30% 0%, rgba(255,122,78,.22) 0%, rgba(255,87,31,.06) 60%), #1A1310;
+  box-shadow:inset 0 0 0 1px rgba(255,87,31,.45);
+}
+#view-home .mission-item.done .mission-item__label,
+#view-home .mission-item.locked .mission-item__label{color:var(--night-faint);}
+#view-home .mission-stamp{
+  width:58px; height:58px; color:#FF7A4E; mix-blend-mode:normal;
+  box-shadow:inset 0 0 0 2.5px var(--night), inset 0 0 0 3.5px currentColor;
+}
+#view-home .mission-stamp::after{border-color:#FF7A4E;}
+#view-home .mission-item__lock{top:8px; right:16px; background:#2A2A2A; color:var(--night-dim);}
+#view-home .mission-complete-banner{background:var(--night-2); color:var(--brand-light);}
+#view-home .mission-hint{color:var(--night-dim);}
+
+/* ---------- 룰렛 — 부산OK 응원 경품 뽑기 ---------- */
+#view-home .rl-stage{
+  margin:0 -24px; padding:72px 24px 8px; border-radius:0; background:none; overflow:hidden;
+}
+#view-home .rl-stage::before{   /* 휠 양옆 오렌지 빛 */
+  content:''; display:block; position:absolute; inset:0; top:0; height:auto; max-height:none; pointer-events:none;
+  background:
+    radial-gradient(closest-side, rgba(255,87,31,.42), rgba(255,87,31,0)) -90px 46% / 220px 220px no-repeat,
+    radial-gradient(closest-side, rgba(255,87,31,.36), rgba(255,87,31,0)) calc(100% + 70px) 78% / 240px 240px no-repeat;
+  filter:blur(6px);
+}
+#view-home .rl-title{width:100%; gap:8px;}
+#view-home .rl-title__l3{
+  order:-1; margin:0; font-family:var(--font-display); font-size:30px; line-height:38px; font-weight:800;
+  letter-spacing:-.04em; color:#fff;
+}
+#view-home .rl-title__l1{font-size:16px; line-height:20px; font-weight:400; letter-spacing:-.04em; color:#fff;}
+#view-home .rl-title__l2{display:none;}
+#view-home .rl-wheel-wrap{margin:40px auto 36px; filter:drop-shadow(0 18px 40px rgba(255,87,31,.18));}
+#view-home .rl-cta{
+  width:auto; max-width:none; height:auto; min-height:54px; padding:8px 24px; border-radius:200px;
+  background:var(--point); color:#000; font-size:18px; line-height:38px; font-weight:700;
+  box-shadow:0 8px 24px rgba(255,87,31,.35);
+}
+#view-home .rl-cta:active{background:var(--brand-dark);}
+#view-home .rl-cta[disabled]{background:#2A2A2A; color:var(--night-faint); box-shadow:none;}
+#view-home .rl-chance{margin:12px 0 4px; font-size:14px; line-height:17px; font-weight:400; letter-spacing:-.04em; color:#fff;}
+#view-home .rl-chance b{color:var(--brand-light); font-weight:700;}
+#view-home .rl-sub{color:var(--night-dim);}
+#view-home .rl-last{color:var(--night-dim);}
+
+/* ---------- 현장 이벤트 · 휴무 · 굿즈 · 앱 카드 — 다크 면 ---------- */
+#view-home .live-events__head p{color:#fff;}
+#view-home .ev-card{background:rgba(255,87,31,.10); box-shadow:inset 0 0 0 1px rgba(255,87,31,.38);}
+#view-home .ev-title{color:#fff;}
+#view-home .ev-place, #view-home .ev-desc{color:var(--night-dim);}
+#view-home .ev-time{color:var(--brand-light);}
+#view-home .no-game-card{background:var(--night-2);}
+#view-home .no-game-card__t{color:#fff;}
+#view-home .no-game-card__d{color:var(--night-faint);}
+#view-home .no-game-card__next{background:#2A2A2A; color:var(--brand-light);}
+#view-home .goods-card{margin-top:32px; background:var(--night-2); color:#fff; box-shadow:inset 0 0 0 1px var(--night-line);}
+#view-home .app-card{margin-top:12px;}
+#view-home .goods-card__desc{color:var(--night-dim);}
+#view-home .goods-card__cta{color:var(--brand-light);}
+
+@media (prefers-reduced-motion: reduce){ .home-hero img{animation:none;} }
